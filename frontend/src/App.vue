@@ -2,7 +2,7 @@
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { watchEffect, computed } from 'vue'
-import Navbar from '@/layout/Navbar.vue'
+import RoleBasedNavigation from '@/components/layout/RoleBasedNavigation.vue'
 import Sidebar from '@/layout/Sidebar.vue'
 import Footer from '@/layout/Footer.vue'
 // import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
@@ -26,8 +26,8 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 <template>
   <div class="app-container">
-    <!-- Only show Navbar when authenticated -->
-    <Navbar v-if="isAuthenticated" />
+    <!-- Only show RoleBasedNavigation when authenticated -->
+    <RoleBasedNavigation v-if="isAuthenticated" />
     
     <div class="app-layout" :class="{ 'no-sidebar': !isAuthenticated }">
       <!-- Only show Sidebar when authenticated -->
@@ -50,7 +50,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
     <Footer v-if="isAuthenticated" />
     
     <!-- Global notification/toast component -->
-    <ToastNotification />
+    <!-- <ToastNotification /> -->
   </div>
 </template>
 

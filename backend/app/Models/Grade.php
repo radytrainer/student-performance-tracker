@@ -51,4 +51,41 @@ class Grade extends Model
     {
         return $this->belongsTo(User::class, 'recorded_by');
     }
+
+    // Query scopes for role-based filtering
+    public function scopeAccessibleToUser($query, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $query; // Admin can see all grades
+        }
+
+        if ($user->isTeacher()) {
+            // Teachers can only see grades for their assigned subjects
+            return $query->whereHas('classSubject', function ($q) use ($user) {
+                $q->where('teacher_id', $user->teacher->user_id);
+            });
+        }
+
+        if ($user->isStudent()) {
+            // Students can only see their own grades
+            return $query->where('student_id', $user->student->user_id);
+        }
+
+        return $query->whereRaw('1 = 0'); // No access for other roles
+    }
+
+    public function scopeForStudent($query, $studentId)
+    {
+        return $query->where('student_id', $studentId);
+    }
+
+    public function scopeForTerm($query, $termId)
+    {
+        return $query->where('term_id', $termId);
+    }
+
+    public function scopeByAssessmentType($query, $type)
+    {
+        return $query->where('assessment_type', $type);
+    }
 }

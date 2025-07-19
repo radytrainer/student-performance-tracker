@@ -26,12 +26,46 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
       await authAPI.login(credentials)
       await initialize()
-      router.push(router.currentRoute.value.query.redirect || '/')
+      
+      // Role-based redirect
+      const redirectPath = getRedirectPath(user.value?.role)
+      router.push(router.currentRoute.value.query.redirect || redirectPath)
     } catch (err) {
       error.value = err.response?.data?.message || 'Login failed'
       throw err
     } finally {
       isLoading.value = false
+    }
+  }
+
+  const register = async (userData) => {
+    try {
+      isLoading.value = true
+      error.value = null
+      await authAPI.register(userData)
+      await initialize()
+      
+      // Role-based redirect
+      const redirectPath = getRedirectPath(user.value?.role)
+      router.push(redirectPath)
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Registration failed'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const getRedirectPath = (role) => {
+    switch (role) {
+      case 'admin':
+        return '/admin/dashboard'
+      case 'teacher':
+        return '/teacher/dashboard'
+      case 'student':
+        return '/student/dashboard'
+      default:
+        return '/'
     }
   }
 
@@ -53,6 +87,8 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     initialize,
     login,
-    logout
+    register,
+    logout,
+    getRedirectPath
   }
 })
