@@ -21,17 +21,17 @@ class ClassSubjectSeeder extends Seeder
         $teachers = Teacher::all();
 
         // Get teachers by their specialization
-        $mathTeacher = $teachers->where('department', 'Mathematics')->first();
-        $scienceTeacher = $teachers->where('department', 'Science')->first();
-        $englishTeacher = $teachers->where('department', 'English')->first();
+        $englishTeacher1 = $teachers->where('department', 'English')->first();
+        $webDevTeacher = $teachers->where('department', 'Web Development')->first();
+        $englishTeacher2 = $teachers->where('department', 'English')->skip(1)->first();
 
         // Core subjects for all classes
         $coreSubjects = [
-            'MATH101' => $mathTeacher->user_id,
-            'ENG101' => $englishTeacher->user_id,
-            'SCI101' => $scienceTeacher->user_id,
-            'HIST101' => $englishTeacher->user_id, // English teacher can teach History
-            'PE101' => $scienceTeacher->user_id, // Science teacher can teach PE
+            'MATH101' => $webDevTeacher->user_id, // Web dev teacher can teach math
+            'ENG101' => $englishTeacher1->user_id,
+            'SCI101' => $webDevTeacher->user_id, // Web dev teacher can teach science
+            'HIST101' => $englishTeacher2 ? $englishTeacher2->user_id : $englishTeacher1->user_id,
+            'PE101' => $webDevTeacher->user_id, // Web dev teacher can teach PE
         ];
 
         foreach ($classes as $class) {
@@ -51,9 +51,9 @@ class ClassSubjectSeeder extends Seeder
             // Add some elective subjects for higher grades
             if (str_contains($class->class_name, '10th Grade')) {
                 $electiveSubjects = [
-                    'PHY201' => $scienceTeacher->user_id,
-                    'CHEM201' => $scienceTeacher->user_id,
-                    'CS101' => $mathTeacher->user_id,
+                    'PHY201' => $webDevTeacher->user_id,
+                    'CHEM201' => $webDevTeacher->user_id,
+                    'CS101' => $webDevTeacher->user_id,
                 ];
 
                 foreach ($electiveSubjects as $subjectCode => $teacherId) {
