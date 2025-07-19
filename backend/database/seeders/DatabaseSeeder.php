@@ -12,11 +12,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        // Run seeders in proper order to maintain referential integrity
+        $this->call([
+            UserSeeder::class,           // Create users first (admin, teachers, students)
+            SubjectSeeder::class,        // Create subjects
+            TermSeeder::class,           // Create academic terms
+            ClassSeeder::class,          // Create classes and assign students
+            ClassSubjectSeeder::class,   // Assign subjects to classes with teachers
+            StudentClassSeeder::class,   // Create student-class enrollment records
+            SystemSettingSeeder::class,  // Create system settings (requires admin user)
+        ]);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        $this->command->info('Database seeded successfully with comprehensive initial data!');
+        $this->command->info('Login credentials:');
+        $this->command->info('Admin: admin@school.com / admin123');
+        $this->command->info('Teachers: [firstname.lastname]@school.com / teacher123');
+        $this->command->info('Students: [firstname.lastname]@student.school.com / student123');
     }
 }
