@@ -76,4 +76,49 @@ class Student extends Model
     {
         return $this->hasMany(StudentNote::class, 'student_id', 'user_id');
     }
+
+    // Query scopes for role-based filtering
+    public function scopeAccessibleToUser($query, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $query; // Admin can see all students
+        }
+
+        if ($user->isTeacher()) {
+            // Teachers can only see students in their assigned classes
+            return $query->whereHas('studentClasses', function ($q) use ($user) {
+                $q->whereIn('class_id', function ($subQuery) use ($user) {
+                    $subQuery->select('class_id')
+                        ->from('class_subjects')
+                        ->where('teacher_id', $user->teacher->user_id);
+                })->where('status', 'active');
+            });
+        }
+
+        if ($user->isStudent()) {
+            // Students can only see their own profile
+            return $query->where('user_id', $user->id);
+        }
+
+        return $query->whereRaw('1 = 0'); // No access for other roles
+    }
+
+    public function scopeInClass($query, $classId)
+    {
+        return $query->whereHas('studentClasses', function ($q) use ($classId) {
+            $q->where('class_id', $classId)->where('status', 'active');
+        });
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereHas('user', function ($q) {
+            $q->where('is_active', true);
+        });
+    }
+
+    public function scopeByGender($query, $gender)
+    {
+        return $query->where('gender', $gender);
+    }
 }

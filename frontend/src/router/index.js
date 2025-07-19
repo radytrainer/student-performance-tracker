@@ -1,12 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth' // Assuming you're using Pinia
+import { useAuthStore } from '@/stores/auth'
+import { useAuth } from '@/composables/useAuth'
 
 const routes = [
   {
     path: '/',
-    name: 'Dashboard',
-    component: () => import('@/views/DashboardView.vue'),
-    meta: { requiresAuth: true }
+    name: 'Home',
+    redirect: () => {
+      const { getDefaultRoute } = useAuth()
+      return getDefaultRoute()
+    }
   },
   {
     path: '/login',
@@ -14,29 +17,250 @@ const routes = [
     component: () => import('@/views/auth/LoginView.vue'),
     meta: { guestOnly: true }
   },
+
+  // Admin routes
+  {
+    path: '/admin',
+    redirect: '/admin/dashboard',
+    meta: { requiresAuth: true, requiresRole: 'admin' }
+  },
+  {
+    path: '/admin/dashboard',
+    name: 'AdminDashboard',
+    component: () => import('@/views/admin/AdminDashboard.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      title: 'Admin Dashboard'
+    }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: () => import('@/views/admin/AdminUsers.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_users',
+      title: 'Manage Users'
+    }
+  },
+  {
+    path: '/admin/classes',
+    name: 'AdminClasses',
+    component: () => import('@/views/admin/AdminClasses.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_classes',
+      title: 'Manage Classes'
+    }
+  },
+  {
+    path: '/admin/subjects',
+    name: 'AdminSubjects',
+    component: () => import('@/views/admin/AdminSubjects.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_subjects',
+      title: 'Manage Subjects'
+    }
+  },
+  {
+    path: '/admin/settings',
+    name: 'AdminSettings',
+    component: () => import('@/views/admin/AdminSettings.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_system',
+      title: 'System Settings'
+    }
+  },
+  {
+    path: '/admin/reports',
+    name: 'AdminReports',
+    component: () => import('@/views/admin/AdminReports.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.view_reports',
+      title: 'System Reports'
+    }
+  },
+
+  // Teacher routes
+  {
+    path: '/teacher',
+    redirect: '/teacher/dashboard',
+    meta: { requiresAuth: true, requiresRole: 'teacher' }
+  },
+  {
+    path: '/teacher/dashboard',
+    name: 'TeacherDashboard',
+    component: () => import('@/views/teacher/TeacherDashboard.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'teacher',
+      title: 'Teacher Dashboard'
+    }
+  },
+  {
+    path: '/teacher/classes',
+    name: 'TeacherClasses',
+    component: () => import('@/views/teacher/TeacherClasses.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'teacher',
+      requiresPermission: 'teacher.manage_classes',
+      title: 'My Classes'
+    }
+  },
+  {
+    path: '/teacher/grades',
+    name: 'TeacherGrades',
+    component: () => import('@/views/teacher/TeacherGrades.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'teacher',
+      requiresPermission: 'teacher.manage_grades',
+      title: 'Manage Grades'
+    }
+  },
+  {
+    path: '/teacher/attendance',
+    name: 'TeacherAttendance',
+    component: () => import('@/views/teacher/TeacherAttendance.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'teacher',
+      requiresPermission: 'teacher.manage_attendance',
+      title: 'Manage Attendance'
+    }
+  },
+
+  // Student routes
+  {
+    path: '/student',
+    redirect: '/student/dashboard',
+    meta: { requiresAuth: true, requiresRole: 'student' }
+  },
+  {
+    path: '/student/dashboard',
+    name: 'StudentDashboard',
+    component: () => import('@/views/student/StudentDashboard.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'student',
+      title: 'Student Dashboard'
+    }
+  },
+  {
+    path: '/student/grades',
+    name: 'StudentGrades',
+    component: () => import('@/views/student/StudentGrades.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'student',
+      requiresPermission: 'student.view_own_grades',
+      title: 'My Grades'
+    }
+  },
+  {
+    path: '/student/attendance',
+    name: 'StudentAttendance',
+    component: () => import('@/views/student/StudentAttendance.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'student',
+      requiresPermission: 'student.view_own_attendance',
+      title: 'My Attendance'
+    }
+  },
+  {
+    path: '/student/reports',
+    name: 'StudentReports',
+    component: () => import('@/views/student/StudentReports.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'student',
+      requiresPermission: 'student.view_own_reports',
+      title: 'My Reports'
+    }
+  },
+  {
+    path: '/student/feedback',
+    name: 'StudentFeedback',
+    component: () => import('@/views/student/StudentFeedback.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'student',
+      requiresPermission: 'student.submit_feedback',
+      title: 'Submit Feedback'
+    }
+  },
+
+  // Shared routes (accessible by multiple roles)
+  {
+    path: '/analytics',
+    name: 'Analytics',
+    component: () => import('@/views/AnalyticsView.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresAnyRole: ['admin', 'teacher'],
+      requiresPermission: 'teacher.view_analytics',
+      title: 'Analytics'
+    }
+  },
   {
     path: '/students',
     name: 'Students',
     component: () => import('@/views/StudentsView.vue'),
-    meta: { requiresAuth: true }
+    meta: { 
+      requiresAuth: true, 
+      requiresAnyRole: ['admin', 'teacher'],
+      requiresPermission: 'teacher.view_students',
+      title: 'Students'
+    }
   },
   {
     path: '/students/:id',
     name: 'StudentDetail',
     component: () => import('@/views/StudentDetailView.vue'),
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true, 
+      requiresAnyRole: ['admin', 'teacher'],
+      requiresPermission: 'teacher.view_students',
+      title: 'Student Details'
+    },
     props: true
   },
+
+  // Profile routes (accessible by all authenticated users)
   {
-    path: '/analytics',
-    name: 'Analytics',
-    component: () => import('@/views/AnalyticsView.vue'),
-    meta: { requiresAuth: true }
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: { 
+      requiresAuth: true,
+      requiresPermission: 'view_profile',
+      title: 'My Profile'
+    }
+  },
+
+  // Error routes
+  {
+    path: '/unauthorized',
+    name: 'Unauthorized',
+    component: () => import('@/views/errors/UnauthorizedView.vue'),
+    meta: { title: 'Access Denied' }
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('@/views/errors/NotFoundView.vue')
+    component: () => import('@/views/errors/NotFoundView.vue'),
+    meta: { title: 'Page Not Found' }
   }
 ]
 
@@ -48,9 +272,24 @@ const router = createRouter({
   }
 })
 
-// Navigation guard for authentication
+// Navigation guard for authentication and authorization
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+  
+  // Wait for auth initialization if needed
+  if (authStore.isLoading) {
+    await new Promise(resolve => {
+      const unwatch = authStore.$subscribe((mutation, state) => {
+        if (!state.isLoading) {
+          unwatch()
+          resolve()
+        }
+      })
+    })
+  }
+
+  // Set page title
+  document.title = to.meta.title ? `${to.meta.title} - Student Tracker` : 'Student Tracker'
   
   // Check if the route requires authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
@@ -60,8 +299,26 @@ router.beforeEach(async (to, from, next) => {
   
   // Check if the route is guest-only
   if (to.meta.guestOnly && authStore.isAuthenticated) {
-    next({ name: 'Dashboard' })
+    const redirectPath = authStore.getRedirectPath(authStore.user?.role)
+    next({ path: redirectPath })
     return
+  }
+
+  // For authenticated routes, perform authorization checks
+  if (authStore.isAuthenticated && to.meta.requiresAuth) {
+    const { canAccessRoute } = useAuth()
+    
+    if (!canAccessRoute(to.meta)) {
+      // Redirect to unauthorized page
+      next({ 
+        name: 'Unauthorized', 
+        query: { 
+          message: 'You do not have permission to access this page',
+          redirect: to.fullPath 
+        }
+      })
+      return
+    }
   }
   
   next()

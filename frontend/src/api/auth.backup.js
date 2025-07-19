@@ -1,11 +1,4 @@
-// Temporarily using mock API for testing
-// Switch back to real API when backend is ready
-import mockAuth from './mockAuth'
-
-export default mockAuth
-
-// Original API (uncomment when backend is ready):
-/*
+// Backup of original auth.js
 import apiClient from './axiosConfig'
 
 export default {
@@ -22,4 +15,3 @@ export default {
     return apiClient.get('/auth/user')
   }
 }
-*/

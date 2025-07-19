@@ -1,8 +1,11 @@
-    <template>
+"// ... existing code ...
+// ... existing code ...
+
+<template>
   <div class="min-h-screen bg-gray-900 relative">
     <!-- Glassmorphism Background Overlay -->
     <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-green-900/20 backdrop-blur-sm"></div>
-    
+
     <!-- Main Container -->
     <div class="relative w-screen h-screen rounded-3xl overflow-hidden shadow-2xl backdrop-blur-lg bg-white/5">
       <!-- Background Video -->
@@ -29,7 +32,7 @@
           <div class="flex-1 relative">
             <!-- Subtle overlay for left section -->
             <div class="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm" style="z-index: 2;"></div>
-            
+
             <div class="relative h-full flex items-center justify-center p-12" style="z-index: 3;">
               <div class="max-w-md">
                 <h1 class="text-5xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
@@ -48,7 +51,7 @@
           <div class="flex-1 relative">
             <!-- Semi-transparent overlay for right section -->
             <div class="absolute inset-0 bg-black bg-opacity-70" style="z-index: 2;"></div>
-            
+
             <!-- Form Content -->
             <div class="relative h-full flex items-center justify-center p-8" style="z-index: 10;">
               <div class="w-full max-w-sm">
@@ -56,7 +59,12 @@
                 <h2 class="text-3xl font-bold text-white mb-8 text-center">
                   {{ isSignIn ? 'Login' : 'Register' }}
                 </h2>
-                
+
+                <!-- Auth Error Display -->
+                <div v-if="authStore.error" class="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+                  <p class="text-red-400 text-sm text-center">{{ authStore.error }}</p>
+                </div>
+
                 <!-- Login Form -->
                 <form v-if="isSignIn" class="space-y-6" @submit.prevent="handleSignIn">
                   <!-- Your Email -->
@@ -65,9 +73,14 @@
                       v-model="signInData.email"
                       type="email"
                       placeholder="Your Email"
-                      class="w-full bg-transparent text-white placeholder-gray-400 border-0 border-b border-gray-500 pb-2 focus:border-green-500 focus:outline-none transition-colors duration-200"
-                      required
+                      :class="[
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        hasError(signInErrors, 'email') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
                     />
+                    <p v-if="hasError(signInErrors, 'email')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(signInErrors, 'email') }}
+                    </p>
                   </div>
 
                   <!-- Password -->
@@ -76,31 +89,74 @@
                       v-model="signInData.password"
                       type="password"
                       placeholder="Password"
-                      class="w-full bg-transparent text-white placeholder-gray-400 border-0 border-b border-gray-500 pb-2 focus:border-green-500 focus:outline-none transition-colors duration-200"
-                      required
+                      :class="[
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        hasError(signInErrors, 'password') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
                     />
+                    <p v-if="hasError(signInErrors, 'password')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(signInErrors, 'password') }}
+                    </p>
                   </div>
 
                   <!-- Login Button -->
                   <button
                     type="submit"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 mt-8 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                    :disabled="authStore.isLoading"
+                    class="w-full text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 mt-8 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 gradient-button disabled:opacity-50"
                   >
-                    Login
+                    {{ authStore.isLoading ? 'Logging in...' : 'Login' }}
                   </button>
                 </form>
 
                 <!-- Register Form -->
-                <form v-else class="space-y-6" @submit.prevent="handleRegister">
-                  <!-- Your Name -->
+                <form v-else class="space-y-4" @submit.prevent="handleRegister">
+                  <!-- First Name -->
                   <div class="relative">
                     <input
-                      v-model="registerData.name"
+                      v-model="registerData.first_name"
                       type="text"
-                      placeholder="Your Name"
-                      class="w-full bg-transparent text-white placeholder-gray-400 border-0 border-b border-gray-500 pb-2 focus:border-green-500 focus:outline-none transition-colors duration-200"
-                      required
+                      placeholder="First Name"
+                      :class="[
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        hasError(registerErrors, 'first_name') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
                     />
+                    <p v-if="hasError(registerErrors, 'first_name')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(registerErrors, 'first_name') }}
+                    </p>
+                  </div>
+
+                  <!-- Last Name -->
+                  <div class="relative">
+                    <input
+                      v-model="registerData.last_name"
+                      type="text"
+                      placeholder="Last Name"
+                      :class="[
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        hasError(registerErrors, 'last_name') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
+                    />
+                    <p v-if="hasError(registerErrors, 'last_name')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(registerErrors, 'last_name') }}
+                    </p>
+                  </div>
+
+                  <!-- Username -->
+                  <div class="relative">
+                    <input
+                      v-model="registerData.username"
+                      type="text"
+                      placeholder="Username"
+                      :class="[
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        hasError(registerErrors, 'username') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
+                    />
+                    <p v-if="hasError(registerErrors, 'username')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(registerErrors, 'username') }}
+                    </p>
                   </div>
 
                   <!-- Your Email -->
@@ -109,9 +165,40 @@
                       v-model="registerData.email"
                       type="email"
                       placeholder="Your Email"
-                      class="w-full bg-transparent text-white placeholder-gray-400 border-0 border-b border-gray-500 pb-2 focus:border-green-500 focus:outline-none transition-colors duration-200"
-                      required
+                      :class="[
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        hasError(registerErrors, 'email') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
                     />
+                    <p v-if="hasError(registerErrors, 'email')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(registerErrors, 'email') }}
+                    </p>
+                  </div>
+
+                  <!-- Role Selection -->
+                  <div class="relative">
+                    <select
+                      v-model="registerData.role"
+                      :class="[
+                        'w-full bg-transparent text-white border-0 border-b pb-2 focus:outline-none transition-colors duration-200 appearance-none',
+                        hasError(registerErrors, 'role') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
+                    >
+                      <option 
+                        v-for="role in availableRoles" 
+                        :key="role.value" 
+                        :value="role.value"
+                        class="text-gray-800"
+                      >
+                        {{ role.label }}
+                      </option>
+                    </select>
+                    <p v-if="hasError(registerErrors, 'role')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(registerErrors, 'role') }}
+                    </p>
+                    <p class="text-gray-400 text-xs mt-1">
+                      Default: Student (Admin accounts are assigned by system administrators)
+                    </p>
                   </div>
 
                   <!-- Create Password -->
@@ -120,9 +207,14 @@
                       v-model="registerData.password"
                       type="password"
                       placeholder="Create Password"
-                      class="w-full bg-transparent text-white placeholder-gray-400 border-0 border-b border-gray-500 pb-2 focus:border-green-500 focus:outline-none transition-colors duration-200"
-                      required
+                      :class="[
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        hasError(registerErrors, 'password') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
                     />
+                    <p v-if="hasError(registerErrors, 'password')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(registerErrors, 'password') }}
+                    </p>
                   </div>
 
                   <!-- Repeat Password -->
@@ -131,17 +223,23 @@
                       v-model="registerData.confirmPassword"
                       type="password"
                       placeholder="Repeat Password"
-                      class="w-full bg-transparent text-white placeholder-gray-400 border-0 border-b border-gray-500 pb-2 focus:border-green-500 focus:outline-none transition-colors duration-200"
-                      required
+                      :class="[
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        hasError(registerErrors, 'confirmPassword') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
+                      ]"
                     />
+                    <p v-if="hasError(registerErrors, 'confirmPassword')" class="text-red-400 text-sm mt-1">
+                      {{ getErrorMessage(registerErrors, 'confirmPassword') }}
+                    </p>
                   </div>
 
                   <!-- Register Button -->
                   <button
                     type="submit"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 mt-8 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                    :disabled="authStore.isLoading"
+                    class="w-full text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 mt-8 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 gradient-button disabled:opacity-50"
                   >
-                    Register
+                    {{ authStore.isLoading ? 'Creating Account...' : 'Register' }}
                   </button>
                 </form>
 
@@ -201,7 +299,7 @@
                     <a 
                       href="#" 
                       @click.prevent="isSignIn = !isSignIn" 
-                      class="text-green-500 hover:text-green-400 font-medium transition-colors duration-200 focus:outline-none focus:underline"
+                      class="font-medium transition-colors duration-200 focus:outline-none focus:underline gradient-text"
                     >
                       {{ isSignIn ? "Let's register here" : "Login here" }}
                     </a>
@@ -212,55 +310,119 @@
           </div>
         </div>
       </div>
-
-      <!-- Presented by badge -->
-      <div class="absolute bottom-6 left-6" style="z-index: 20;">
-        <div class="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 flex items-center space-x-2 shadow-lg">
-          <span class="text-gray-700 text-sm font-medium">presented by</span>
-          <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-            <span class="text-white text-xs font-bold">A</span>
-          </div>
-        </div>
-      </div>
+      
+     
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import * as yup from 'yup'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const route = useRoute()
 
 // Form toggle state
 const isSignIn = ref(true)
+const authStore = useAuthStore()
 
-// Sign In form data
+// Form data
 const signInData = reactive({
   email: '',
   password: ''
 })
 
-// Register form data
 const registerData = reactive({
-  name: '',
+  first_name: '',
+  last_name: '',
+  username: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  role: 'student' // Default to student
 })
 
+// Validation errors
+const signInErrors = ref({})
+const registerErrors = ref({})
+
+// Validation schemas
+const signInSchema = yup.object({
+  email: yup.string().email('Please enter a valid email').required('Email is required'),
+  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required')
+})
+
+const registerSchema = yup.object({
+  first_name: yup.string().required('First name is required'),
+  last_name: yup.string().required('Last name is required'),
+  username: yup.string().min(3, 'Username must be at least 3 characters').required('Username is required'),
+  email: yup.string().email('Please enter a valid email').required('Email is required'),
+  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+  confirmPassword: yup.string()
+    .oneOf([yup.ref('password')], 'Passwords must match')
+    .required('Confirm password is required'),
+  role: yup.string().oneOf(['student', 'teacher'], 'Please select a valid role').required('Role is required')
+})
+
+// Available roles for registration (excluding admin)
+const availableRoles = [
+  { value: 'student', label: 'Student' },
+  { value: 'teacher', label: 'Teacher' }
+]
+
 // Sign In handler
-const handleSignIn = () => {
-  console.log('Login submitted:', signInData)
-  // Add your login logic here
+const handleSignIn = async () => {
+  try {
+    signInErrors.value = {}
+    await signInSchema.validate(signInData, { abortEarly: false })
+    
+    await authStore.login({
+      email: signInData.email,
+      password: signInData.password
+    })
+  } catch (error) {
+    if (error.inner) {
+      // Validation errors
+      error.inner.forEach(err => {
+        signInErrors.value[err.path] = err.message
+      })
+    } else {
+      // API errors
+      console.error('Login error:', error)
+    }
+  }
 }
 
 // Register handler
-const handleRegister = () => {
-  if (registerData.password !== registerData.confirmPassword) {
-    alert('Passwords do not match!')
-    return
+const handleRegister = async () => {
+  try {
+    registerErrors.value = {}
+    await registerSchema.validate(registerData, { abortEarly: false })
+    
+    const userData = {
+      first_name: registerData.first_name,
+      last_name: registerData.last_name,
+      username: registerData.username,
+      email: registerData.email,
+      password: registerData.password,
+      role: registerData.role
+    }
+    
+    await authStore.register(userData)
+  } catch (error) {
+    if (error.inner) {
+      // Validation errors
+      error.inner.forEach(err => {
+        registerErrors.value[err.path] = err.message
+      })
+    } else {
+      // API errors
+      console.error('Registration error:', error)
+    }
   }
-  
-  console.log('Register submitted:', registerData)
-  // Add your registration logic here
 }
 
 // Social login handler
@@ -268,12 +430,41 @@ const handleSocialLogin = (provider) => {
   console.log(`Social login with ${provider}`)
   // Add your social login logic here
 }
+
+// Helper to get error message
+const getErrorMessage = (errors, field) => {
+  return errors[field] || ''
+}
+
+// Helper to check if field has error
+const hasError = (errors, field) => {
+  return !!errors[field]
+}
+
+// Check if user is already authenticated when component mounts
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    // Redirect to appropriate dashboard based on user role
+    const redirectPath = route.query.redirect || authStore.getRedirectPath(authStore.user?.role)
+    router.replace(redirectPath)
+  }
+})
+
+// Watch for authentication state changes
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    // Redirect to appropriate dashboard based on user role
+    const redirectPath = route.query.redirect || authStore.getRedirectPath(authStore.user?.role)
+    router.replace(redirectPath)
+  }
+})
 </script>
 
 <style scoped>
 /* Custom styles for input focus states */
 input:focus {
   outline: none;
+  border-color: #4ade80;
 }
 
 /* Video background styling */
@@ -298,6 +489,47 @@ video {
 
 .backdrop-blur-sm {
   backdrop-filter: blur(4px);
+}
+
+/* Gradient Button Styling */
+.gradient-button {
+  background: linear-gradient(to right, #6717CD, #296FF9);
+  box-shadow: 0 4px 6px rgba(103, 23, 205, 0.25);
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.gradient-button:hover {
+  background: linear-gradient(to right, #5a14b8, #2460db);
+  box-shadow: 0 6px 8px rgba(103, 23, 205, 0.35);
+  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.gradient-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(103, 23, 205, 0.2);
+}
+
+/* Gradient Text Styling */
+.gradient-text {
+  background: linear-gradient(to right, #6717CD, #296FF9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-decoration: none;
+}
+
+.gradient-text:hover {
+  background: linear-gradient(to right, #5a14b8, #2460db);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-decoration: underline;
+}
+
+/* Form transition animations */
+form {
+  transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
 }
 
 /* Responsive adjustments */
@@ -377,5 +609,25 @@ video {
 /* Form transition animations */
 form {
   transition: opacity 0.3s ease-in-out;
+  transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+}
+
+/* Select dropdown styling */
+select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'%3E%3Cpath d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3E%3C/svg%3E");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5rem 1.5rem;
+  padding-right: 2.5rem;
+}
+
+select option {
+  background-color: #374151;
+  color: white;
+}
+
+/* Error styling */
+.border-red-500 {
+  border-color: #ef4444 !important;
 }
 </style>

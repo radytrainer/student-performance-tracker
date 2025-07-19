@@ -76,4 +76,25 @@ class User extends Authenticatable
     {
         return $this->role === 'student';
     }
+
+    // Query scopes for role-based filtering
+    public function scopeAccessibleUsers($query, User $currentUser)
+    {
+        if ($currentUser->isAdmin()) {
+            return $query; // Admin can see all users
+        }
+        
+        // Non-admin users can only see their own profile
+        return $query->where('id', $currentUser->id);
+    }
+
+    public function scopeByRole($query, $role)
+    {
+        return $query->where('role', $role);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }
