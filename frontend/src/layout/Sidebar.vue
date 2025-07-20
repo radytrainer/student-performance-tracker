@@ -1,5 +1,5 @@
 <template>
-  <div class="flex">
+  <div >
     <!-- Toggle button (mobile) -->
     <button
       @click="isOpen = !isOpen"
