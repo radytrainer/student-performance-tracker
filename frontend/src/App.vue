@@ -74,7 +74,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 .main-content {
   flex: 1;
-  padding: 2rem;
+  padding: 0;
   position: relative;
 }
 
@@ -117,7 +117,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
   }
   
   .main-content {
-    padding: 1rem;
+    padding: 0;
   }
   
   .main-content.full-width {
