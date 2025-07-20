@@ -1,14 +1,13 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50">
+  <div class="">
     <!-- Modern Header with Profile Overview -->
-    <header class="bg-white/80 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50">
+    <header class="backdrop-blur-xl border-b border-gray-100 sticky ">
       <div class="max-w-7xl mx-auto px-6">
         <div class="flex justify-between items-center py-6">
           <!-- Welcome Message & Profile Overview -->
-          <div class="flex items-center space-x-4">
-            
+          <div class="flex items-center space-x-4">           
             <div>
-              <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Welcome back, {{ student.name }}!</h1>
+              <h1 class="text-2xl font-bold text-purple-600 tracking-tight">Welcome back, {{ student.name }}!</h1>
               <p class="text-sm text-gray-600 font-medium">{{ student.course }} • ID: {{ student.studentId }}</p>
               <p class="text-xs text-gray-500">Last login: {{ student.lastLogin }}</p>
             </div>
@@ -120,11 +119,7 @@
                     </div>
                   </div>
                   <div class="flex items-center space-x-3">
-                    <button v-if="class_.isOnline" 
-                            class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-green-500/25 transition-all duration-200">
-                      <VideoIcon class="w-4 h-4" />
-                      <span>Join Class</span>
-                    </button>
+                    
                     <span :class="getStatusColor(class_.status)" class="px-3 py-1 text-xs font-semibold rounded-full">
                       {{ class_.status }}
                     </span>
