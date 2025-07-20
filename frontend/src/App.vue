@@ -1,21 +1,24 @@
 <script setup>
 import { RouterView } from 'vue-router'
-// import { useAuthStore } from '@/stores/auth'
-import { watchEffect } from 'vue'
-import Navbar from '@/layout/Navbar.vue'
+import { useAuthStore } from '@/stores/auth'
+import { watchEffect, computed } from 'vue'
+import RoleBasedNavigation from '@/components/layout/RoleBasedNavigation.vue'
 import Sidebar from '@/layout/Sidebar.vue'
 import Footer from '@/layout/Footer.vue'
 // import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 
-// const authStore = useAuthStore()
+const authStore = useAuthStore()
 
-// // Check authentication status when app loads
-// authStore.initialize()
+// Check authentication status when app loads
+authStore.initialize()
 
-// // Global loading state (optional)
+// Computed property to check if user is authenticated
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+// Global loading state (optional)
 // const isLoading = ref(false)
 
-// // Watch for route changes to set loading state
+// Watch for route changes to set loading state
 // watchEffect(() => {
 //   isLoading.value = router.currentRoute.value.meta.loading || false
 // })
@@ -23,12 +26,14 @@ import Footer from '@/layout/Footer.vue'
 
 <template>
   <div class="app-container">
-    <Navbar />
+    <!-- Only show RoleBasedNavigation when authenticated -->
+    <RoleBasedNavigation v-if="isAuthenticated" />
     
-    <div class="app-layout">
-      <Sidebar />
+    <div class="app-layout" :class="{ 'no-sidebar': !isAuthenticated }">
+      <!-- Only show Sidebar when authenticated -->
+      <Sidebar v-if="isAuthenticated" />
       
-      <main class="main-content">
+      <main class="main-content" :class="{ 'full-width': !isAuthenticated }">
         <div v-if="isLoading" class="loading-overlay">
           <!-- <LoadingSpinner size="large" /> -->
         </div>
@@ -41,10 +46,11 @@ import Footer from '@/layout/Footer.vue'
       </main>
     </div>
     
-    <Footer />
+    <!-- Only show Footer when authenticated -->
+    <Footer v-if="isAuthenticated" />
     
     <!-- Global notification/toast component -->
-    <ToastNotification />
+    <!-- <ToastNotification /> -->
   </div>
 </template>
 
@@ -62,10 +68,22 @@ import Footer from '@/layout/Footer.vue'
   flex: 1;
 }
 
+.app-layout.no-sidebar {
+  flex-direction: column;
+}
+
 .main-content {
   flex: 1;
   padding: 2rem;
   position: relative;
+}
+
+.main-content.full-width {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
 }
 
 .loading-overlay {
@@ -100,6 +118,10 @@ import Footer from '@/layout/Footer.vue'
   
   .main-content {
     padding: 1rem;
+  }
+  
+  .main-content.full-width {
+    padding: 0;
   }
 }
 </style>
