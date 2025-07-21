@@ -2,14 +2,43 @@
   <div class="max-w-7xl mx-auto p-2">
     <h1 class="text-2xl font-bold mb-6">🎓 My Grade</h1>
 
+
     <!-- ✅ Wrap Exportable Content -->
     <div id="grade-export-content">
       <!-- Student Info -->
-      <div class="bg-white shadow-md rounded-lg p-4 mb-6 border">
+      <div class="bg-white shadow-md rounded-lg p-4 mb-4 border">
         <p class="text-gray-700"><span class="font-semibold">Name:</span> {{ student.name }}</p>
         <p class="text-gray-700"><span class="font-semibold">Class:</span> {{ student.class }}</p>
         <p class="text-gray-700"><span class="font-semibold">Term:</span> {{ currentTermName }}</p>
       </div>
+
+
+      <!-- Summary Card -->
+      <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">📊 Performance Summary</h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+        <!-- GPA Card -->
+        <div class="bg-blue-50 rounded-xl p-5 shadow text-center border border-blue-200">
+          <div class="text-4xl mb-2">🎯</div>
+          <p class="text-gray-500 font-semibold text-sm">GPA</p>
+          <p class="text-2xl font-bold text-blue-800">{{ gpa.toFixed(2) }}</p>
+        </div>
+
+        <!-- Best Subject Card -->
+        <div class="bg-green-50 rounded-xl p-5 shadow text-center border border-green-200">
+          <div class="text-4xl mb-2">📈</div>
+          <p class="text-gray-500 font-semibold text-sm">Best Subject</p>
+          <p class="text-xl font-bold text-green-700">{{ bestSubject || '—' }}</p>
+        </div>
+
+        <!-- Weakest Subject Card -->
+        <div class="bg-red-50 rounded-xl p-5 shadow text-center border border-red-200">
+          <div class="text-4xl mb-2">📉</div>
+          <p class="text-gray-500 font-semibold text-sm">Weakest Subject</p>
+          <p class="text-xl font-bold text-red-600">{{ weakestSubject || '—' }}</p>
+        </div>
+      </div>
+
 
       <!-- Filters + Export -->
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
@@ -221,4 +250,64 @@ const exportToPDF = () => {
   }
   html2pdf().from(element).set(options).save()
 }
+
+
+
+
+
+
+
+
+
+
+//Cards
+const gpa = computed(() => {
+  if (!filteredGrades.value.length) return 0
+
+  const totalPoints = filteredGrades.value.reduce((sum, g) => {
+    const gradePoint = {
+      A: 4.0,
+      B: 3.0,
+      C: 2.0,
+      D: 1.0,
+      F: 0.0,
+    }[g.grade_letter] || 0
+    return sum + gradePoint
+  }, 0)
+
+  return totalPoints / filteredGrades.value.length
+})
+
+const bestSubject = computed(() => {
+  const subjects = {}
+  filteredGrades.value.forEach(g => {
+    if (!subjects[g.subject]) subjects[g.subject] = []
+    subjects[g.subject].push(g)
+  })
+
+  const averages = Object.entries(subjects).map(([subject, grades]) => {
+    const total = grades.reduce((s, g) => s + ((g.score_obtained / g.max_score) * 100), 0)
+    return { subject, avg: total / grades.length }
+  })
+
+  if (!averages.length) return null
+  return averages.sort((a, b) => b.avg - a.avg)[0].subject
+})
+
+const weakestSubject = computed(() => {
+  const subjects = {}
+  filteredGrades.value.forEach(g => {
+    if (!subjects[g.subject]) subjects[g.subject] = []
+    subjects[g.subject].push(g)
+  })
+
+  const averages = Object.entries(subjects).map(([subject, grades]) => {
+    const total = grades.reduce((s, g) => s + ((g.score_obtained / g.max_score) * 100), 0)
+    return { subject, avg: total / grades.length }
+  })
+
+  if (!averages.length) return null
+  return averages.sort((a, b) => a.avg - b.avg)[0].subject
+})
+
 </script>
