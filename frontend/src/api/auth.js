@@ -1,25 +1,36 @@
-// Temporarily using mock API for testing
-// Switch back to real API when backend is ready
-import mockAuth from './mockAuth'
-
-export default mockAuth
-
-// Original API (uncomment when backend is ready):
-/*
 import apiClient from './axiosConfig'
 
 export default {
-  login(credentials) {
-    return apiClient.post('/auth/login', credentials)
+  async login(credentials) {
+    const response = await apiClient.post('/auth/login', credentials)
+    if (response.data.token) {
+      localStorage.setItem('auth_token', response.data.token)
+    }
+    return response
   },
-  register(userData) {
-    return apiClient.post('/auth/register', userData)
+  
+  async register(userData) {
+    // Add password_confirmation field for Laravel validation
+    const registrationData = {
+      ...userData,
+      password_confirmation: userData.password
+    }
+    const response = await apiClient.post('/auth/register', registrationData)
+    if (response.data.token) {
+      localStorage.setItem('auth_token', response.data.token)
+    }
+    return response
   },
-  logout() {
-    return apiClient.post('/auth/logout')
+  
+  async logout() {
+    try {
+      await apiClient.post('/auth/logout')
+    } finally {
+      localStorage.removeItem('auth_token')
+    }
   },
-  getUser() {
+  
+  async getUser() {
     return apiClient.get('/auth/user')
   }
 }
-*/

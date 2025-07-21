@@ -51,7 +51,7 @@
               <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                 {{ userInitials }}
               </div>
-              <span class="hidden md:block text-sm font-medium text-gray-700">{{ userRole }}</span>
+              <span class="hidden md:block text-sm font-medium text-gray-700">{{ userFullName }}</span>
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
@@ -215,6 +215,13 @@ const userInitials = computed(() => {
   const first = user.value.first_name?.charAt(0) || ''
   const last = user.value.last_name?.charAt(0) || ''
   return (first + last).toUpperCase()
+})
+
+const userFullName = computed(() => {
+  if (!user.value) return ''
+  const firstName = user.value.first_name || ''
+  const lastName = user.value.last_name || ''
+  return `${firstName} ${lastName}`.trim()
 })
 
 const roleBadgeClass = computed(() => {
