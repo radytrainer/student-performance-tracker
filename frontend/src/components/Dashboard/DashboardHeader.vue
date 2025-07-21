@@ -1,5 +1,5 @@
 <template>
-  <header class="backdrop-blur-xl border-b border-gray-100 sticky top-0 z-10 bg-white/80">
+  <header>
     <div class="max-w-7xl mx-auto px-6">
       <div class="flex justify-between items-center py-6">
         <div class="flex items-center space-x-4">
