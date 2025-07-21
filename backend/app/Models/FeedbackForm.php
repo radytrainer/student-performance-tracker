@@ -16,6 +16,7 @@ class FeedbackForm extends Model
         'description',
         'google_form_id',
         'google_form_url',
+        'template_used',
         'created_by_teacher_id',
         'is_active',
         'survey_type',

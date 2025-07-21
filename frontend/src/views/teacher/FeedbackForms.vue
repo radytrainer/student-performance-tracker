@@ -3,8 +3,43 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Student Feedback Surveys</h1>
-        <p class="mt-2 text-gray-600">Create and manage feedback surveys for your students</p>
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Student Feedback Surveys</h1>
+            <p class="mt-2 text-gray-600">Create and manage feedback surveys for your students</p>
+          </div>
+          <div class="flex space-x-3">
+            <!-- Enhanced Management Buttons -->
+            <button
+              @click="showTemplatesModal = true"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+              </svg>
+              Use Template
+            </button>
+            <button
+              @click="showBulkAssignModal = true"
+              :disabled="forms.length === 0"
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path>
+              </svg>
+              Bulk Assign
+            </button>
+            <button
+              @click="$router.push('/teacher/analytics')"
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4"></path>
+              </svg>
+              Analytics
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Create Form Section -->
@@ -205,6 +240,22 @@
       @close="showUserAssignmentModal = false"
       @assigned="onFormAssigned"
     />
+
+    <!-- Bulk Assignment Modal -->
+    <BulkAssignModal
+      v-if="showBulkAssignModal"
+      :surveys="forms"
+      :classes="classes"
+      @close="showBulkAssignModal = false"
+      @assigned="onBulkAssigned"
+    />
+
+    <!-- Survey Templates Modal -->
+    <SurveyTemplatesModal
+      v-if="showTemplatesModal"
+      @close="showTemplatesModal = false"
+      @created="onSurveyCreated"
+    />
   </div>
 </template>
 
@@ -213,14 +264,19 @@ import { ref, reactive, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import ClassAssignmentModal from '@/components/teacher/ClassAssignmentModal.vue'
 import UserAssignmentModal from '@/components/teacher/UserAssignmentModal.vue'
+import BulkAssignModal from '@/components/teacher/BulkAssignModal.vue'
+import SurveyTemplatesModal from '@/components/teacher/SurveyTemplatesModal.vue'
 
 const authStore = useAuthStore()
 
 // State
 const isLoading = ref(false)
 const forms = ref([])
+const classes = ref([])
 const showAssignmentModal = ref(false)
 const showUserAssignmentModal = ref(false)
+const showBulkAssignModal = ref(false)
+const showTemplatesModal = ref(false)
 const selectedForm = ref(null)
 
 // New form data
@@ -326,6 +382,18 @@ const onFormAssigned = () => {
   // Refresh forms list or show success message
 }
 
+const onBulkAssigned = (response) => {
+  showBulkAssignModal.value = false
+  console.log('Bulk assignment successful:', response)
+  // Optionally refresh the forms list
+}
+
+const onSurveyCreated = (survey) => {
+  showTemplatesModal.value = false
+  forms.value.unshift(survey) // Add new survey to the beginning of the list
+  console.log('Survey created from template:', survey)
+}
+
 const loadForms = async () => {
   try {
     const response = await fetch('http://localhost:8000/api/teacher/feedback-forms', {
@@ -343,6 +411,23 @@ const loadForms = async () => {
   }
 }
 
+const loadClasses = async () => {
+  try {
+    const response = await fetch('http://localhost:8000/api/teacher/feedback-classes', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      classes.value = data.data || []
+    }
+  } catch (error) {
+    console.error('Error loading classes:', error)
+  }
+}
+
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString()
 }
@@ -350,5 +435,6 @@ const formatDate = (date) => {
 // Lifecycle
 onMounted(() => {
   loadForms()
+  loadClasses()
 })
 </script>
