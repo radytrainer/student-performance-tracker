@@ -1,7 +1,7 @@
 <script setup>
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { watchEffect, computed } from 'vue'
+import { watchEffect, computed, ref } from 'vue'
 import RoleBasedNavigation from '@/components/layout/RoleBasedNavigation.vue'
 import Sidebar from '@/layout/Sidebar.vue'
 import Footer from '@/layout/Footer.vue'
@@ -16,7 +16,7 @@ authStore.initialize()
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 // Global loading state (optional)
-// const isLoading = ref(false)
+const isLoading = ref(false)
 
 // Watch for route changes to set loading state
 // watchEffect(() => {
