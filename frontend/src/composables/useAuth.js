@@ -119,6 +119,7 @@ export function useAuth() {
         { name: 'Students', path: '/students', icon: 'fas fa-user-graduate' },
         { name: 'Grades', path: '/teacher/grades', icon: 'fas fa-clipboard-list' },
         { name: 'Attendance', path: '/teacher/attendance', icon: 'fas fa-calendar-check' },
+        { name: 'Feedback Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-poll' },
         { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
       ],
       student: [
@@ -126,6 +127,7 @@ export function useAuth() {
         { name: 'My Grades', path: '/student/grades', icon: 'fas fa-clipboard-list' },
         { name: 'My Attendance', path: '/student/attendance', icon: 'fas fa-calendar-check' },
         { name: 'My Reports', path: '/student/reports', icon: 'fas fa-file-alt' },
+        { name: 'Survey Feedback', path: '/student/surveys', icon: 'fas fa-poll' },
         { name: 'Feedback', path: '/student/feedback', icon: 'fas fa-comment' }
       ]
     }
