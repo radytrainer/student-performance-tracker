@@ -71,16 +71,24 @@ class FormResponse extends Model
         $total = 0;
         $count = 0;
 
-        foreach ($responses as $response) {
-            if (is_numeric($response)) {
-                $total += $response;
-                $count++;
+        // Only count question responses (question_1 through question_5)
+        for ($i = 1; $i <= 5; $i++) {
+            $key = "question_{$i}";
+            if (isset($responses[$key]) && is_numeric($responses[$key])) {
+                $value = (int) $responses[$key];
+                if ($value >= 1 && $value <= 10) { // Validate range
+                    $total += $value;
+                    $count++;
+                }
             }
         }
 
         if ($count > 0) {
             $this->score_total = $total;
             $this->average_score = round($total / $count, 2);
+        } else {
+            $this->score_total = 0;
+            $this->average_score = 0;
         }
     }
 }

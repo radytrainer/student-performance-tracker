@@ -1,32 +1,34 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-4 sm:py-8">
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
       <!-- Header -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between">
+      <div class="mb-6 sm:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">Feedback Surveys</h1>
-            <p class="mt-2 text-gray-600">Complete your assigned feedback surveys</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Feedback Surveys</h1>
+            <p class="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">Complete your assigned feedback surveys</p>
           </div>
-          <div class="flex items-center space-x-4">
+          <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
             <!-- Auto-refresh indicator -->
-            <div class="flex items-center text-sm text-gray-500">
+            <div class="flex items-center text-xs sm:text-sm text-gray-500">
               <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
-              <span>Auto-refresh in {{ refreshCountdown }}s</span>
+              <span class="hidden sm:inline">Auto-refresh in {{ refreshCountdown }}s</span>
+              <span class="sm:hidden">Auto {{ refreshCountdown }}s</span>
             </div>
             <!-- Manual refresh button -->
             <button
               @click="refreshData"
               :disabled="isLoading"
-              class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg class="w-4 h-4 mr-2" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
               </svg>
-              {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+              <span class="hidden sm:inline">{{ isLoading ? 'Refreshing...' : 'Refresh' }}</span>
+              <span class="sm:hidden">{{ isLoading ? '...' : 'Refresh' }}</span>
             </button>
             <!-- Last updated -->
-            <div class="text-xs text-gray-400">
+            <div class="text-xs text-gray-400 hidden sm:block">
               Last updated: {{ formatLastRefresh() }}
             </div>
           </div>

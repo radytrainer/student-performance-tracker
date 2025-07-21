@@ -160,6 +160,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Analytics Routes
         Route::get('teacher/analytics', [FeedbackFormController::class, 'getTeacherAnalytics']);
         Route::get('teacher/feedback-forms/{formId}/analytics', [FeedbackFormController::class, 'getFormAnalytics']);
+        
+        // Enhanced Management Routes
+        Route::post('teacher/bulk-assign-surveys', [FeedbackFormController::class, 'bulkAssignSurveys']);
+        Route::get('teacher/survey-templates', [FeedbackFormController::class, 'getSurveyTemplates']);
+        Route::post('teacher/create-from-template', [FeedbackFormController::class, 'createFromTemplate']);
+        Route::post('teacher/schedule-survey', [FeedbackFormController::class, 'scheduleSurvey']);
     });
 
     // Student routes

@@ -720,6 +720,256 @@ class FeedbackFormController extends Controller
     }
 
     /**
+     * Bulk assign surveys to multiple classes
+     */
+    public function bulkAssignSurveys(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'survey_id' => 'required|integer|exists:feedback_forms,id',
+            'class_ids' => 'required|array|min:1',
+            'class_ids.*' => 'integer|exists:classes,id',
+            'due_date' => 'nullable|date|after:today',
+            'instructions' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $teacherId = $request->user()->id;
+            $surveyId = $request->survey_id;
+            $classIds = $request->class_ids;
+
+            // Verify teacher owns the survey
+            $survey = FeedbackForm::byTeacher($teacherId)->findOrFail($surveyId);
+
+            $assignments = [];
+            foreach ($classIds as $classId) {
+                // Check if assignment already exists
+                $existingAssignment = FormAssignment::where('feedback_form_id', $surveyId)
+                    ->where('class_id', $classId)
+                    ->first();
+
+                if (!$existingAssignment) {
+                    $assignment = FormAssignment::create([
+                        'feedback_form_id' => $surveyId,
+                        'class_id' => $classId,
+                        'assigned_by_teacher_id' => $teacherId,
+                        'due_date' => $request->due_date,
+                        'instructions' => $request->instructions,
+                        'is_active' => true,
+                    ]);
+
+                    $assignment->load(['assignedClass', 'feedbackForm']);
+                    $assignments[] = $assignment;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Survey assigned to ' . count($assignments) . ' classes successfully',
+                'data' => $assignments
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bulk assign surveys',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get survey templates
+     */
+    public function getSurveyTemplates(Request $request): JsonResponse
+    {
+        try {
+            $templates = [
+                [
+                    'id' => 'weekly_feedback',
+                    'name' => 'Weekly Feedback Template',
+                    'description' => 'Standard weekly feedback survey for regular class assessment',
+                    'type' => 'weekly',
+                    'questions' => [
+                        'How would you rate the overall teaching quality this week?',
+                        'How clear and understandable were the lesson explanations?',
+                        'How effectively did the teacher engage with students?',
+                        'How well did the teacher provide feedback on your work?',
+                        'How would you rate your overall learning experience this week?'
+                    ]
+                ],
+                [
+                    'id' => 'monthly_comprehensive',
+                    'name' => 'Monthly Comprehensive Review',
+                    'description' => 'Comprehensive monthly review covering all aspects of teaching and learning',
+                    'type' => 'monthly',
+                    'questions' => [
+                        'How would you rate the course content delivery over the past month?',
+                        'How satisfied are you with the pace of lessons?',
+                        'How effective are the teaching methods used in class?',
+                        'How well does the teacher respond to student questions and concerns?',
+                        'How would you rate your overall progress this month?'
+                    ]
+                ],
+                [
+                    'id' => 'course_evaluation',
+                    'name' => 'Course Evaluation Template',
+                    'description' => 'End-of-course evaluation for comprehensive feedback',
+                    'type' => 'monthly',
+                    'questions' => [
+                        'How would you rate the overall course structure and organization?',
+                        'How effective were the teaching materials and resources?',
+                        'How well did the course meet your learning expectations?',
+                        'How would you rate the teacher\'s communication and availability?',
+                        'How likely are you to recommend this course to other students?'
+                    ]
+                ]
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $templates
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load survey templates',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create survey from template
+     */
+    public function createFromTemplate(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'template_id' => 'required|string',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'google_form_url' => 'required|url',
+            'survey_type' => 'required|in:weekly,monthly',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after:start_date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $googleFormId = $this->extractGoogleFormId($request->google_form_url);
+
+            $form = FeedbackForm::create([
+                'title' => $request->title,
+                'description' => $request->description,
+                'survey_type' => $request->survey_type,
+                'google_form_url' => $request->google_form_url,
+                'google_form_id' => $googleFormId,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'created_by_teacher_id' => $request->user()->id,
+                'is_active' => true,
+                'template_used' => $request->template_id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Survey created from template successfully',
+                'data' => $form
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create survey from template',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Schedule survey for automatic assignment
+     */
+    public function scheduleSurvey(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'survey_id' => 'required|integer|exists:feedback_forms,id',
+            'class_ids' => 'required|array|min:1',
+            'class_ids.*' => 'integer|exists:classes,id',
+            'schedule_date' => 'required|date|after:now',
+            'due_date' => 'required|date|after:schedule_date',
+            'instructions' => 'nullable|string|max:1000',
+            'auto_remind' => 'boolean',
+            'remind_days_before' => 'nullable|integer|min:1|max:7',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $teacherId = $request->user()->id;
+            
+            // Verify teacher owns the survey
+            $survey = FeedbackForm::byTeacher($teacherId)->findOrFail($request->survey_id);
+
+            // Create scheduled assignments (inactive until schedule date)
+            $scheduledAssignments = [];
+            foreach ($request->class_ids as $classId) {
+                $assignment = FormAssignment::create([
+                    'feedback_form_id' => $request->survey_id,
+                    'class_id' => $classId,
+                    'assigned_by_teacher_id' => $teacherId,
+                    'due_date' => $request->due_date,
+                    'instructions' => $request->instructions,
+                    'is_active' => false, // Will be activated on schedule date
+                    'scheduled_date' => $request->schedule_date,
+                    'auto_remind' => $request->auto_remind ?? false,
+                    'remind_days_before' => $request->remind_days_before ?? 1,
+                ]);
+
+                $assignment->load(['assignedClass', 'feedbackForm']);
+                $scheduledAssignments[] = $assignment;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Survey scheduled for ' . count($scheduledAssignments) . ' classes',
+                'data' => [
+                    'scheduled_assignments' => $scheduledAssignments,
+                    'schedule_date' => $request->schedule_date,
+                    'due_date' => $request->due_date
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to schedule survey',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Extract Google Form ID from URL
      */
     private function extractGoogleFormId($url): ?string

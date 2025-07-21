@@ -16,13 +16,19 @@ class FormAssignment extends Model
         'class_id',
         'assigned_by_teacher_id',
         'due_date',
+        'scheduled_date',
         'is_active',
+        'auto_remind',
+        'remind_days_before',
         'instructions',
     ];
 
     protected $casts = [
         'due_date' => 'date',
+        'scheduled_date' => 'datetime',
         'is_active' => 'boolean',
+        'auto_remind' => 'boolean',
+        'remind_days_before' => 'integer',
     ];
 
     // Relationships
