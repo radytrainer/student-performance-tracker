@@ -233,4 +233,6 @@ class StudentController extends BaseController
         $presentRecords = $attendanceRecords->where('status', 'present')->count();
         return round(($presentRecords / $totalRecords) * 100, 2);
     }
+
+    
 }
