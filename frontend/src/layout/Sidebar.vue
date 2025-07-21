@@ -14,7 +14,7 @@
     <transition name="slide">
       <aside
         v-show="isOpen"
-        class="fixed md:relative top-0 left-0 h-screen w-80 bg-gradient-to-b from-purple-600 via-blue-600 to-indigo-700 text-white z-40 md:translate-x-0 transform transition-all duration-300 shadow-2xl"
+        class="fixed md:relative top-0 left-0 h-screen w-100 bg-gradient-to-b from-purple-600 via-blue-600 to-indigo-700 text-white z-40 md:translate-x-0 transform transition-all duration-300 shadow-2xl"
         :class="{ '-translate-x-full': !isOpen && isMobile }"
       >
         <!-- User Profile Section -->
@@ -61,7 +61,7 @@
         </nav>
 
         <!-- Active Users Section -->
-        <div class="p-4 border-t border-white/10">
+        <div class="p-4 border-t border-white/10  ">
           <p class="text-white/60 text-xs font-medium uppercase tracking-wider mb-3">Active Users</p>
           <div class="flex -space-x-2">
             <div v-for="i in 5" :key="i" 
@@ -160,7 +160,7 @@ onUnmounted(() => {
 
 /* Custom scrollbar for webkit browsers */
 aside::-webkit-scrollbar {
-  width: 4px;
+  width: 0px;
 }
 
 aside::-webkit-scrollbar-track {
