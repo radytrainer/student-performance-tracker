@@ -13,48 +13,18 @@
         <div class="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 px-4 sm:px-8 py-8 sm:py-12">
           <div class="flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-8">
             <!-- Profile Image Section -->
-            <div class="relative group">
-              <div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-white shadow-2xl border-4 border-white/20 backdrop-blur-sm">
-                <img 
-                  v-if="profileImage"
-                  :src="profileImage"
-                  :alt="user.name || 'Profile'"
-                  class="w-full h-full object-cover"
-                />
-                <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
-                  <span class="text-2xl sm:text-3xl font-bold text-white">
-                    {{ getInitials(user.name) }}
-                  </span>
-                </div>
-              </div>
-              
-              <!-- Upload Button -->
-              <button
-                v-if="editing"
-                @click="triggerImageUpload"
-                :disabled="imageUploading"
-                type="button"
-                class="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 bg-white text-blue-600 p-2 sm:p-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-              >
-                <svg v-if="imageUploading" class="w-4 h-4 sm:w-5 sm:h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <svg v-else class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-              </button>
-              
-              <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                @change="handleImageUpload"
-                class="hidden"
-                :disabled="imageUploading"
-              />
-            </div>
+            <ImageUpload
+              :current-image="profileImage"
+              :fallback-text="user.name || 'User'"
+              :alt-text="`${user.name || 'User'} Profile Picture`"
+              size="large"
+              :editable="editing"
+              :show-delete-button="true"
+              @upload-success="handleImageUploadSuccess"
+              @upload-error="handleImageUploadError"
+              @delete-success="handleImageDeleteSuccess"
+              @delete-error="handleImageDeleteError"
+            />
             
             <!-- User Information -->
             <div class="text-center sm:text-left text-white flex-1">
@@ -364,15 +334,15 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import ImageUpload from '@/components/ImageUpload.vue'
+import profileImageAPI from '@/api/profileImage'
 
 const authStore = useAuthStore()
 
 // Reactive state
 const editing = ref(false)
 const loading = ref(false)
-const imageUploading = ref(false)
 const originalUser = ref({})
-const fileInput = ref(null)
 const profileImage = ref('')
 const activeTab = ref('personal')
 
@@ -429,10 +399,15 @@ const loadProfile = async () => {
       // Update user data
       Object.assign(user, userData)
       
-      // Load profile image from localStorage
-      const savedImage = localStorage.getItem('profileImage')
-      if (savedImage) {
-        profileImage.value = savedImage
+      // Load profile image from API
+      try {
+        const imageResponse = await profileImageAPI.getProfileImage()
+        if (imageResponse.data.image_url) {
+          profileImage.value = imageResponse.data.image_path
+        }
+      } catch (err) {
+        // No profile image or error loading - that's ok
+        console.log('No profile image found')
       }
       
       // Store original values
@@ -471,15 +446,8 @@ const saveProfile = async () => {
   try {
     loading.value = true
     
-    // Save profile image to localStorage
-    if (profileImage.value) {
-      localStorage.setItem('profileImage', profileImage.value)
-    } else {
-      localStorage.removeItem('profileImage')
-    }
-    
     // Update the auth store with new user data
-    const updatedUser = { ...user, profileImage: profileImage.value }
+    const updatedUser = { ...user, profile_picture: profileImage.value }
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -498,51 +466,33 @@ const saveProfile = async () => {
   }
 }
 
-const triggerImageUpload = () => {
-  if (fileInput.value && !imageUploading.value) {
-    fileInput.value.click()
-  }
+// Image upload event handlers
+const handleImageUploadSuccess = (data) => {
+  profileImage.value = data.imagePath
+  // Update the auth store with the new profile picture
+  authStore.updateUser({ 
+    ...authStore.user, 
+    profile_picture: data.imagePath 
+  })
+  showNotification('Profile image uploaded successfully!', 'success')
 }
 
-const handleImageUpload = async (event) => {
-  const file = event.target.files?.[0]
-  if (!file) return
+const handleImageUploadError = (message) => {
+  showNotification(message, 'error')
+}
 
-  // Validate file
-  if (!file.type.startsWith('image/')) {
-    showNotification('Please select a valid image file', 'error')
-    return
-  }
+const handleImageDeleteSuccess = (data) => {
+  profileImage.value = null
+  // Update the auth store to remove the profile picture
+  authStore.updateUser({ 
+    ...authStore.user, 
+    profile_picture: null 
+  })
+  showNotification('Profile image deleted successfully!', 'success')
+}
 
-  if (file.size > 5 * 1024 * 1024) {
-    showNotification('Image size must be less than 5MB', 'error')
-    return
-  }
-
-  try {
-    imageUploading.value = true
-    
-    // Create a preview URL using FileReader
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      profileImage.value = e.target.result
-    }
-    reader.onerror = () => {
-      showNotification('Failed to read image file', 'error')
-    }
-    reader.readAsDataURL(file)
-    
-    showNotification('Profile image updated successfully!', 'success')
-  } catch (error) {
-    console.error('Image upload error:', error)
-    showNotification('Failed to upload image', 'error')
-  } finally {
-    imageUploading.value = false
-    // Clear the file input
-    if (event.target) {
-      event.target.value = ''
-    }
-  }
+const handleImageDeleteError = (message) => {
+  showNotification(message, 'error')
 }
 
 const validateForm = () => {

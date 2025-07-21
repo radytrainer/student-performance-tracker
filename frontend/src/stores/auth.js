@@ -98,6 +98,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const updateUser = (userData) => {
+    user.value = { ...user.value, ...userData }
+  }
+
   return {
     user,
     isAuthenticated,
@@ -107,6 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     logout,
+    updateUser,
     getRedirectPath
   }
 })
