@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,17 +15,21 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+
+Route::get('/subjects', [SubjectController::class, 'index']);
+
+
 // Public routes (no authentication required)
-Route::post('/auth/login', 'AuthController@login');
-Route::post('/auth/register', 'AuthController@register');
+Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/register', [AuthController::class, 'register']);
 
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
     
     // Auth routes
-    Route::post('/auth/logout', 'AuthController@logout');
-    Route::get('/auth/user', 'AuthController@user');
-    Route::post('/auth/refresh', 'AuthController@refresh');
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/user', [AuthController::class, 'user']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     
     // Profile routes (all authenticated users)
     Route::get('/profile', 'ProfileController@show');

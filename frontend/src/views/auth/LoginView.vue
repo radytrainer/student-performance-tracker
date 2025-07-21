@@ -1,4 +1,4 @@
-"// ... existing code ...
+// ... existing code ...
 // ... existing code ...
 
 <template>
@@ -110,7 +110,7 @@
                 </form>
 
                 <!-- Register Form -->
-                <form v-else class="space-y-4" @submit.prevent="handleRegister">
+                <form v-else class="space-y-6" @submit.prevent="handleRegister">
                   <!-- First Name -->
                   <div class="relative">
                     <input
@@ -118,7 +118,7 @@
                       type="text"
                       placeholder="First Name"
                       :class="[
-                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200 rounded-lg',
                         hasError(registerErrors, 'first_name') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
                       ]"
                     />
@@ -134,7 +134,7 @@
                       type="text"
                       placeholder="Last Name"
                       :class="[
-                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200 rounded-lg',
                         hasError(registerErrors, 'last_name') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
                       ]"
                     />
@@ -150,7 +150,7 @@
                       type="text"
                       placeholder="Username"
                       :class="[
-                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200 rounded-lg',
                         hasError(registerErrors, 'username') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
                       ]"
                     />
@@ -166,7 +166,7 @@
                       type="email"
                       placeholder="Your Email"
                       :class="[
-                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200 rounded-lg',
                         hasError(registerErrors, 'email') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
                       ]"
                     />
@@ -180,7 +180,7 @@
                     <select
                       v-model="registerData.role"
                       :class="[
-                        'w-full bg-transparent text-white border-0 border-b pb-2 focus:outline-none transition-colors duration-200 appearance-none',
+                        'w-full bg-transparent text-white border-0 border-b pb-2 focus:outline-none transition-colors duration-200 appearance-none rounded-lg',
                         hasError(registerErrors, 'role') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
                       ]"
                     >
@@ -208,7 +208,7 @@
                       type="password"
                       placeholder="Create Password"
                       :class="[
-                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200 rounded-lg',
                         hasError(registerErrors, 'password') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
                       ]"
                     />
@@ -224,7 +224,7 @@
                       type="password"
                       placeholder="Repeat Password"
                       :class="[
-                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200',
+                        'w-full bg-transparent text-white placeholder-gray-400 border-0 border-b pb-2 focus:outline-none transition-colors duration-200 rounded-lg',
                         hasError(registerErrors, 'confirmPassword') ? 'border-red-500' : 'border-gray-500 focus:border-green-500'
                       ]"
                     />
@@ -237,7 +237,7 @@
                   <button
                     type="submit"
                     :disabled="authStore.isLoading"
-                    class="w-full text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 mt-8 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 gradient-button disabled:opacity-50"
+                    class="w-full text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 mt-8 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 gradient-button disabled:opacity-50 hover:bg-purple-600"
                   >
                     {{ authStore.isLoading ? 'Creating Account...' : 'Register' }}
                   </button>
