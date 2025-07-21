@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto p-2">
+  <div class="max-w-7xl mx-auto">
     <h1 class="text-2xl font-bold mb-6">🎓 My Grade</h1>
 
 
@@ -138,61 +138,58 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import html2pdf from 'html2pdf.js'
+import axios from 'axios'
 
-// Dummy student info
+// Student info (can come from API later)
 const student = ref({
   name: 'Aliya Developer',
   class: 'WD2025-A',
 })
 
-// Term info
+// Term list and filters
 const termList = [
   { id: 1, name: 'Term 1' },
   { id: 2, name: 'Term 2' },
   { id: 3, name: 'Term 3' },
 ]
-const selectedTermId = ref('2') // Default to Term 2
+const selectedTermId = ref('2')
+const selectedSubject = ref('')
 const currentTermName = computed(() => {
   const term = termList.find(t => t.id === Number(selectedTermId.value))
   return term ? term.name : 'All Terms'
 })
 
-// Subject filter
-const selectedSubject = ref('')
+// Fetch grades from API
+const grades = ref([])
+const fetchGrades = async () => {
+  try {
+    const token = localStorage.getItem('token') // 🔐 Make sure token exists
+    const res = await axios.get('http://127.0.0.1:8000/api/grades', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json'
+      }
+    })
+    grades.value = res.data.data // adjust if your API returns differently
+  } catch (err) {
+    console.error('❌ Failed to load grades:', err)
+  }
+}
 
-// Grade list (dummy data)
-const grades = ref([
-  {
-    id: 1, subject: 'Math', term_id: 2, assessment_type: 'Midterm',
-    max_score: 100, score_obtained: 78, weightage: 30, grade_letter: 'B',
-    remarks: 'Good effort', recorded_by: 'Teacher A', recorded_at: '2025-07-10',
-  },
-  {
-    id: 2, subject: 'Math', term_id: 2, assessment_type: 'Quiz',
-    max_score: 20, score_obtained: 18, weightage: 10, grade_letter: 'A',
-    remarks: 'Quick learner', recorded_by: 'Teacher A', recorded_at: '2025-07-15',
-  },
-  {
-    id: 3, subject: 'Science', term_id: 2, assessment_type: 'Project',
-    max_score: 50, score_obtained: 40, weightage: 40, grade_letter: 'B',
-    remarks: '', recorded_by: 'Teacher B', recorded_at: '2025-07-12',
-  },
-  {
-    id: 4, subject: 'English', term_id: 2, assessment_type: 'Final',
-    max_score: 100, score_obtained: 85, weightage: 20, grade_letter: 'A',
-    remarks: 'Great improvement', recorded_by: 'Teacher C', recorded_at: '2025-07-20',
-  },
-])
+// Fetch on mount
+onMounted(() => {
+  fetchGrades()
+})
 
+// Computed properties
 const subjectList = computed(() => {
   const filtered = selectedTermId.value
     ? grades.value.filter(g => g.term_id === Number(selectedTermId.value))
     : grades.value
   return [...new Set(filtered.map(g => g.subject))]
 })
-
 
 const filteredGrades = computed(() => {
   let result = grades.value
@@ -227,54 +224,14 @@ const subjectStats = computed(() => {
   return { count: filtered.length, weightedTotal, weightedMax, weightedAverage, grade_letter }
 })
 
-const gradeColor = (letter) => {
-  return {
-    A: 'bg-green-100 text-green-800',
-    B: 'bg-blue-100 text-blue-800',
-    C: 'bg-yellow-100 text-yellow-800',
-    D: 'bg-orange-100 text-orange-800',
-    F: 'bg-red-100 text-red-800',
-  }[letter] || 'bg-gray-100 text-gray-700'
-}
-
-const formatDate = (str) => new Date(str).toLocaleDateString()
-
-const exportToPDF = () => {
-  const element = document.getElementById('grade-export-content')
-  const options = {
-    margin: 0.5,
-    // filename: `${student.value.name}-Grades-${currentTermName.value}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-  }
-  html2pdf().from(element).set(options).save()
-}
-
-
-
-
-
-
-
-
-
-
-//Cards
 const gpa = computed(() => {
   if (!filteredGrades.value.length) return 0
-
   const totalPoints = filteredGrades.value.reduce((sum, g) => {
     const gradePoint = {
-      A: 4.0,
-      B: 3.0,
-      C: 2.0,
-      D: 1.0,
-      F: 0.0,
+      A: 4.0, B: 3.0, C: 2.0, D: 1.0, F: 0.0
     }[g.grade_letter] || 0
     return sum + gradePoint
   }, 0)
-
   return totalPoints / filteredGrades.value.length
 })
 
@@ -310,4 +267,29 @@ const weakestSubject = computed(() => {
   return averages.sort((a, b) => a.avg - b.avg)[0].subject
 })
 
+// Grade formatting
+const gradeColor = (letter) => {
+  return {
+    A: 'bg-green-100 text-green-800',
+    B: 'bg-blue-100 text-blue-800',
+    C: 'bg-yellow-100 text-yellow-800',
+    D: 'bg-orange-100 text-orange-800',
+    F: 'bg-red-100 text-red-800',
+  }[letter] || 'bg-gray-100 text-gray-700'
+}
+
+// Date formatting
+const formatDate = (str) => new Date(str).toLocaleDateString()
+
+// Export PDF
+const exportToPDF = () => {
+  const element = document.getElementById('grade-export-content')
+  const options = {
+    margin: 0.5,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+  }
+  html2pdf().from(element).set(options).save()
+}
 </script>

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             ClassSubjectSeeder::class,   // Assign subjects to classes with teachers
             StudentClassSeeder::class,   // Create student-class enrollment records
             SystemSettingSeeder::class,  // Create system settings (requires admin user)
+            StudentGradeSeeder::class, // Create grade fake data
         ]);
 
         $this->command->info('Database seeded successfully with comprehensive initial data!');
