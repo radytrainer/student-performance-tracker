@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +18,11 @@ use Illuminate\Support\Facades\Route;
 // Public routes (no authentication required)
 Route::post('/auth/login', 'AuthController@login');
 Route::post('/auth/register', 'AuthController@register');
+
+Route::apiResource('/users', UserController::class);
+Route::put('/users/{id}', [UserController::class, 'update']);
+
+
 
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
