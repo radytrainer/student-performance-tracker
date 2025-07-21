@@ -17,6 +17,10 @@ use App\Http\Controllers\Student\FeedbackSurveyController;
 |
 */
 
+
+Route::get('/subjects', [SubjectController::class, 'index']);
+
+
 // Public routes (no authentication required)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
