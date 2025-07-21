@@ -16,12 +16,10 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // Optional filter by role
         if ($request->has('role')) {
             $query->byRole($request->role);
         }
 
-        // Optional filter by active status
         if ($request->boolean('active_only', false)) {
             $query->active();
         }
@@ -55,7 +53,6 @@ class UserController extends Controller
 
         return response()->json($user, 201);
     }
-
 
     /**
      * Display the specified user.
@@ -96,7 +93,6 @@ class UserController extends Controller
 
         return response()->json(['message' => 'User updated successfully', 'user' => $user]);
     }
-
 
     /**
      * Remove the specified user from storage.

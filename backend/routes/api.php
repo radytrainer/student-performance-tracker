@@ -1,12 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\SubjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-<<<<<<< HEAD
 use App\Http\Controllers\UserController;
-=======
 use App\Http\Controllers\AuthController;
->>>>>>> 6926cca72d183172cef7f9cc09fca4e18dae2740
 
 /*
 |--------------------------------------------------------------------------
