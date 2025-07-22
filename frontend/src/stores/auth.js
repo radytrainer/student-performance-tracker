@@ -12,11 +12,21 @@ export const useAuthStore = defineStore('auth', () => {
 
   const initialize = async () => {
     try {
+      // Check if we have a token in localStorage
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        isAuthenticated.value = false
+        return
+      }
+      
       const response = await authAPI.getUser()
-      user.value = response.data
+      user.value = response.data.user
       isAuthenticated.value = true
     } catch (err) {
+      // Clear invalid token
+      localStorage.removeItem('auth_token')
       isAuthenticated.value = false
+      user.value = null
     }
   }
 
@@ -24,11 +34,15 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       isLoading.value = true
       error.value = null
-      await authAPI.login(credentials)
-      await initialize()
+      const response = await authAPI.login(credentials)
+      user.value = response.data.user
+      isAuthenticated.value = true
+      
+      console.log('Login successful:', user.value)
       
       // Role-based redirect
       const redirectPath = getRedirectPath(user.value?.role)
+      console.log('Redirecting to:', redirectPath)
       router.push(router.currentRoute.value.query.redirect || redirectPath)
     } catch (err) {
       error.value = err.response?.data?.message || 'Login failed'
@@ -42,8 +56,9 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       isLoading.value = true
       error.value = null
-      await authAPI.register(userData)
-      await initialize()
+      const response = await authAPI.register(userData)
+      user.value = response.data.user
+      isAuthenticated.value = true
       
       // Role-based redirect
       const redirectPath = getRedirectPath(user.value?.role)
@@ -72,12 +87,19 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = async () => {
     try {
       await authAPI.logout()
-      user.value = null
-      isAuthenticated.value = false
-      router.push('/login')
     } catch (err) {
       console.error('Logout failed:', err)
+    } finally {
+      // Always clear local state regardless of API call success
+      user.value = null
+      isAuthenticated.value = false
+      localStorage.removeItem('auth_token')
+      router.push('/login')
     }
+  }
+
+  const updateUser = (userData) => {
+    user.value = { ...user.value, ...userData }
   }
 
   return {
@@ -89,6 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     logout,
+    updateUser,
     getRedirectPath
   }
 })

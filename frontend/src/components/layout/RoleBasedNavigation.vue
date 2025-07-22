@@ -48,10 +48,14 @@
               id="user-menu"
               aria-haspopup="true"
             >
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                {{ userInitials }}
-              </div>
-              <span class="hidden md:block text-sm font-medium text-gray-700">{{ userRole }}</span>
+              <ImageUpload
+                :current-image="profileImage || user?.profile_picture"
+                :fallback-text="`${user?.first_name || ''} ${user?.last_name || ''}`"
+                :alt-text="`${user?.first_name || ''} ${user?.last_name || ''} Profile Picture`"
+                size="small"
+                :editable="false"
+              />
+              <span class="hidden md:block text-sm font-medium text-gray-700">{{ userFullName }}</span>
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
@@ -69,9 +73,13 @@
               <!-- User Info Header -->
               <div class="px-4 py-3 border-b border-gray-100">
                 <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                    {{ userInitials }}
-                  </div>
+                  <ImageUpload
+                    :current-image="profileImage || user?.profile_picture"
+                    :fallback-text="`${user?.first_name || ''} ${user?.last_name || ''}`"
+                    :alt-text="`${user?.first_name || ''} ${user?.last_name || ''} Profile Picture`"
+                    size="small"
+                    :editable="false"
+                  />
                   <div>
                     <div class="font-semibold text-gray-900">{{ user?.first_name }} {{ user?.last_name }}</div>
                     <div class="text-sm text-gray-500">{{ user?.email }}</div>
@@ -145,11 +153,13 @@
       <div class="pt-4 pb-3 border-t border-gray-200">
         <div class="flex items-center px-4">
           <div class="flex-shrink-0">
-            <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-              <span class="text-sm font-medium text-gray-700">
-                {{ userInitials }}
-              </span>
-            </div>
+            <ImageUpload
+              :current-image="profileImage || user?.profile_picture"
+              :fallback-text="`${user?.first_name || ''} ${user?.last_name || ''}`"
+              :alt-text="`${user?.first_name || ''} ${user?.last_name || ''} Profile Picture`"
+              size="small"
+              :editable="false"
+            />
           </div>
           <div class="ml-3">
             <div class="text-base font-medium text-gray-800">
@@ -191,6 +201,8 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useAuthStore } from '@/stores/auth'
+import { useProfileImage } from '@/composables/useProfileImage'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -206,6 +218,8 @@ const {
   showForPermission
 } = useAuth()
 
+const { profileImage } = useProfileImage()
+
 // Component state
 const showUserMenu = ref(false)
 const showMobileMenu = ref(false)
@@ -215,6 +229,13 @@ const userInitials = computed(() => {
   const first = user.value.first_name?.charAt(0) || ''
   const last = user.value.last_name?.charAt(0) || ''
   return (first + last).toUpperCase()
+})
+
+const userFullName = computed(() => {
+  if (!user.value) return ''
+  const firstName = user.value.first_name || ''
+  const lastName = user.value.last_name || ''
+  return `${firstName} ${lastName}`.trim()
 })
 
 const roleBadgeClass = computed(() => {

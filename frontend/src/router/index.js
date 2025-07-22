@@ -139,6 +139,16 @@ const routes = [
       title: 'Manage Attendance'
     }
   },
+  {
+    path: '/teacher/feedback-forms',
+    name: 'TeacherFeedbackForms',
+    component: () => import('@/views/teacher/FeedbackForms.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'teacher',
+      title: 'Student Feedback Surveys'
+    }
+  },
 
   // Student routes
   {
@@ -198,6 +208,16 @@ const routes = [
       requiresRole: 'student',
       requiresPermission: 'student.submit_feedback',
       title: 'Submit Feedback'
+    }
+  },
+  {
+    path: '/student/surveys',
+    name: 'StudentSurveys',
+    component: () => import('@/views/student/FeedbackSurveys.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'student',
+      title: 'Feedback Surveys'
     }
   },
 
