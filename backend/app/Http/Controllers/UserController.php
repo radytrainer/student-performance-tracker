@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of users, with optional filters.
-     */
+    public function __construct()
+    {
+        $this->middleware('auth:api')->except('index', 'show'); // Restrict CRUD operations
+    }
+
     public function index(Request $request)
     {
         $query = User::query();
@@ -24,12 +27,9 @@ class UserController extends Controller
             $query->active();
         }
 
-        return response()->json($query->get());
+        return response()->json($query->paginate(10));
     }
 
-    /**
-     * Store a newly created user in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -43,7 +43,11 @@ class UserController extends Controller
         ]);
 
         if ($request->hasFile('profile_picture')) {
-            $validated['profile_picture'] = $request->file('profile_picture')->store('profile_pictures', 'public');
+            try {
+                $validated['profile_picture'] = $request->file('profile_picture')->store('profile_pictures', 'public');
+            } catch (\Exception $e) {
+                return response()->json(['error' => 'Failed to upload profile picture'], 500);
+            }
         }
 
         $validated['password_hash'] = Hash::make($validated['password']);
@@ -54,18 +58,13 @@ class UserController extends Controller
         return response()->json($user, 201);
     }
 
-    /**
-     * Display the specified user.
-     */
     public function show(string $id)
     {
         $user = User::findOrFail($id);
+        $user->profile_picture = $user->profile_picture ? asset('storage/' . $user->profile_picture) : null;
         return response()->json($user);
     }
 
-    /**
-     * Update the specified user in storage.
-     */
     public function update(Request $request, string $id)
     {
         $user = User::findOrFail($id);
@@ -81,6 +80,9 @@ class UserController extends Controller
         ]);
 
         if ($request->hasFile('profile_picture')) {
+            if ($user->profile_picture) {
+                Storage::disk('public')->delete($user->profile_picture);
+            }
             $validated['profile_picture'] = $request->file('profile_picture')->store('profile_pictures', 'public');
         }
 
@@ -94,12 +96,12 @@ class UserController extends Controller
         return response()->json(['message' => 'User updated successfully', 'user' => $user]);
     }
 
-    /**
-     * Remove the specified user from storage.
-     */
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);
+        if ($user->profile_picture) {
+            Storage::disk('public')->delete($user->profile_picture);
+        }
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully.']);
