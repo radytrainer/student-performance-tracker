@@ -73,10 +73,16 @@
       <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-xl shadow">
         <div class="flex flex-wrap items-center gap-4">
           <div class="relative">
-            <select v-model="filters.subject" class="border rounded-lg p-2 pl-10 pr-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
+           <select
+              v-model="filters.subject"
+              class="border rounded-lg p-2 pl-10 pr-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
               <option value="">All Subjects</option>
-              <option v-for="subject in subjects" :key="subject" :value="subject">{{ subject }}</option>
-            </select>
+              <option v-for="subject in subjects" :key="subject.id" :value="subject.subject_name">
+                {{ subject.subject_name }}
+              </option>
+          </select>
+
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
@@ -282,6 +288,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import axios from 'axios' // ✅ Using Axios to fetch subjects
 
 // Summary Data
 const summary = ref({
@@ -291,10 +298,18 @@ const summary = ref({
   lastPresent: 'July 20, 2025'
 })
 
-// Subjects
-const subjects = ['Math', 'Science', 'Literature', 'History', 'Geography']
+// ✅ Dynamic Subjects from API
+const subjects = ref([])
+const fetchSubjects = async () => {
+  try {
+    const response = await axios.get('http://localhost:8000/api/public-subjects')
+    subjects.value = response.data
+  } catch (error) {
+    console.error('Failed to fetch subjects:', error)
+  }
+}
 
-// Attendance Records
+// Attendance Records (static for now)
 const attendanceRecords = ref([
   { id: 1, date: '2025-07-20', status: 'Present', subject: 'Math', time: '08:00 - 09:00', remarks: 'On time' },
   { id: 2, date: '2025-07-19', status: 'Absent', subject: 'Science', time: '09:00 - 10:00', remarks: 'Sick leave' },
@@ -311,40 +326,17 @@ const attendanceRecords = ref([
 // Filters
 const filters = ref({ subject: '', date: '' })
 
-// Calendar
+// Calendar, Selected Date, Notifications (unchanged) ...
 const currentDate = ref(new Date())
 const selectedDate = ref(null)
-
-// Notifications
 const showNotifications = ref(false)
 const notifications = ref([
-  { 
-    id: 1, 
-    title: 'Low Attendance Warning', 
-    message: 'Your attendance in Math is below 75%', 
-    type: 'warning', 
-    time: new Date(Date.now() - 3600000), 
-    read: false 
-  },
-  { 
-    id: 2, 
-    title: 'Absence Notification', 
-    message: 'You were marked absent for Science on July 19', 
-    type: 'info', 
-    time: new Date(Date.now() - 86400000), 
-    read: false 
-  },
-  { 
-    id: 3, 
-    title: 'Attendance Improved', 
-    message: 'Great job! Your attendance has improved this week', 
-    type: 'success', 
-    time: new Date(Date.now() - 172800000), 
-    read: true 
-  },
+  { id: 1, title: 'Low Attendance Warning', message: 'Your attendance in Math is below 75%', type: 'warning', time: new Date(Date.now() - 3600000), read: false },
+  { id: 2, title: 'Absence Notification', message: 'You were marked absent for Science on July 19', type: 'info', time: new Date(Date.now() - 86400000), read: false },
+  { id: 3, title: 'Attendance Improved', message: 'Great job! Your attendance has improved this week', type: 'success', time: new Date(Date.now() - 172800000), read: true },
 ])
 
-// Computed Properties
+// Computed: Attendance filter by subject/date
 const filteredAttendance = computed(() => {
   return attendanceRecords.value.filter(r => {
     return (!filters.value.subject || r.subject === filters.value.subject) &&
@@ -355,180 +347,77 @@ const filteredAttendance = computed(() => {
 const unreadNotifications = computed(() => {
   return notifications.value.filter(n => !n.read).length
 })
-
 const currentMonth = computed(() => {
   return currentDate.value.toLocaleString('default', { month: 'long', year: 'numeric' })
 })
 
+// 🟩 Calendar Days Setup (unchanged)
 const calendarDays = computed(() => {
   const year = currentDate.value.getFullYear()
   const month = currentDate.value.getMonth()
-  
-  // Get first day of month and how many days in month
   const firstDay = new Date(year, month, 1)
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  
-  // Get day of week for first day (0 = Sunday, 6 = Saturday)
   const firstDayOfWeek = firstDay.getDay()
-  
-  // Get days from previous month to show
   const prevMonthDays = firstDayOfWeek
-  
-  // Create array of days
   const days = []
-  
-  // Add days from previous month
+
   const prevMonthLastDay = new Date(year, month, 0).getDate()
   for (let i = prevMonthLastDay - prevMonthDays + 1; i <= prevMonthLastDay; i++) {
-    days.push({
-      day: i,
-      date: `${year}-${month.toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`,
-      inMonth: false
-    })
+    days.push({ day: i, date: `${year}-${month.toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`, inMonth: false })
   }
-  
-  // Add days from current month
   for (let i = 1; i <= daysInMonth; i++) {
-    days.push({
-      day: i,
-      date: `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`,
-      inMonth: true
-    })
+    days.push({ day: i, date: `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`, inMonth: true })
   }
-  
-  // Add days from next month to fill the grid
-  const daysToAdd = 42 - days.length // 6 rows x 7 days
+  const daysToAdd = 42 - days.length
   for (let i = 1; i <= daysToAdd; i++) {
-    days.push({
-      day: i,
-      date: `${year}-${(month + 2).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`,
-      inMonth: false
-    })
+    days.push({ day: i, date: `${year}-${(month + 2).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`, inMonth: false })
   }
-  
   return days
 })
 
 // Methods
-const resetFilters = () => {
-  filters.value = { subject: '', date: '' }
-}
-
-const statusClass = (status) => {
-  return {
-    'Present': 'bg-green-100 text-green-800',
-    'Absent': 'bg-red-100 text-red-800',
-    'Late': 'bg-yellow-100 text-yellow-800',
-  }[status] || 'bg-gray-100 text-gray-800'
-}
-
-const subjectColor = (subject) => {
-  const colors = {
-    'Math': 'bg-blue-500',
-    'Science': 'bg-green-500',
-    'Literature': 'bg-purple-500',
-    'History': 'bg-yellow-500',
-    'Geography': 'bg-red-500'
-  }
-  return colors[subject] || 'bg-gray-500'
-}
-
+const resetFilters = () => { filters.value = { subject: '', date: '' } }
+const statusClass = (status) => ({ 'Present': 'bg-green-100 text-green-800', 'Absent': 'bg-red-100 text-red-800', 'Late': 'bg-yellow-100 text-yellow-800' }[status] || 'bg-gray-100 text-gray-800')
+const subjectColor = (subject) => ({ 'Math': 'bg-blue-500', 'Science': 'bg-green-500', 'Literature': 'bg-purple-500', 'History': 'bg-yellow-500', 'Geography': 'bg-red-500' }[subject] || 'bg-gray-500')
 const dayAttendanceClass = (date) => {
   const record = attendanceRecords.value.find(r => r.date === date)
-  if (!record) return ''
-  
-  return {
-    'Present': 'bg-green-50',
-    'Absent': 'bg-red-50',
-    'Late': 'bg-yellow-50'
-  }[record.status] || 'bg-gray-50'
+  return record ? ({ 'Present': 'bg-green-50', 'Absent': 'bg-red-50', 'Late': 'bg-yellow-50' }[record.status] || 'bg-gray-50') : ''
 }
-
 const dayStatusDot = (date) => {
   const record = attendanceRecords.value.find(r => r.date === date)
-  if (!record) return 'bg-transparent'
-  
-  return {
-    'Present': 'bg-green-500',
-    'Absent': 'bg-red-500',
-    'Late': 'bg-yellow-500'
-  }[record.status] || 'bg-gray-300'
+  return record ? ({ 'Present': 'bg-green-500', 'Absent': 'bg-red-500', 'Late': 'bg-yellow-500' }[record.status] || 'bg-gray-300') : 'bg-transparent'
 }
-
-const isSelectedDate = (date) => {
-  return selectedDate.value === date
-}
-
-const selectDate = (date) => {
-  selectedDate.value = date
-  filters.value.date = date
-}
-
-const prevMonth = () => {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
-}
-
-const nextMonth = () => {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
-}
-
-const toggleNotifications = () => {
-  showNotifications.value = !showNotifications.value
-}
-
-const markAsRead = (index) => {
-  notifications.value[index].read = true
-}
-
-const markAllAsRead = () => {
-  notifications.value.forEach(n => n.read = true)
-}
-
-const clearNotifications = () => {
-  notifications.value = []
-}
-
-const viewDetails = (record) => {
-  alert(`Viewing details for ${record.subject} on ${record.date}`)
-}
-
-const exportToPDF = () => {
-  alert('PDF export functionality would be implemented here')
-  // In a real app, use a library like jsPDF or a backend service
-}
-
-const exportToExcel = () => {
-  alert('Excel export functionality would be implemented here')
-  // In a real app, use a library like xlsx
-}
-
-const formatDate = (dateString) => {
-  const options = { year: 'numeric', month: 'short', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
-}
-
+const isSelectedDate = (date) => selectedDate.value === date
+const selectDate = (date) => { selectedDate.value = date; filters.value.date = date }
+const prevMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1) }
+const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1) }
+const toggleNotifications = () => { showNotifications.value = !showNotifications.value }
+const markAsRead = (index) => { notifications.value[index].read = true }
+const markAllAsRead = () => { notifications.value.forEach(n => n.read = true) }
+const clearNotifications = () => { notifications.value = [] }
+const viewDetails = (record) => { alert(`Viewing details for ${record.subject} on ${record.date}`) }
+const exportToPDF = () => { alert('PDF export functionality would be implemented here') }
+const exportToExcel = () => { alert('Excel export functionality would be implemented here') }
+const formatDate = (dateString) => new Date(dateString).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 const formatTime = (date) => {
   const now = new Date()
   const diff = now - date
-  
   if (diff < 60000) return 'Just now'
   if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`
   if (diff < 604800000) return `${Math.floor(diff / 86400000)} days ago`
-  
   return date.toLocaleDateString()
 }
 
-// Initialize
+// ✅ Fetch Subjects and set today’s selected date (if any)
 onMounted(() => {
-  // Set selected date to today if it exists in records
   const today = new Date().toISOString().split('T')[0]
   if (attendanceRecords.value.some(r => r.date === today)) {
     selectedDate.value = today
   }
+  fetchSubjects()
 })
 </script>
-
 <style scoped>
 /* Custom styles */
 .progress-circle {
