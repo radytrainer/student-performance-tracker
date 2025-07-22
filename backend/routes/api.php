@@ -1,8 +1,13 @@
 <?php
 
+// use App\Http\Controllers\Api\SubjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileImageController;
+use App\Http\Controllers\Teacher\FeedbackFormController;
+use App\Http\Controllers\Student\FeedbackSurveyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,12 +21,17 @@ use App\Http\Controllers\AuthController;
 */
 
 
-Route::get('/subjects', [SubjectController::class, 'index']);
+// Route::get('/subjects', [SubjectController::class, 'index']);
 
 
 // Public routes (no authentication required)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
+
+Route::apiResource('/users', UserController::class);
+Route::put('/users/{id}', [UserController::class, 'update']);
+
+
 
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -32,9 +42,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     
     // Profile routes (all authenticated users)
-    Route::get('/profile', 'ProfileController@show');
-    Route::put('/profile', 'ProfileController@update');
-    Route::post('/profile/avatar', 'ProfileController@uploadAvatar');
+    Route::get('/profile', [App\Http\Controllers\UserController::class, 'show']);
+    Route::put('/profile', [App\Http\Controllers\UserController::class, 'update']);
+    
+    // Profile Image CRUD routes
+    Route::get('/profile/image', [ProfileImageController::class, 'show']);
+    Route::post('/profile/image', [ProfileImageController::class, 'upload']);
+    Route::put('/profile/image', [ProfileImageController::class, 'update']);
+    Route::delete('/profile/image', [ProfileImageController::class, 'delete']);
 
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
@@ -148,6 +163,26 @@ Route::middleware(['auth:sanctum'])->group(function () {
         
         // Teacher Feedback (Give feedback to students)
         Route::post('teacher/feedback/students', 'Teacher\FeedbackController@giveToStudent')->middleware('permission:feedback.respond');
+        
+        // Feedback Forms Management
+        Route::apiResource('teacher/feedback-forms', FeedbackFormController::class);
+        Route::get('teacher/feedback-classes', [FeedbackFormController::class, 'getMyClasses']);
+        Route::post('teacher/form-assignments', [FeedbackFormController::class, 'assignToClasses']);
+        
+        // Individual User Assignments
+        Route::get('teacher/available-users', [FeedbackFormController::class, 'getAvailableUsers']);
+        Route::post('teacher/user-assignments', [FeedbackFormController::class, 'assignToUsers']);
+        Route::get('teacher/feedback-forms/{formId}/individual-assignments', [FeedbackFormController::class, 'getIndividualAssignments']);
+        
+        // Analytics Routes
+        Route::get('teacher/analytics', [FeedbackFormController::class, 'getTeacherAnalytics']);
+        Route::get('teacher/feedback-forms/{formId}/analytics', [FeedbackFormController::class, 'getFormAnalytics']);
+        
+        // Enhanced Management Routes
+        Route::post('teacher/bulk-assign-surveys', [FeedbackFormController::class, 'bulkAssignSurveys']);
+        Route::get('teacher/survey-templates', [FeedbackFormController::class, 'getSurveyTemplates']);
+        Route::post('teacher/create-from-template', [FeedbackFormController::class, 'createFromTemplate']);
+        Route::post('teacher/schedule-survey', [FeedbackFormController::class, 'scheduleSurvey']);
     });
 
     // Student routes
@@ -169,6 +204,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Feedback (Submit feedback about teachers/system)
         Route::post('student/feedback', 'Student\FeedbackController@submit')->middleware('permission:feedback.create');
         Route::get('student/feedback/history', 'Student\FeedbackController@history')->middleware('permission:feedback.create');
+        
+        // Feedback Surveys
+        Route::get('student/surveys', [FeedbackSurveyController::class, 'index']);
+        Route::get('student/surveys/{assignmentId}', [FeedbackSurveyController::class, 'show']);
+        Route::post('student/surveys/{assignmentId}/complete', [FeedbackSurveyController::class, 'markCompleted']);
+        Route::get('student/survey-stats', [FeedbackSurveyController::class, 'getStats']);
     });
 
     // Shared routes (role-specific access handled by policies)

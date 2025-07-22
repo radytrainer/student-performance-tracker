@@ -21,11 +21,14 @@
         <div class="p-6 border-b border-white/10">
           <div class="flex flex-col items-center text-center">
             <!-- Profile Picture -->
-            <div class="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center mb-4 shadow-lg">
-              <span class="text-xl font-bold text-white">
-                {{ userInitials }}
-              </span>
-            </div>
+            <ImageUpload
+              :current-image="profileImage || user?.profile_picture"
+              :fallback-text="`${user?.first_name || ''} ${user?.last_name || ''}`"
+              :alt-text="`${user?.first_name || ''} ${user?.last_name || ''} Profile Picture`"
+              size="medium"
+              :editable="false"
+              class="mb-4"
+            />
             
             <!-- User Info -->
             <h3 class="text-lg font-bold text-white mb-1">
@@ -97,9 +100,12 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useProfileImage } from '@/composables/useProfileImage'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const route = useRoute()
 const { getAvailableRoutes, user, userRole } = useAuth()
+const { profileImage } = useProfileImage()
 
 const isOpen = ref(true)
 const isMobile = ref(window.innerWidth < 768)
