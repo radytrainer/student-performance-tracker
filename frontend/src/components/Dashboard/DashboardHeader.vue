@@ -19,5 +19,6 @@
 </template>
 
 <script setup>
+
 defineProps(['student'])
 </script>
