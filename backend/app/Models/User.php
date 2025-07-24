@@ -29,11 +29,40 @@ class User extends Authenticatable
         'password_hash',
         'remember_token',
     ];
-
     protected $casts = [
-        'is_active' => 'boolean',
-        'last_login' => 'datetime',
+        'responsibilities' => 'array',
+        'qualifications' => 'array',
+        'posted_date' => 'date',
     ];
+    public function getCreatedAtAttribute($value)
+    {
+        $date = date('d-m-Y', strtotime($value));
+        $day = date('l', strtotime($value));
+        return $day . ', ' . $date;
+    }
+
+    public function getUpdatedAtAttribute($value)
+    {
+        $date = date('F d, Y', strtotime($value));
+        $day = date('l', strtotime($value));
+        return $day . ', ' . $date;
+    }
+    public function getPostedDateAttribute($value)
+    {
+        return date('d-M-y', strtotime($value));
+    }
+
+    // Accessor for full image URL
+    public function getImageUrlAttribute()
+    {
+        return asset('storage/' . $this->profile_picture);
+    }
+
+    // Accessor for formatted created_at
+    public function getCreatedAtFormattedAttribute()
+    {
+        return $this->created_at ? $this->created_at->format('d-M-y') : null;
+    }
 
     // Relationships
     public function teacher(): HasOne
@@ -83,7 +112,7 @@ class User extends Authenticatable
         if ($currentUser->isAdmin()) {
             return $query; // Admin can see all users
         }
-        
+
         // Non-admin users can only see their own profile
         return $query->where('id', $currentUser->id);
     }
