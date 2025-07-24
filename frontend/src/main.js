@@ -1,18 +1,19 @@
 import './assets/tailwind.css'
 
+// main.js
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import apiClient from './api/axiosConfig'
-import '@fortawesome/fontawesome-free/css/all.min.css'
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
 
 app.use(createPinia())
-// Make axios available globally (optional)
-app.config.globalProperties.$http = apiClient
-
 app.use(router)
-
 app.mount('#app')
+
+// ✅ Initialize auth store (load token)
+const auth = useAuthStore()
+auth.initialize()
+

@@ -1,227 +1,398 @@
 <template>
-  <div class="p-6 font-sans">
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">My Attendance</h1>
-    
-    <!-- Attendance Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-      <!-- Present Card -->
-      <div class="bg-white rounded-md shadow-sm p-5 border border-gray-100">
-        <div class="space-y-3">
-          <div class="flex items-center space-x-3">
-            <div class="p-2 rounded-md bg-green-50">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <div class="flex h-screen bg-gray-50">
+    <!-- Main Content -->
+    <div class="flex-1 overflow-auto p-6">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-6">
+        <div class="mb-6">
+          <h1 class="text-3xl font-bold text-gray-800">My Attendance</h1>
+          <p class="text-gray-600 mt-1">View your attendance records and statistics</p>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div v-if="loading" class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
+        <p>Loading attendance data...</p>
+      </div>
+
+      <!-- Error state -->
+      <div v-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
+        <p>{{ error }}</p>
+        <button @click="fetchAttendance" class="mt-2 text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+          Retry
+        </button>
+      </div>
+
+      <!-- Content when loaded -->
+      <div v-if="!loading && !error">
+        <!-- Attendance Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-green-100 p-4 rounded-2xl shadow flex items-start">
+            <div class="bg-green-200 p-3 rounded-full mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 class="text-gray-500 font-medium">Present</h3>
+            <div>
+              <h2 class="text-lg font-semibold text-green-800">Total Present</h2>
+              <p class="text-2xl font-bold text-green-900">{{ summary.present }}</p>
+              <p class="text-sm text-green-700">{{ presentPercentage }}% of total</p>
+            </div>
           </div>
-          <div class="border-t border-gray-100 pt-2">
-            <p class="text-3xl font-semibold text-gray-800">{{ summary.present }}</p>
-            <p class="text-sm text-gray-500">{{ presentPercentage }}% of total</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Absent Card -->
-      <div class="bg-white rounded-md shadow-sm p-5 border border-gray-100">
-        <div class="space-y-3">
-          <div class="flex items-center space-x-3">
-            <div class="p-2 rounded-md bg-red-50">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
+          
+          <div class="bg-red-100 p-4 rounded-2xl shadow flex items-start">
+            <div class="bg-red-200 p-3 rounded-full mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h3 class="text-gray-500 font-medium">Absent</h3>
-          </div>
-          <div class="border-t border-gray-100 pt-2">
-            <p class="text-3xl font-semibold text-gray-800">{{ summary.absent }}</p>
-            <p class="text-sm text-gray-500">{{ absentPercentage }}% of total</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Late Card -->
-      <div class="bg-white rounded-md shadow-sm p-5 border border-gray-100">
-        <div class="space-y-3">
-          <div class="flex items-center space-x-3">
-            <div class="p-2 rounded-md bg-orange-50">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div>
+              <h2 class="text-lg font-semibold text-red-800">Total Absent</h2>
+              <p class="text-2xl font-bold text-red-900">{{ summary.absent }}</p>
+              <p class="text-sm text-red-700">{{ absentPercentage }}% of total</p>
             </div>
-            <h3 class="text-gray-500 font-medium">Late</h3>
           </div>
-          <div class="border-t border-gray-100 pt-2">
-            <p class="text-3xl font-semibold text-gray-800">{{ summary.late }}</p>
-            <p class="text-sm text-gray-500">{{ latePercentage }}% of total</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Overall Attendance Card -->
-      <div class="bg-white rounded-md shadow-sm p-5 border border-gray-100">
-        <div class="space-y-3">
-          <div class="flex items-center space-x-3">
-            <div class="p-2 rounded-md bg-blue-50">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          
+          <div class="bg-blue-100 p-4 rounded-2xl shadow flex items-start">
+            <div class="bg-blue-200 p-3 rounded-full mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h3 class="text-gray-500 font-medium">Attendance Rate</h3>
+            <div>
+              <h2 class="text-lg font-semibold text-blue-800">Attendance %</h2>
+              <p class="text-2xl font-bold text-blue-900">{{ attendancePercentage }}%</p>
+              <p class="text-sm text-blue-700">Overall attendance rate</p>
+            </div>
           </div>
-          <div class="border-t border-gray-100 pt-2">
-            <p class="text-3xl font-semibold text-gray-800">{{ attendancePercentage }}%</p>
-            <p class="text-sm text-gray-500">Based on {{ summary.total }} records</p>
+          
+          <div class="bg-yellow-100 p-4 rounded-2xl shadow flex items-start">
+            <div class="bg-yellow-200 p-3 rounded-full mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-yellow-800">Total Attendance</h2>
+              <p class="text-2xl font-bold text-yellow-900">{{ summary.total }}</p>
+              <p class="text-sm text-yellow-700">All attendance records</p>
+            </div>
           </div>
         </div>
+
+        <!-- Calendar View -->
+        <div class="bg-white p-6 mb-6 rounded-xl shadow">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Calendar View</h2>
+          <FullCalendar :options="calendarOptions" />
+        </div>
+
+        <!-- Filters and Export -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-xl shadow">
+          <div class="flex flex-wrap items-center gap-4">
+            <div class="relative">
+              <select v-model="filters.status" class="border rounded-lg p-2 pl-10 pr-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Statuses</option>
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="late">Late</option>
+              </select>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            
+            <div class="relative">
+              <input type="date" v-model="filters.date" class="border rounded-lg p-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            
+            <button @click="resetFilters" class="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Reset
+            </button>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <button @click="exportToPDF" class="flex items-center gap-2 bg-red-100 px-4 py-2 rounded-lg text-red-800 hover:bg-red-200 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+              </svg>
+              PDF
+            </button>
+            <button @click="exportToExcel" class="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-lg text-green-800 hover:bg-green-200 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Excel
+            </button>
+          </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="overflow-x-auto rounded-lg shadow bg-white">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-100 text-gray-700">
+              <tr>
+                <th class="px-6 py-3 text-left font-semibold">Date</th>
+                <th class="px-6 py-3 text-left font-semibold">Status</th>
+                <th class="px-6 py-3 text-left font-semibold">Subject</th>
+                <th class="px-6 py-3 text-left font-semibold">Recorded At</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-for="record in filteredAttendance" :key="record.id" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {{ formatDate(record.date) }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span :class="statusClass(record.status)" class="px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                    <svg v-if="record.status === 'present'" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <svg v-else-if="record.status === 'absent'" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <svg v-else-if="record.status === 'late'" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {{ capitalizeFirstLetter(record.status) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center gap-2">
+                    <div class="h-2 w-2 rounded-full" :class="subjectColor(record.subject_name)"></div>
+                    {{ record.subject_name }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  {{ formatDateTime(record.recorded_at) }}
+                </td>
+              </tr>
+              <tr v-if="filteredAttendance.length === 0">
+                <td colspan="4" class="px-6 py-4 text-center text-gray-500">No attendance records found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-    
-    <!-- Attendance Records Table -->
-    <div class="bg-white rounded-md shadow-sm border border-gray-100 overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recorded At</th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr 
-            v-for="(record, index) in attendance" 
-            :key="record.id" 
-            :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-50'"
-          >
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-              {{ formatDate(record.date) }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm">
-              <span 
-                class="px-2.5 py-0.5 rounded-full text-xs font-medium"
-                :class="{
-                  'bg-green-100 text-green-800': record.status === 'present',
-                  'bg-red-100 text-red-800': record.status === 'absent',
-                  'bg-orange-100 text-orange-800': record.status === 'late'
-                }"
-              >
-                {{ record.status }}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-              {{ formatDateTime(record.recorded_at) }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-              <button 
-                class="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-                @click="viewDetails(record)"
-              >
-                View
-              </button>
-            </td>
-          </tr>
-          <tr v-if="attendance.length === 0">
-            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No attendance records found.</td>
-          </tr>
-        </tbody>
-      </table>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+// Vue + Axios
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
-// Reactive reference to hold attendance data
-const attendance = ref([])
+// FullCalendar Imports
+import FullCalendar from '@fullcalendar/vue3'
+import dayGridPlugin from '@fullcalendar/daygrid'
 
-// Fetch attendance data on component mount
+// API Configuration
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
+})
+
+// Add authorization header
+apiClient.interceptors.request.use(config => {
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Data
+const attendance = ref([])
+const loading = ref(true)
+const error = ref(null)
+const filters = ref({
+  status: '',
+  date: ''
+})
+
+// Fetch attendance data
 const fetchAttendance = async () => {
+  loading.value = true
+  error.value = null
   try {
-    const response = await axios.get('http://localhost:8000/api/student/my-attendance', {
-      headers: {
-        Authorization: 'Bearer 4|m96F64f4Mvf4qPFVW1M1Q55MlvcfbSsfq8TYpBbB3ec52548',
-        Accept: 'application/json',
-      },
-    })
+    const response = await apiClient.get('/student/my-attendance')
     attendance.value = response.data.data
-  } catch (error) {
-    console.error('Error fetching attendance:', error)
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to load attendance data'
+    console.error('Error fetching attendance:', err)
+  } finally {
+    loading.value = false
   }
 }
 
-// Calculate summary statistics
-const summary = computed(() => {
-  const counts = {
-    present: 0,
-    absent: 0,
-    late: 0,
-    total: attendance.value.length
-  }
-  
-  attendance.value.forEach(record => {
-    if (record.status === 'present') counts.present++
-    else if (record.status === 'absent') counts.absent++
-    else if (record.status === 'late') counts.late++
+// Calendar Configuration
+const calendarOptions = ref({
+  plugins: [dayGridPlugin],
+  initialView: 'dayGridMonth',
+  headerToolbar: {
+    left: 'prev,next today',
+    center: 'title',
+    right: ''
+  },
+  events: computed(() => {
+    return attendance.value.map(record => ({
+      title: capitalizeFirstLetter(record.status) + (record.subject_name ? ` - ${record.subject_name}` : ''),
+      date: record.date,
+      color: {
+        present: '#34D399', // green
+        absent: '#F87171',  // red
+        late: '#FBBF24'     // yellow
+      }[record.status] || '#9CA3AF' // default gray
+    }))
   })
-  
-  return counts
 })
 
-// Calculate percentages
+// Computed properties
+const summary = computed(() => {
+  const stats = { present: 0, absent: 0, late: 0, total: 0 }
+  attendance.value.forEach(record => {
+    stats[record.status]++
+    stats.total++
+  })
+  return stats
+})
+
 const presentPercentage = computed(() => {
-  return summary.value.total > 0 
-    ? Math.round((summary.value.present / summary.value.total) * 100) 
-    : 0
+  return summary.value.total ? Math.round((summary.value.present / summary.value.total) * 100) : 0
 })
 
 const absentPercentage = computed(() => {
-  return summary.value.total > 0 
-    ? Math.round((summary.value.absent / summary.value.total) * 100) 
-    : 0
+  return summary.value.total ? Math.round((summary.value.absent / summary.value.total) * 100) : 0
 })
 
 const latePercentage = computed(() => {
-  return summary.value.total > 0 
-    ? Math.round((summary.value.late / summary.value.total) * 100) 
-    : 0
+  return summary.value.total ? Math.round((summary.value.late / summary.value.total) * 100) : 0
 })
 
 const attendancePercentage = computed(() => {
-  return summary.value.total > 0 
+  return summary.value.total 
     ? Math.round(((summary.value.present + summary.value.late) / summary.value.total) * 100) 
     : 0
 })
 
-// Format date string (e.g., 2025-07-22 → July 22, 2025)
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+const lastPresentDate = computed(() => {
+  const presentRecords = attendance.value.filter(r => r.status === 'present')
+  if (presentRecords.length === 0) return 'N/A'
+  
+  const lastPresent = presentRecords.reduce((latest, record) => {
+    return new Date(record.date) > new Date(latest.date) ? record : latest
+  }, { date: '1970-01-01' })
+  
+  return formatDate(lastPresent.date)
+})
+
+const filteredAttendance = computed(() => {
+  return attendance.value.filter(record => {
+    const matchesStatus = !filters.value.status || record.status === filters.value.status
+    const matchesDate = !filters.value.date || record.date === filters.value.date
+    return matchesStatus && matchesDate
+  })
+})
+
+// Methods
+const resetFilters = () => {
+  filters.value = { status: '', date: '' }
 }
 
-// Format datetime string (e.g., 2025-07-22T11:11:01Z → July 22, 2025, 11:11 AM)
-const formatDateTime = (dateTimeStr) => {
-  const date = new Date(dateTimeStr)
-  return date.toLocaleString()
+const statusClass = (status) => {
+  return {
+    'present': 'bg-green-100 text-green-800',
+    'absent': 'bg-red-100 text-red-800',
+    'late': 'bg-yellow-100 text-yellow-800'
+  }[status] || 'bg-gray-100 text-gray-800'
 }
 
-// View details action
-const viewDetails = (record) => {
-  // Implement your view details logic here
-  console.log('Viewing details for:', record)
+const subjectColor = (subjectName) => {
+  if (!subjectName) return 'bg-gray-300'
+  
+  const colors = ['blue', 'green', 'red', 'yellow', 'purple', 'pink', 'indigo']
+  const hash = subjectName.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0)
+  const colorIndex = hash % colors.length
+  return `bg-${colors[colorIndex]}-500`
 }
 
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  const options = { year: 'numeric', month: 'short', day: 'numeric' }
+  return new Date(dateString).toLocaleDateString(undefined, options)
+}
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  })
+}
+
+const capitalizeFirstLetter = (string) => {
+  return string.charAt(0).toUpperCase() + string.slice(1)
+}
+
+const exportToPDF = () => {
+  alert('PDF export would be implemented here')
+}
+
+const exportToExcel = () => {
+  alert('Excel export would be implemented here')
+}
+
+// Initialize
 onMounted(() => {
   fetchAttendance()
 })
 </script>
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+<style scoped>
+/* Calendar styling */
+:deep(.fc) {
+  font-family: inherit;
+}
 
-body {
-  font-family: 'Inter', sans-serif;
+:deep(.fc-header-toolbar) {
+  margin-bottom: 1em;
+}
+
+:deep(.fc-daygrid-day-number) {
+  color: #4b5563;
+}
+
+:deep(.fc-day-today) {
+  background-color: #f0f9ff !important;
+}
+
+:deep(.fc-daygrid-event) {
+  font-size: 0.8em;
+  padding: 2px 4px;
+  border-radius: 0.25rem;
+}
+
+:deep(.fc-daygrid-day-frame) {
+  min-height: 80px;
 }
 </style>
