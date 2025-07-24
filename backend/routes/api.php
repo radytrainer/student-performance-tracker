@@ -1,11 +1,18 @@
 <?php
 
+<<<<<<< HEAD
 use App\Http\Controllers\Api\SubjectController;
+=======
+// use App\Http\Controllers\Api\SubjectController;
+>>>>>>> d2c8d1033b9fddf36c839b8d57ca6ba091eb4d13
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileImageController;
 use App\Http\Controllers\Teacher\FeedbackFormController;
 use App\Http\Controllers\Student\FeedbackSurveyController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -19,12 +26,17 @@ use App\Http\Controllers\Student\FeedbackSurveyController;
 */
 
 
-Route::get('/subjects', [SubjectController::class, 'index']);
+// Route::get('/subjects', [SubjectController::class, 'index']);
 
 
 // Public routes (no authentication required)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
+
+Route::apiResource('/users', UserController::class);
+Route::put('/users/{id}', [UserController::class, 'update']);
+
+
 
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -35,9 +47,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     
     // Profile routes (all authenticated users)
-    // Route::get('/profile', 'ProfileController@show');
-    // Route::put('/profile', 'ProfileController@update');
-    // Route::post('/profile/avatar', 'ProfileController@uploadAvatar');
+    Route::get('/profile', [App\Http\Controllers\UserController::class, 'show']);
+    Route::put('/profile', [App\Http\Controllers\UserController::class, 'update']);
+    
+    // Profile Image CRUD routes
+    Route::get('/profile/image', [ProfileImageController::class, 'show']);
+    Route::post('/profile/image', [ProfileImageController::class, 'upload']);
+    Route::put('/profile/image', [ProfileImageController::class, 'update']);
+    Route::delete('/profile/image', [ProfileImageController::class, 'delete']);
+    // Student Attendance routes
+    Route::get('/student/my-attendance', [App\Http\Controllers\Student\AttendanceController::class, 'index']);
+
+
+
 
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
@@ -198,6 +220,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('student/surveys/{assignmentId}', [FeedbackSurveyController::class, 'show']);
         Route::post('student/surveys/{assignmentId}/complete', [FeedbackSurveyController::class, 'markCompleted']);
         Route::get('student/survey-stats', [FeedbackSurveyController::class, 'getStats']);
+        
+        Route::get('/student/my-attendance', [App\Http\Controllers\Student\AttendanceController::class, 'index']);
+
     });
 
     // Shared routes (role-specific access handled by policies)
@@ -228,3 +253,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 });
+
+
