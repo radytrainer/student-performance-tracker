@@ -39,7 +39,7 @@
             <!-- User Information -->
             <div class="text-center sm:text-left text-white flex-1">
               <h2 class="text-xl sm:text-3xl font-bold mb-2">
-                {{ user.name || "Your Name" }}
+                {{ user.username || "Your Name" }}
               </h2>
               <p class="text-blue-100 text-base sm:text-lg mb-3">
                 {{ user.email || "your.email@example.com" }}
@@ -155,7 +155,7 @@
                 <div class="relative">
                   <input
                     id="name"
-                    v-model="user.name"
+                    v-model="user.username"
                     type="text"
                     :class="getInputClasses('name')"
                     :disabled="!editing"
@@ -180,7 +180,7 @@
                   </svg>
                 </div>
                 <p
-                  v-if="errors.name"
+                  v-if="errors.username"
                   class="text-red-500 text-xs sm:text-sm mt-1 flex items-center"
                 >
                   <svg
@@ -194,7 +194,7 @@
                       clip-rule="evenodd"
                     />
                   </svg>
-                  {{ errors.name }}
+                  {{ errors.username }}
                 </p>
               </div>
 
