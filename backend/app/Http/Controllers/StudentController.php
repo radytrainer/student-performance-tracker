@@ -18,25 +18,25 @@ class StudentController extends BaseController
 
         $user = $this->getCurrentUser();
         $query = Student::with(['user', 'currentClass']);
-        
+
         // Apply role-based filtering automatically
         $query = $this->applyRoleBasedFilters($query, $user);
-        
+
         // Additional filters
         if ($request->has('class_id')) {
             $query->inClass($request->class_id);
         }
-        
+
         if ($request->has('gender')) {
             $query->byGender($request->gender);
         }
-        
+
         if ($request->has('search')) {
             $search = $request->search;
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%");
             })->orWhere('student_code', 'like', "%{$search}%");
         }
 
@@ -97,6 +97,7 @@ class StudentController extends BaseController
         return $this->successResponse($student, 'Student created successfully', 201);
     }
 
+
     /**
      * Display the specified student
      */
@@ -104,14 +105,14 @@ class StudentController extends BaseController
     {
         $user = $this->getCurrentUser();
         $query = Student::with(['user', 'currentClass', 'studentClasses.class']);
-        
+
         // Apply role-based filtering
         $query = $this->applyRoleBasedFilters($query, $user);
-        
+
         try {
             $student = $query->findOrFail($id);
             $this->authorize('view', $student);
-            
+
             return $this->successResponse($student, 'Student retrieved successfully');
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse('Student not found or access denied', 404);
@@ -121,21 +122,24 @@ class StudentController extends BaseController
     /**
      * Update the specified student
      */
+
     public function update(Request $request, $id)
     {
+
         $user = $this->getCurrentUser();
         $query = Student::query();
-        
+        $user = auth()->user();
+        $user = $user instanceof \App\Models\User ? $user : User::find($user->id);
         // Apply role-based filtering
         $query = $this->applyRoleBasedFilters($query, $user);
-        
+
         try {
             $student = $query->findOrFail($id);
             $this->authorize('update', $student);
 
             // Validation rules differ based on role
             $rules = [];
-            
+
             if ($user->isAdmin() || $user->isTeacher()) {
                 $rules = [
                     'student_code' => 'sometimes|string|unique:students,student_code,' . $student->user_id . ',user_id',
@@ -155,7 +159,7 @@ class StudentController extends BaseController
             }
 
             $request->validate($rules);
-            
+
             $student->update($request->only(array_keys($rules)));
             $student->load(['user', 'currentClass']);
 
@@ -172,10 +176,10 @@ class StudentController extends BaseController
     {
         $user = $this->getCurrentUser();
         $query = Student::query();
-        
+
         // Apply role-based filtering
         $query = $this->applyRoleBasedFilters($query, $user);
-        
+
         try {
             $student = $query->findOrFail($id);
             $this->authorize('delete', $student);
@@ -196,13 +200,14 @@ class StudentController extends BaseController
     {
         $user = $this->getCurrentUser();
         $query = Student::query();
-        
+
         // Apply role-based filtering
         $query = $this->applyRoleBasedFilters($query, $user);
-        
+
         try {
             $student = $query->findOrFail($id);
             $this->authorize('view', $student);
+
 
             $performance = [
                 'grades' => $student->grades()->with(['classSubject.subject', 'term'])->accessibleToUser($user)->get(),
@@ -225,11 +230,11 @@ class StudentController extends BaseController
     {
         $attendanceRecords = $student->attendances()->accessibleToUser($user);
         $totalRecords = $attendanceRecords->count();
-        
+
         if ($totalRecords === 0) {
             return 0;
         }
-        
+
         $presentRecords = $attendanceRecords->where('status', 'present')->count();
         return round(($presentRecords / $totalRecords) * 100, 2);
     }

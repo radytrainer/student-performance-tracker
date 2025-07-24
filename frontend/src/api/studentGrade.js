@@ -1,23 +1,23 @@
-// src/api/axiosConfig.js
+// src/api/studentGrade.js
 import apiClient from './axiosConfig'
 
-const api = apiClient.create({
-  baseURL: 'http://127.0.0.1:8000/api', // Update if needed
-  headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-  }
-})
+export default {
+  getAllGrades(params = {}) {
+    return apiClient.get('/student/grades', { params }) // must match backend route exactly
+  },
+  getGrade(id) {
+    return apiClient.get(`/student/grades/${id}`)
+  },
+  createGrade(GradeData) {
+    return apiClient.post('/student/grades', GradeData)
+  },
+  updateGrade(id, GradeData) {
+    return apiClient.put(`/student/grades/${id}`, GradeData)
+  },
+  deleteGrade(id) {
+    return apiClient.delete(`/student/grades/${id}`)
+  },
+}
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token') // Sanctum token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-console.log(apiClient);
 
 
-export default api
