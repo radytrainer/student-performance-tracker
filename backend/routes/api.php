@@ -35,7 +35,6 @@ Route::apiResource('/users', UserController::class);
 Route::put('/users/{id}', [UserController::class, 'update']);
 
 
-
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
 
