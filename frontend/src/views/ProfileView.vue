@@ -80,8 +80,8 @@
               <!-- Quick Stats -->
               <div class="grid grid-cols-2 gap-4 sm:gap-6 max-w-md mx-auto sm:mx-0">
                 <div class="text-center sm:text-left">
-                  <div class="text-2xl font-bold">{{ memberSinceDate }}</div>
-                  <div class="text-blue-200 text-sm">Member Since</div>
+                  <div class="text-2xl font-bold">{{ lastLoginDate }}</div>
+                  <div class="text-blue-200 text-sm">Last Login</div>
                 </div>
                 <div class="text-center sm:text-left">
                   <div class="text-2xl font-bold">{{ user.student_id || user.id }}</div>
@@ -968,6 +968,12 @@ const showNotification = (message, type = "success") => {
 
 const memberSinceDate = computed(() => {
   const formatted = formatDate(user.createdAt);
+  if (formatted === 'N/A') return 'N/A';
+  return formatted.split(',')[0];
+});
+
+const lastLoginDate = computed(() => {
+  const formatted = formatDate(user.lastLogin);
   if (formatted === 'N/A') return 'N/A';
   return formatted.split(',')[0];
 });
