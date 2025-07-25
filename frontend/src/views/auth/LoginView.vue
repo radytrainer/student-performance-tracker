@@ -150,9 +150,13 @@ const registerData = reactive({
   last_name: "",
   username: "",
   email: "",
+  gender: "",
+  date_of_birth: "",
+  city: "",
+  country: "",
+  role: "student", // Default to student
   password: "",
   confirmPassword: "",
-  role: "student", // Default to student
 });
 
 // Validation errors
@@ -182,6 +186,15 @@ const registerSchema = yup.object({
     .string()
     .email("Please enter a valid email")
     .required("Email is required"),
+  gender: yup
+    .string()
+    .oneOf(["male", "female"], "Please select a valid gender")
+    .required("Gender is required"),
+  date_of_birth: yup
+    .string()
+    .required("Date of birth is required"),
+  city: yup.string().required("City is required"),
+  country: yup.string().required("Country is required"),
   password: yup
     .string()
     .min(6, "Password must be at least 6 characters")
@@ -240,7 +253,13 @@ const handleRegister = async (formData) => {
       username: formData.username,
       email: formData.email,
       password: formData.password,
+      password_confirmation: formData.confirmPassword,
       role: formData.role,
+      // Additional fields for role-specific data
+      gender: formData.gender,
+      date_of_birth: formData.date_of_birth,
+      city: formData.city,
+      country: formData.country,
     };
 
     await authStore.register(userData);
