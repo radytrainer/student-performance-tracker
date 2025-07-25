@@ -1,5 +1,5 @@
 <template>
-  <nav class="bg-white shadow-sm border-b border-gray-100" v-if="isAuthenticated">
+  <nav class="bg-white shadow-sm border-b border-gray-100" v-show="isAuthenticated">
     <div class="max-w-full mx-auto px-6">
       <div class="flex justify-between items-center h-16">
         <!-- Empty space where logo was -->
@@ -254,10 +254,16 @@ const roleBadgeClass = computed(() => {
 
 // Methods
 const handleLogout = async () => {
-  showUserMenu.value = false
-  showMobileMenu.value = false
-  await authStore.logout()
-  router.push('/login')
+  try {
+    showUserMenu.value = false
+    showMobileMenu.value = false
+    // authStore.logout() already handles redirect, don't double redirect
+    await authStore.logout()
+  } catch (error) {
+    console.error('Logout failed:', error)
+    // Fallback redirect if logout fails
+    router.push('/login')
+  }
 }
 
 // Close dropdowns when clicking outside

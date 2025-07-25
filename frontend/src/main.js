@@ -11,9 +11,10 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
-app.mount('#app')
 
-// ✅ Initialize auth store (load token)
+// ✅ Initialize auth store (load token) before mounting
 const auth = useAuthStore()
-auth.initialize()
+auth.initialize().then(() => {
+  app.mount('#app')
+})
 
