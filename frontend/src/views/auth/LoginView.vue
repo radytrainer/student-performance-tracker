@@ -72,10 +72,10 @@
 
             <!-- Form Content -->
             <div
-              class="relative h-full flex items-center justify-center p-4 md:p-8 overflow-y-auto scrollbar-hide"
+              class="relative h-full flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto scrollbar-hide"
               style="z-index: 10"
             >
-              <div class="w-full max-w-md bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-6 border border-white/20 my-4 h-[90vh] flex flex-col">
+              <div class="w-full max-w-md bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-6 border border-white/20 mb-4 h-[80vh] flex flex-col">
                 <!-- Login Form -->
                 <LoginForm
                   v-if="isSignIn"
@@ -97,24 +97,24 @@
                   @submit="handleRegister"
                   @update:data="updateRegisterData"
                 />
-
-                <!-- Form Toggle Link -->
-                <div class="text-center mt-6">
-                  <p class="text-gray-300">
-                    {{
-                      isSignIn
-                        ? "Don't have account? "
-                        : "Already have an account? "
-                    }}
-                    <a
-                      href="#"
-                      @click.prevent="isSignIn = !isSignIn"
-                      class="font-medium transition-colors duration-200 focus:outline-none focus:underline gradient-text"
-                    >
-                      {{ isSignIn ? "Let's register here" : "Login here" }}
-                    </a>
-                  </p>
-                </div>
+              </div>
+              
+              <!-- Form Toggle Link - Below the form container -->
+              <div class="w-full max-w-md text-center">
+                <p class="text-gray-300">
+                  {{
+                    isSignIn
+                      ? "Don't have account? "
+                      : "Already have an account? "
+                  }}
+                  <a
+                    href="#"
+                    @click.prevent="isSignIn = !isSignIn"
+                    class="font-medium transition-colors duration-200 focus:outline-none focus:underline gradient-text"
+                  >
+                    {{ isSignIn ? "Let's register here" : "Login here" }}
+                  </a>
+                </p>
               </div>
             </div>
           </div>
