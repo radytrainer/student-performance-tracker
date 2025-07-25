@@ -34,3 +34,4 @@ return [
     ),
 
 ];
+echo realpath(storage_path('framework/views'));

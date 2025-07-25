@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Student;
+use App\Models\ClassSubject;
+use App\Models\Term;
+use App\Models\User;
 
 class Grade extends Model
 {
@@ -25,13 +29,16 @@ class Grade extends Model
     ];
 
     protected $casts = [
-        'max_score' => 'decimal:2',
+        'max_score'      => 'decimal:2',
         'score_obtained' => 'decimal:2',
-        'weightage' => 'decimal:2',
-        'recorded_at' => 'datetime',
+        'weightage'      => 'decimal:2',
+        'recorded_at'    => 'datetime',
     ];
 
-    // Relationships
+    /**
+     * Relationships — properly imported models
+     */
+
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'student_id', 'user_id');
@@ -39,12 +46,12 @@ class Grade extends Model
 
     public function classSubject(): BelongsTo
     {
-        return $this->belongsTo(ClassSubject::class);
+        return $this->belongsTo(ClassSubject::class, 'class_subject_id');
     }
 
     public function term(): BelongsTo
     {
-        return $this->belongsTo(Term::class);
+        return $this->belongsTo(Term::class, 'term_id');
     }
 
     public function recordedBy(): BelongsTo
@@ -52,26 +59,27 @@ class Grade extends Model
         return $this->belongsTo(User::class, 'recorded_by');
     }
 
-    // Query scopes for role-based filtering
+    /**
+     * Scope filters for role-based access control
+     */
+
     public function scopeAccessibleToUser($query, User $user)
     {
         if ($user->isAdmin()) {
-            return $query; // Admin can see all grades
+            return $query;
         }
 
         if ($user->isTeacher()) {
-            // Teachers can only see grades for their assigned subjects
             return $query->whereHas('classSubject', function ($q) use ($user) {
                 $q->where('teacher_id', $user->teacher->user_id);
             });
         }
 
         if ($user->isStudent()) {
-            // Students can only see their own grades
             return $query->where('student_id', $user->student->user_id);
         }
 
-        return $query->whereRaw('1 = 0'); // No access for other roles
+        return $query->whereRaw('1 = 0');
     }
 
     public function scopeForStudent($query, $studentId)
@@ -84,7 +92,7 @@ class Grade extends Model
         return $query->where('term_id', $termId);
     }
 
-    public function scopeByAssessmentType($query, $type)
+    public function scopeByAssessmentType($query, string $type)
     {
         return $query->where('assessment_type', $type);
     }

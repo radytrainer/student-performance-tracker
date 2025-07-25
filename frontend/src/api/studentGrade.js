@@ -2,22 +2,25 @@
 import apiClient from './axiosConfig'
 
 export default {
+  // GET /api/student/grades
   getAllGrades(params = {}) {
-    return apiClient.get('/student/grades', { params }) // must match backend route exactly
+    return apiClient.get('/student/grades', { params })
   },
+
+  // These next endpoints will only work if you define them in the backend!
   getGrade(id) {
     return apiClient.get(`/student/grades/${id}`)
   },
-  createGrade(GradeData) {
-    return apiClient.post('/student/grades', GradeData)
+
+  createGrade(data) {
+    return apiClient.post('/student/grades', data)
   },
-  updateGrade(id, GradeData) {
-    return apiClient.put(`/student/grades/${id}`, GradeData)
+
+  updateGrade(id, data) {
+    return apiClient.put(`/student/grades/${id}`, data)
   },
+
   deleteGrade(id) {
     return apiClient.delete(`/student/grades/${id}`)
   },
 }
-
-
-

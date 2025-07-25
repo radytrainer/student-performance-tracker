@@ -1,3 +1,4 @@
+// src/api/axiosConfig.js
 import axios from 'axios'
 
 // Create axios instance with base configuration
@@ -10,60 +11,45 @@ const apiClient = axios.create({
   }
 })
 
-// Request interceptor
+// ✅ Request interceptor - attach token
 apiClient.interceptors.request.use(
   (config) => {
-    // Add authorization token if available
     const token = localStorage.getItem('auth_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor
+// ✅ Response interceptor - handle common API errors
 apiClient.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   (error) => {
-    // Handle common error responses
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // Handle unauthorized access (redirect to login)
+          console.warn('Unauthorized – maybe token expired?')
+          // Redirect to login or show toast
           break
         case 403:
-          // Handle forbidden access
+          console.warn('Forbidden – no permission')
           break
         case 404:
-          // Handle not found errors
+          console.warn('Not found')
           break
         case 422:
-          // Handle validation errors (return for form handling)
           return Promise.reject(error.response.data.errors)
         case 500:
-          // Handle server errors
+          console.error('Server error')
           break
         default:
-          // Handle other errors
           break
       }
     }
     return Promise.reject(error)
   }
 )
-// ✅ Add token to every request if it exists
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
 
 export default apiClient
