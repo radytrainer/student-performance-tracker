@@ -139,7 +139,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import html2pdf from 'html2pdf.js'
+// import html2pdf from 'html2pdf.js'
 
 // Dummy student info
 const student = ref({
