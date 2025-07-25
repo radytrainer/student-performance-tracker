@@ -79,6 +79,7 @@
               <p class="text-sm text-yellow-700">All attendance records</p>
             </div>
           </div>
+  
         </div>
 
         <!-- Calendar View -->
@@ -96,6 +97,16 @@
                 <option value="present">Present</option>
                 <option value="absent">Absent</option>
                 <option value="late">Late</option>
+              </select>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            
+            <div class="relative">
+              <select v-model="filters.subject" class="border rounded-lg p-2 pl-10 pr-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Subjects</option>
+                <option v-for="subject in uniqueSubjects" :value="subject" :key="subject">{{ subject }}</option>
               </select>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -134,14 +145,14 @@
         </div>
 
         <!-- Attendance Table -->
-        <div class="overflow-x-auto rounded-lg shadow bg-white">
+        <div class="overflow-x-auto rounded-lg shadow bg-white" ref="tableRef">
           <table class="min-w-full text-sm">
             <thead class="bg-gray-100 text-gray-700">
               <tr>
                 <th class="px-6 py-3 text-left font-semibold">Date</th>
                 <th class="px-6 py-3 text-left font-semibold">Status</th>
                 <th class="px-6 py-3 text-left font-semibold">Subject</th>
-                <th class="px-6 py-3 text-left font-semibold">Recorded At</th>
+                <th class="px-6 py-3 text-left font-semibold">Time</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -175,7 +186,7 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  {{ formatDateTime(record.recorded_at) }}
+                  {{ formatTimeOnly(record.recorded_at) }}
                 </td>
               </tr>
               <tr v-if="filteredAttendance.length === 0">
@@ -191,8 +202,11 @@
 
 <script setup>
 // Vue + Axios
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import axios from 'axios'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
+import * as XLSX from 'xlsx'
 
 // FullCalendar Imports
 import FullCalendar from '@fullcalendar/vue3'
@@ -222,8 +236,10 @@ const loading = ref(true)
 const error = ref(null)
 const filters = ref({
   status: '',
+  subject: '',
   date: ''
 })
+const tableRef = ref(null) // Reference to the table element
 
 // Fetch attendance data
 const fetchAttendance = async () => {
@@ -290,28 +306,28 @@ const attendancePercentage = computed(() => {
     : 0
 })
 
-const lastPresentDate = computed(() => {
-  const presentRecords = attendance.value.filter(r => r.status === 'present')
-  if (presentRecords.length === 0) return 'N/A'
-  
-  const lastPresent = presentRecords.reduce((latest, record) => {
-    return new Date(record.date) > new Date(latest.date) ? record : latest
-  }, { date: '1970-01-01' })
-  
-  return formatDate(lastPresent.date)
+const uniqueSubjects = computed(() => {
+  const subjects = new Set()
+  attendance.value.forEach(record => {
+    if (record.subject_name) {
+      subjects.add(record.subject_name)
+    }
+  })
+  return Array.from(subjects).sort()
 })
 
 const filteredAttendance = computed(() => {
   return attendance.value.filter(record => {
     const matchesStatus = !filters.value.status || record.status === filters.value.status
+    const matchesSubject = !filters.value.subject || record.subject_name === filters.value.subject
     const matchesDate = !filters.value.date || record.date === filters.value.date
-    return matchesStatus && matchesDate
+    return matchesStatus && matchesSubject && matchesDate
   })
 })
 
 // Methods
 const resetFilters = () => {
-  filters.value = { status: '', date: '' }
+  filters.value = { status: '', subject: '', date: '' }
 }
 
 const statusClass = (status) => {
@@ -350,16 +366,102 @@ const formatDateTime = (dateString) => {
   })
 }
 
+const formatTimeOnly = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+}
+
 const capitalizeFirstLetter = (string) => {
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
-const exportToPDF = () => {
-  alert('PDF export would be implemented here')
+// Export PDF
+const exportToPDF = async () => {
+  try {
+    await nextTick();
+    
+    if (!tableRef.value) {
+      console.error('Table element not found');
+      return;
+    }
+
+    // Create PDF
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    // School Header
+    pdf.setFontSize(10);
+    pdf.setTextColor(100);
+    pdf.text("www.passerellesnumeriques.org | BP 511 St. 371 Phum Tropeang Chhuk , City ZIP | +855 23 99 55 00 |", pageWidth / 2, 30, { align: 'center' });
+    pdf.text("passerelles numériques cambodia", pageWidth / 2, 45, { align: 'center' });
+
+    // Title
+    pdf.setFontSize(18);
+    pdf.setTextColor(40);
+    pdf.text("Student Attendance Report", pageWidth / 2, 80, { align: 'center' });
+
+    // Report Info
+    pdf.setFontSize(12);
+    pdf.text(`Class: ${localStorage.getItem('class_name') || 'All Classes'}`, 40, 110);
+    pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 40, 110, { align: 'right' });
+
+    // Capture table
+    const canvas = await html2canvas(tableRef.value, {
+      scale: 2,
+      logging: false,
+      useCORS: true,
+      backgroundColor: null
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = pageWidth - 80;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    // Table position
+    const tableY = 130;
+    pdf.addImage(imgData, 'PNG', 40, tableY, imgWidth, imgHeight);
+
+    // Footer positioned right below table
+    const footerY = tableY + imgHeight + 20; // 20px below table
+    
+    pdf.setFontSize(10);
+    pdf.setTextColor(100);
+    
+    // Footer notes
+    pdf.text("Notes:", 40, footerY);
+    pdf.text("- Absences require parental note within 3 days", 40, footerY + 15);
+    pdf.text("- Late arrivals marked after 8:15 AM", 40, footerY + 30);
+    pdf.text("- Report discrepancies to office within 24 hours", 40, footerY + 45);
+    
+    // School footer
+    pdf.text(`© ${new Date().getFullYear()} passerelles numériques cambodia`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+
+    // Save PDF
+    pdf.save(`attendance_${new Date().toISOString().slice(0,10)}.pdf`);
+    
+  } catch (err) {
+    console.error('PDF generation error:', err);
+    alert('Error generating PDF. Please try again.');
+  }
 }
 
+// Export Excel
 const exportToExcel = () => {
-  alert('Excel export would be implemented here')
+  if (!filteredAttendance.value.length) return alert('No data to export')
+  
+  const data = filteredAttendance.value.map(r => ({
+    Date: formatDate(r.date),
+    Status: capitalizeFirstLetter(r.status),
+    Subject: r.subject_name,
+    Time: formatTimeOnly(r.recorded_at)
+  }))
+  
+  const worksheet = XLSX.utils.json_to_sheet(data)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance')
+  XLSX.writeFile(workbook, 'attendance.xlsx')
 }
 
 // Initialize
