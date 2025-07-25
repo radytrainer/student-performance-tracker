@@ -12,22 +12,50 @@ class UserController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api')->except('index', 'show'); // Restrict CRUD operations
+        // Apply auth middleware to all methods since routes are now protected at route level
+        // No exceptions needed as routes are handled by middleware groups
     }
 
     public function index(Request $request)
     {
         $query = User::query();
 
-        if ($request->has('role')) {
-            $query->byRole($request->role);
+        // Search functionality
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$search}%"]);
+            });
         }
 
+        // Role filter
+        if ($request->has('role') && !empty($request->role)) {
+            $query->where('role', $request->role);
+        }
+
+        // Status filter
         if ($request->boolean('active_only', false)) {
-            $query->active();
+            $query->where('is_active', true);
         }
 
-        return response()->json($query->paginate(10));
+        // Order by creation date (newest first)
+        $query->orderBy('created_at', 'desc');
+
+        $perPage = min($request->get('per_page', 10), 50); // Max 50 per page
+        $users = $query->paginate($perPage);
+
+        // Transform profile picture URLs for each user
+        foreach ($users->items() as $user) {
+            if ($user->profile_picture) {
+                $user->profile_picture = asset('storage/' . $user->profile_picture);
+            }
+        }
+
+        return response()->json($users);
     }
 
     public function store(Request $request)
@@ -105,5 +133,21 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully.']);
+    }
+
+    public function toggleStatus(Request $request, string $id)
+    {
+        $user = User::findOrFail($id);
+        
+        $validated = $request->validate([
+            'is_active' => 'required|boolean'
+        ]);
+
+        $user->update(['is_active' => $validated['is_active']]);
+
+        return response()->json([
+            'message' => 'User status updated successfully',
+            'user' => $user
+        ]);
     }
 }
