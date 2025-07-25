@@ -34,6 +34,10 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 
 // Temporary public access for testing user management
 Route::get('/users', [UserController::class, 'index']);
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
+Route::post('/users', [UserController::class, 'store']);
+Route::put('/users/{id}', [UserController::class, 'update']);
+Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
 
 // Simple test route
 Route::get('/test', function () {
