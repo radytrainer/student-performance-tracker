@@ -24,9 +24,11 @@
           >
             <!-- Profile Image Section -->
             <ImageUpload
-              :current-image="profileImage"
-              :fallback-text="user.name || 'User'"
-              :alt-text="`${user.name || 'User'} Profile Picture`"
+              :current-image="profileImage || user.profile_picture"
+              :fallback-text="user.username || user.name || 'User'"
+              :alt-text="`${
+                user.username || user.name || 'User'
+              } Profile Picture`"
               size="large"
               :editable="editing"
               :show-delete-button="true"
@@ -146,6 +148,38 @@
           >
             <!-- Personal Information Tab -->
             <div v-if="activeTab === 'personal'" class="space-y-6">
+              <!-- Student ID Field (Non-editable) -->
+              <div>
+                <label
+                  for="studentId"
+                  class="block text-sm font-semibold text-gray-700 mb-2"
+                  >Student ID</label
+                >
+                <div class="relative">
+                  <input
+                    id="studentId"
+                    :value="user.student_id || user.id"
+                    type="text"
+                    class="w-full pl-8 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-gray-600 font-medium focus:outline-none text-sm sm:text-base"
+                    disabled
+                    placeholder="Student ID"
+                  />
+                  <svg
+                    class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                    />
+                  </svg>
+                </div>
+              </div>
+
               <div>
                 <label
                   for="name"
@@ -157,13 +191,13 @@
                     id="name"
                     v-model="user.username"
                     type="text"
-                    :class="getInputClasses('name')"
+                    :class="getInputClasses('username')"
                     :disabled="!editing"
                     placeholder="Enter your full name"
                     required
                     autocomplete="name"
-                    @blur="validateField('name')"
-                    @input="clearFieldError('name')"
+                    @blur="validateField('username')"
+                    @input="clearFieldError('username')"
                   />
                   <svg
                     class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none"
@@ -322,6 +356,166 @@
                     rows="3"
                     placeholder="Tell us about yourself..."
                   ></textarea>
+                </div>
+              </div>
+
+              <!-- Student-specific fields -->
+              <div
+                v-if="user.role === 'student'"
+                class="space-y-6 pt-6 border-t border-gray-200"
+              >
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                  Student Information
+                </h3>
+
+                <!-- Date of Birth -->
+                <div>
+                  <label
+                    for="dateOfBirth"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                    >Date of Birth</label
+                  >
+                  <div class="relative">
+                    <input
+                      id="dateOfBirth"
+                      v-model="user.date_of_birth"
+                      type="date"
+                      :class="getInputClasses('date_of_birth')"
+                      :disabled="!editing"
+                    />
+                    <svg
+                      class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Gender -->
+                <div>
+                  <label
+                    for="gender"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                    >Gender</label
+                  >
+                  <div class="relative">
+                    <select
+                      id="gender"
+                      v-model="user.gender"
+                      :class="getInputClasses('gender')"
+                      :disabled="!editing"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <svg
+                      class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Address -->
+                <div>
+                  <label
+                    for="address"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                    >Address</label
+                  >
+                  <div class="relative">
+                    <textarea
+                      id="address"
+                      v-model="user.address"
+                      :class="getTextareaClasses()"
+                      :disabled="!editing"
+                      rows="2"
+                      placeholder="Enter your address..."
+                    ></textarea>
+                  </div>
+                </div>
+
+                <!-- Parent Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label
+                      for="parentName"
+                      class="block text-sm font-semibold text-gray-700 mb-2"
+                      >Parent/Guardian Name</label
+                    >
+                    <div class="relative">
+                      <input
+                        id="parentName"
+                        v-model="user.parent_name"
+                        type="text"
+                        :class="getInputClasses('parent_name')"
+                        :disabled="!editing"
+                        placeholder="Parent/Guardian name"
+                      />
+                      <svg
+                        class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      for="parentPhone"
+                      class="block text-sm font-semibold text-gray-700 mb-2"
+                      >Parent/Guardian Phone</label
+                    >
+                    <div class="relative">
+                      <input
+                        id="parentPhone"
+                        v-model="user.parent_phone"
+                        type="tel"
+                        :class="getInputClasses('parent_phone')"
+                        :disabled="!editing"
+                        placeholder="Parent/Guardian phone"
+                      />
+                      <svg
+                        class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -605,30 +799,35 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { useProfileImage } from "@/composables/useProfileImage";
 import ImageUpload from "@/components/ImageUpload.vue";
-import profileImageAPI from "@/api/profileImage";
+import userProfileAPI from "@/api/userProfile";
 
 const authStore = useAuthStore();
+const { profileImage, getImageUrl, updateProfileImage, deleteProfileImage } =
+  useProfileImage();
 
 // Reactive state
 const editing = ref(false);
 const loading = ref(false);
 const originalUser = ref({});
-const profileImage = ref("");
 const activeTab = ref("personal");
 
 const user = reactive({
-  name: "Em Sophy",
-  email: "sophy.em@student.passerellesnumeriques.org",
-  phone: "+855 12 345 678",
-  bio: "Computer Science student passionate about web development and technology.",
-  role: "Student",
-  createdAt: "2023-01-15",
-  lastLogin: "2024-01-20",
+  username: "",
+  email: "",
+  phone: "",
+  bio: "",
+  role: "student",
+  student_id: "",
+  id: "",
+  profile_picture: null,
+  createdAt: null,
+  lastLogin: null,
 });
 
 const errors = reactive({
-  name: "",
+  username: "",
   email: "",
   phone: "",
 });
@@ -642,17 +841,17 @@ const notification = reactive({
 // Computed properties
 const isFormValid = computed(() => {
   return (
-    user.name && user.email && !Object.values(errors).some((error) => error)
+    user.username && user.email && !Object.values(errors).some((error) => error)
   );
 });
 
 const profileCompletion = computed(() => {
   const fields = [
-    user.name,
+    user.username,
     user.email,
     user.phone,
     user.bio,
-    profileImage.value,
+    profileImage.value || user.profile_picture,
   ];
   const completedFields = fields.filter(
     (field) => field && field.toString().trim()
@@ -671,40 +870,95 @@ const getInitials = (name) => {
     .slice(0, 2);
 };
 
+// Helper function to safely format dates for HTML date inputs
+const formatDateForInput = (dateString) => {
+  if (!dateString) return "";
+  if (dateString.includes("T")) {
+    return dateString.split("T")[0];
+  }
+  return dateString;
+};
+
 const loadProfile = async () => {
   try {
     loading.value = true;
 
-    // Initialize auth store
-    await authStore.initialize();
+    // Get user profile from dedicated profile API endpoint
+    const response = await userProfileAPI.getProfile();
 
-    // Get user data from auth store
-    const userData = authStore.user;
+    if (response.data.success && response.data.user) {
+      const userData = response.data.user;
 
-    if (userData) {
-      // Update user data
-      Object.assign(user, userData);
+      // Update user data - make sure all fields are properly mapped
+      Object.assign(user, {
+        username:
+          userData.username ||
+          `${userData.first_name} ${userData.last_name}`.trim(),
+        email: userData.email,
+        phone: userData.phone || "",
+        bio: userData.bio || "",
+        role: userData.role,
+        student_id: userData.student_id || userData.student_code || userData.id,
+        id: userData.id,
+        profile_picture: userData.profile_picture,
+        createdAt: userData.created_at || userData.createdAt,
+        lastLogin: userData.last_login || userData.lastLogin,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        // Student-specific fields
+        date_of_birth: formatDateForInput(userData.date_of_birth),
+        gender: userData.gender,
+        address: userData.address,
+        parent_name: userData.parent_name,
+        parent_phone: userData.parent_phone,
+        enrollment_date: userData.enrollment_date,
+        // Teacher-specific fields
+        teacher_code: userData.teacher_code,
+        department: userData.department,
+        qualification: userData.qualification,
+        specialization: userData.specialization,
+        hire_date: userData.hire_date,
+      });
 
-      // Load profile image from API
-      try {
-        const imageResponse = await profileImageAPI.getProfileImage();
-        if (imageResponse.data.image_url) {
-          profileImage.value = imageResponse.data.image_path;
-        }
-      } catch (err) {
-        // No profile image or error loading - that's ok
-        console.log("No profile image found");
-      }
+      // Update auth store with fresh data
+      authStore.updateUser(userData);
 
       // Store original values
-      originalUser.value = {
-        ...userData,
-        profileImage: profileImage.value,
-      };
+      originalUser.value = { ...user };
     }
   } catch (error) {
     console.error("Load profile error:", error);
-    showNotification("Failed to load profile", "error");
+    showNotification("Failed to load profile data", "error");
+
+    // Fallback to auth store data if API fails
+    try {
+      await authStore.initialize();
+      const userData = authStore.user;
+      if (userData) {
+        Object.assign(user, {
+          username:
+            userData.username ||
+            `${userData.first_name} ${userData.last_name}`.trim(),
+          email: userData.email,
+          phone: userData.phone || "",
+          bio: userData.bio || "",
+          role: userData.role,
+          student_id: userData.student_id || userData.id,
+          id: userData.id,
+          profile_picture: userData.profile_picture,
+          date_of_birth: formatDateForInput(userData.date_of_birth),
+          gender: userData.gender || "",
+          address: userData.address || "",
+          parent_name: userData.parent_name || "",
+          parent_phone: userData.parent_phone || "",
+          createdAt: userData.created_at || userData.createdAt,
+          lastLogin: userData.last_login || userData.lastLogin,
+        });
+        originalUser.value = { ...user };
+      }
+    } catch (fallbackError) {
+      console.error("Fallback load error:", fallbackError);
+    }
   } finally {
     loading.value = false;
   }
@@ -712,13 +966,12 @@ const loadProfile = async () => {
 
 const startEditing = () => {
   editing.value = true;
-  originalUser.value = { ...user, profileImage: profileImage.value };
+  originalUser.value = { ...user };
   clearErrors();
 };
 
 const cancelEdit = () => {
   Object.assign(user, originalUser.value);
-  profileImage.value = originalUser.value.profileImage || "";
   editing.value = false;
   clearErrors();
 };
@@ -732,49 +985,96 @@ const saveProfile = async () => {
   try {
     loading.value = true;
 
-    // Update the auth store with new user data
-    const updatedUser = { ...user, profile_picture: profileImage.value };
+    // Prepare user data for API call
+    const profileData = {
+      username: user.username,
+      email: user.email,
+      first_name: user.first_name || user.username?.split(" ")[0] || "",
+      last_name:
+        user.last_name || user.username?.split(" ").slice(1).join(" ") || "",
+      phone: user.phone,
+      bio: user.bio,
+    };
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Add student-specific fields if user is a student
+    if (user.role === "student") {
+      if (user.date_of_birth) {
+        // Ensure date is in YYYY-MM-DD format for the API
+        profileData.date_of_birth = formatDateForInput(user.date_of_birth);
+      }
+      if (user.gender) profileData.gender = user.gender;
+      if (user.address) profileData.address = user.address;
+      if (user.parent_name) profileData.parent_name = user.parent_name;
+      if (user.parent_phone) profileData.parent_phone = user.parent_phone;
+    }
 
-    // Update the auth store
-    authStore.updateUser(updatedUser);
+    // Add teacher-specific fields if user is a teacher
+    if (user.role === "teacher") {
+      if (user.department) profileData.department = user.department;
+      if (user.qualification) profileData.qualification = user.qualification;
+      if (user.specialization) profileData.specialization = user.specialization;
+    }
 
-    originalUser.value = { ...updatedUser };
-    editing.value = false;
-    showNotification("Profile updated successfully!", "success");
+    // Make API call to update profile
+    const response = await userProfileAPI.updateProfileData(profileData);
+
+    if (response.data.success) {
+      const updatedUser = response.data.user;
+
+      // Update local user data with response
+      Object.assign(user, {
+        ...updatedUser,
+        username:
+          updatedUser.username ||
+          `${updatedUser.first_name} ${updatedUser.last_name}`.trim(),
+        student_id:
+          updatedUser.student_id || updatedUser.student_code || updatedUser.id,
+        // Format date properly for HTML input
+        date_of_birth: formatDateForInput(updatedUser.date_of_birth),
+      });
+
+      // Update auth store with fresh data
+      authStore.updateUser(updatedUser);
+
+      originalUser.value = { ...user };
+      editing.value = false;
+      showNotification("Profile updated successfully!", "success");
+    } else {
+      throw new Error(response.data.message || "Update failed");
+    }
   } catch (error) {
     console.error("Save profile error:", error);
-    showNotification("Failed to save profile", "error");
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to save profile";
+    showNotification(errorMessage, "error");
   } finally {
     loading.value = false;
   }
 };
 
 // Image upload event handlers
-const handleImageUploadSuccess = (data) => {
-  profileImage.value = data.imagePath;
-  // Update the auth store with the new profile picture
-  authStore.updateUser({
-    ...authStore.user,
-    profile_picture: data.imagePath,
-  });
-  showNotification("Profile image uploaded successfully!", "success");
+const handleImageUploadSuccess = async (data) => {
+  try {
+    // The useProfileImage composable handles updating both global state and auth store
+    showNotification("Profile image uploaded successfully!", "success");
+  } catch (error) {
+    showNotification("Failed to upload image", "error");
+  }
 };
 
 const handleImageUploadError = (message) => {
   showNotification(message, "error");
 };
 
-const handleImageDeleteSuccess = (data) => {
-  profileImage.value = null;
-  // Update the auth store to remove the profile picture
-  authStore.updateUser({
-    ...authStore.user,
-    profile_picture: null,
-  });
-  showNotification("Profile image deleted successfully!", "success");
+const handleImageDeleteSuccess = async (data) => {
+  try {
+    // The useProfileImage composable handles updating both global state and auth store
+    showNotification("Profile image deleted successfully!", "success");
+  } catch (error) {
+    showNotification("Failed to delete image", "error");
+  }
 };
 
 const handleImageDeleteError = (message) => {
@@ -785,8 +1085,8 @@ const validateForm = () => {
   clearErrors();
   let isValid = true;
 
-  if (!user.name || !user.name.trim()) {
-    errors.name = "Name is required";
+  if (!user.username || !user.username.trim()) {
+    errors.username = "Name is required";
     isValid = false;
   }
 
@@ -812,9 +1112,10 @@ const validateForm = () => {
 
 const validateField = (field) => {
   switch (field) {
+    case "username":
     case "name":
-      if (!user.name || !user.name.trim()) {
-        errors.name = "Name is required";
+      if (!user.username || !user.username.trim()) {
+        errors.username = "Name is required";
       }
       break;
     case "email":
