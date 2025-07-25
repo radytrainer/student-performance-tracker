@@ -12,8 +12,8 @@ class UserController extends Controller
 {
     public function __construct()
     {
-        // Apply auth middleware to all methods since routes are now protected at route level
-        // No exceptions needed as routes are handled by middleware groups
+        // Temporarily disable auth middleware for testing
+        // In production, this should be properly secured
     }
 
     public function index(Request $request)

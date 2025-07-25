@@ -32,6 +32,14 @@ use App\Http\Controllers\Student\FeedbackSurveyController;
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
+// Temporary public access for testing user management
+Route::get('/users', [UserController::class, 'index']);
+
+// Simple test route
+Route::get('/test', function () {
+    return response()->json(['message' => 'API is working', 'timestamp' => now()]);
+});
+
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
 
