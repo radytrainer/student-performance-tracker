@@ -46,9 +46,12 @@
               type="text"
               placeholder="Search users..."
               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-              @input="debouncedSearch"
+              @input="debouncedApiSearch"
             />
-            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <i 
+              :class="searchLoading ? 'fas fa-spinner fa-spin' : 'fas fa-search'" 
+              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            ></i>
           </div>
           <select
             v-model="roleFilter"
@@ -83,7 +86,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
+            <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
@@ -138,7 +141,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="users.length === 0 && !loading" class="text-center py-12">
+      <div v-if="filteredUsers.length === 0 && !loading" class="text-center py-12">
         <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
         <h3 class="text-lg font-medium text-gray-900 mb-2">No users found</h3>
         <p class="text-gray-500">
@@ -240,7 +243,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import UserModal from '@/components/modals/UserModal.vue'
 import { usersAPI } from '@/api/users'
@@ -249,9 +252,11 @@ const { hasPermission } = useAuth()
 
 // State
 const loading = ref(true)
+const searchLoading = ref(false)
 const error = ref(null)
 const successMessage = ref('')
 const users = ref([])
+const allUsers = ref([]) // Store all users for local filtering
 const pagination = ref(null)
 const searchQuery = ref('')
 const roleFilter = ref('')
@@ -265,13 +270,68 @@ const userToDelete = ref(null)
 const modalLoading = ref(false)
 const deleteLoading = ref(false)
 
-// Debounced search
+// Helper functions (defined early for use in computed)
+const getUserName = (user) => {
+  return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email
+}
+
+// Computed filtered users for instant search
+const filteredUsers = computed(() => {
+  let filtered = allUsers.value
+
+  // Apply search filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter(user => {
+      const fullName = getUserName(user).toLowerCase()
+      const email = (user.email || '').toLowerCase()
+      const username = (user.username || '').toLowerCase()
+      
+      return fullName.includes(query) || 
+             email.includes(query) || 
+             username.includes(query)
+    })
+  }
+
+  // Apply role filter
+  if (roleFilter.value) {
+    filtered = filtered.filter(user => user.role === roleFilter.value)
+  }
+
+  return filtered
+})
+
+// Debounced search for API calls (only when needed)
 let searchTimeout = null
-const debouncedSearch = () => {
+const debouncedApiSearch = () => {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    loadUsers()
-  }, 300)
+    // Only make API call if search query is very specific or for pagination
+    if (searchQuery.value.length > 2) {
+      performApiSearch()
+    }
+  }, 800) // Longer delay for API calls
+}
+
+const performApiSearch = async () => {
+  try {
+    searchLoading.value = true
+    const params = {
+      page: 1,
+      per_page: 50, // Get more results for better local filtering
+      search: searchQuery.value,
+      role: roleFilter.value
+    }
+
+    const response = await usersAPI.getUsers(params)
+    allUsers.value = response.data.data
+    pagination.value = response.data
+    currentPage.value = 1
+  } catch (err) {
+    console.error('Search error:', err)
+  } finally {
+    searchLoading.value = false
+  }
 }
 
 // Methods
@@ -297,10 +357,6 @@ const formatDate = (date) => {
   })
 }
 
-const getUserName = (user) => {
-  return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email
-}
-
 const getUserInitial = (user) => {
   const name = getUserName(user)
   return name.charAt(0).toUpperCase()
@@ -320,19 +376,16 @@ const loadUsers = async () => {
     
     const params = {
       page: currentPage.value,
-      per_page: 10
+      per_page: 50 // Load more users for better local filtering
     }
 
-    if (searchQuery.value) {
-      params.search = searchQuery.value
-    }
-
+    // Only add filters for initial load or role changes
     if (roleFilter.value) {
       params.role = roleFilter.value
     }
 
     const response = await usersAPI.getUsers(params)
-    users.value = response.data.data
+    allUsers.value = response.data.data
     pagination.value = response.data
   } catch (err) {
     error.value = err.response?.data?.message || err.message || 'Failed to load users'
@@ -344,6 +397,7 @@ const loadUsers = async () => {
 
 const applyFilters = () => {
   currentPage.value = 1
+  searchQuery.value = '' // Clear search when changing filters
   loadUsers()
 }
 
