@@ -4,13 +4,18 @@
       <div class="flex justify-between items-center py-6">
         <div class="flex items-center space-x-4">
           <div>
-            <h1 class="text-2xl font-bold text-purple-600 tracking-tight">
-              Welcome back, {{ student.name }}!
+            <h1 class="text-3xl font-bold text-purple-600 tracking-tight">
+              Welcome back, {{ user?.first_name }}!
             </h1>
             <p class="text-sm text-gray-600 font-medium">
-              {{ student.course }} • ID: {{ student.studentId }}
+               User ID: {{ user?.id }} / Student Code: {{ user?.student_code }}
             </p>
-            <p class="text-xs text-gray-500">Last login: {{ student.lastLogin }}</p>
+            <p class="text-sm text-gray-600 font-medium">
+              Student Courses:{{ user?.course }} 
+            </p>
+            <p class="text-xs text-gray-500">
+              Last login: {{ formattedLastLogin }}
+            </p>
           </div>
         </div>
       </div>
@@ -19,6 +24,17 @@
 </template>
 
 <script setup>
+import { useAuth } from '@/composables/useAuth'
+import { computed } from 'vue'
+import moment from 'moment'
 
-defineProps(['student'])
+// Use composable to get current user
+const { user } = useAuth()
+
+// Format last login nicely
+const formattedLastLogin = computed(() => {
+  return user.value?.last_login
+    ? moment(user.value.last_login).fromNow()
+    : 'N/A'
+})
 </script>

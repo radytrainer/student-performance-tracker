@@ -8,7 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileImageController;
 use App\Http\Controllers\Teacher\FeedbackFormController;
 use App\Http\Controllers\Student\FeedbackSurveyController;
-
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +28,10 @@ Route::get('/subjects', [SubjectController::class, 'index']);
 // Public routes (no authentication required)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
+
+Route::apiResource('/users', UserController::class);
+Route::put('/users/{id}', [UserController::class, 'update']);
+
 
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
