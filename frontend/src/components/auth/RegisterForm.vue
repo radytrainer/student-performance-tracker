@@ -19,25 +19,72 @@
       </div>
       
       <form class="space-y-4 md:space-y-5" @submit.prevent="handleSubmit">
-      <!-- Name -->
+      <!-- Name Fields Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- First Name -->
+        <div class="space-y-1">
+          <label class="text-sm font-medium text-gray-200">First Name</label>
+          <input
+            v-model="formData.first_name"
+            type="text"
+            placeholder="First Name"
+            :class="[
+              'w-full px-3 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
+              hasError('first_name')
+                ? 'border-red-400 ring-2 ring-red-400/50'
+                : 'hover:border-white/30',
+            ]"
+          />
+          <p
+            v-if="hasError('first_name')"
+            class="text-red-400 text-xs"
+          >
+            {{ getErrorMessage('first_name') }}
+          </p>
+        </div>
+
+        <!-- Last Name -->
+        <div class="space-y-1">
+          <label class="text-sm font-medium text-gray-200">Last Name</label>
+          <input
+            v-model="formData.last_name"
+            type="text"
+            placeholder="Last Name"
+            :class="[
+              'w-full px-3 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
+              hasError('last_name')
+                ? 'border-red-400 ring-2 ring-red-400/50'
+                : 'hover:border-white/30',
+            ]"
+          />
+          <p
+            v-if="hasError('last_name')"
+            class="text-red-400 text-xs"
+          >
+            {{ getErrorMessage('last_name') }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Username -->
       <div class="space-y-1">
-        <label class="text-sm font-medium text-gray-200">Name</label>
+        <label class="text-sm font-medium text-gray-200">Username</label>
         <input
-          v-model="formData.full_name"
+          v-model="formData.username"
           type="text"
-          placeholder="Type Here"
+          placeholder="Choose a username"
           :class="[
             'w-full px-3 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
-            hasError('full_name')
+            hasError('username')
               ? 'border-red-400 ring-2 ring-red-400/50'
               : 'hover:border-white/30',
           ]"
         />
         <p
-          v-if="hasError('full_name')"
+          v-if="hasError('username')"
           class="text-red-400 text-xs"
         >
-          {{ getErrorMessage('full_name') }}
+          {{ getErrorMessage('username') }}
         </p>
       </div>
 
@@ -196,9 +243,49 @@
         </p>
       </div>
 
-      <!-- Password Fields (Hidden for now as not shown in the design) -->
-      <input v-model="formData.password" type="hidden" />
-      <input v-model="formData.confirmPassword" type="hidden" />
+      <!-- Password -->
+      <div class="space-y-1">
+        <label class="text-sm font-medium text-gray-200">Password</label>
+        <input
+          v-model="formData.password"
+          type="password"
+          placeholder="Create a password"
+          :class="[
+            'w-full px-3 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
+            hasError('password')
+              ? 'border-red-400 ring-2 ring-red-400/50'
+              : 'hover:border-white/30',
+          ]"
+        />
+        <p
+          v-if="hasError('password')"
+          class="text-red-400 text-xs"
+        >
+          {{ getErrorMessage('password') }}
+        </p>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="space-y-1">
+        <label class="text-sm font-medium text-gray-200">Confirm Password</label>
+        <input
+          v-model="formData.confirmPassword"
+          type="password"
+          placeholder="Confirm your password"
+          :class="[
+            'w-full px-3 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
+            hasError('confirmPassword')
+              ? 'border-red-400 ring-2 ring-red-400/50'
+              : 'hover:border-white/30',
+          ]"
+        />
+        <p
+          v-if="hasError('confirmPassword')"
+          class="text-red-400 text-xs"
+        >
+          {{ getErrorMessage('confirmPassword') }}
+        </p>
+      </div>
 
       <!-- Action Buttons -->
       <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
@@ -213,7 +300,7 @@
           :disabled="isLoading"
           class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2.5 px-4 rounded-xl font-medium transition-colors duration-200 disabled:opacity-50"
         >
-          {{ isLoading ? "Creating..." : "CONFIRM" }}
+          {{ isLoading ? "Creating..." : "SUBMIT" }}
         </button>
       </div>
       </form>
@@ -236,7 +323,9 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: () => ({
-      full_name: '',
+      first_name: '',
+      last_name: '',
+      username: '',
       email: '',
       gender: '',
       date_of_birth: '',
@@ -256,7 +345,9 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'update:data'])
 
 const formData = reactive({
-  full_name: props.initialData.full_name || '',
+  first_name: props.initialData.first_name || '',
+  last_name: props.initialData.last_name || '',
+  username: props.initialData.username || '',
   email: props.initialData.email || '',
   gender: props.initialData.gender || '',
   date_of_birth: props.initialData.date_of_birth || '',
