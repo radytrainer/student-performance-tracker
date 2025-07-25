@@ -139,7 +139,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-// import html2pdf from 'html2pdf.js'
+// import html2pdf from 'html2pdf.js' // TODO: Install html2pdf.js for PDF export
 
 // Dummy student info
 const student = ref({
@@ -240,15 +240,20 @@ const gradeColor = (letter) => {
 const formatDate = (str) => new Date(str).toLocaleDateString()
 
 const exportToPDF = () => {
-  const element = document.getElementById('grade-export-content')
-  const options = {
-    margin: 0.5,
-    // filename: `${student.value.name}-Grades-${currentTermName.value}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-  }
-  html2pdf().from(element).set(options).save()
+  // Temporary workaround: Use browser's print functionality
+  alert('PDF Export feature requires html2pdf.js library. For now, you can use Ctrl+P to print/save as PDF.')
+  window.print()
+  
+  // TODO: Implement proper PDF export when html2pdf.js is installed
+  // const element = document.getElementById('grade-export-content')
+  // const options = {
+  //   margin: 0.5,
+  //   filename: `${student.value.name}-Grades-${currentTermName.value}.pdf`,
+  //   image: { type: 'jpeg', quality: 0.98 },
+  //   html2canvas: { scale: 2 },
+  //   jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+  // }
+  // html2pdf().from(element).set(options).save()
 }
 
 
