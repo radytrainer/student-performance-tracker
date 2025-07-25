@@ -32,10 +32,6 @@ use App\Http\Controllers\Student\FeedbackSurveyController;
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
-Route::apiResource('/users', UserController::class);
-Route::put('/users/{id}', [UserController::class, 'update']);
-
-
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
 
@@ -99,9 +95,44 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Subject Management (Full Access)
         Route::apiResource('admin/subjects', 'Admin\SubjectController');
         Route::post('admin/subjects/{subject}/assign-teachers', 'Admin\SubjectController@assignTeachers');
+
+        // User Management (new implementation)
+        Route::apiResource('users', UserController::class);
+        Route::put('users/{id}', [UserController::class, 'update']);
+        Route::patch('users/{id}/status', [UserController::class, 'toggleStatus']);
+
+        // Legacy User Management routes (commented out - controllers don't exist)
+        // Route::apiResource('admin/users', 'Admin\UserController');
+        // Route::post('admin/users/{user}/reset-password', 'Admin\UserController@resetPassword');
+        // Route::put('admin/users/{user}/role', 'Admin\UserController@updateRole');
+
+        // Future Admin routes (controllers need to be created)
+        // Route::get('admin/settings', 'Admin\SettingsController@index');
+        // Route::put('admin/settings', 'Admin\SettingsController@update');
+        // Route::get('admin/settings/{key}', 'Admin\SettingsController@show');
+
+        // Route::get('admin/reports/overview', 'Admin\ReportsController@overview');
+        // Route::get('admin/reports/students', 'Admin\ReportsController@students');
+        // Route::get('admin/reports/teachers', 'Admin\ReportsController@teachers');
+        // Route::get('admin/reports/performance', 'Admin\ReportsController@performance');
+        // Route::get('admin/reports/attendance', 'Admin\ReportsController@attendance');
+
+        // Route::get('admin/audit-logs', 'Admin\AuditLogController@index');
+        // Route::get('admin/audit-logs/{log}', 'Admin\AuditLogController@show');
+
+        // Route::get('admin/data-imports', 'Admin\DataImportController@index');
+        // Route::get('admin/data-imports/{import}', 'Admin\DataImportController@show');
+        // Route::delete('admin/data-imports/{import}', 'Admin\DataImportController@destroy');
+
+        // Route::apiResource('admin/classes', 'Admin\ClassController');
+        // Route::post('admin/classes/{class}/assign-teacher', 'Admin\ClassController@assignTeacher');
+        // Route::post('admin/classes/{class}/enroll-student', 'Admin\ClassController@enrollStudent');
+
+        // Route::apiResource('admin/subjects', 'Admin\SubjectController');
+        // Route::post('admin/subjects/{subject}/assign-teachers', 'Admin\SubjectController@assignTeachers');
     });
 
-    // Admin & Teacher routes
+    // Admin & Teacher routes (commented out for now - controllers need verification)
     Route::middleware(['role:admin,teacher'])->group(function () {
 
         // Student Management
@@ -157,9 +188,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Feedback Management (Teachers can view feedback about them)
         Route::get('feedback/received', 'FeedbackController@received')->middleware('permission:feedback.view');
         Route::post('feedback/respond', 'FeedbackController@respond')->middleware('permission:feedback.respond');
+
+        // Future routes - need to verify controllers exist
+        // Route::apiResource('students', StudentController::class);
+        // Route::apiResource('grades', GradeController::class);
+
+        // Future routes - controllers need to be verified/created
+        // Route::apiResource('attendance', 'AttendanceController');
+        // Route::apiResource('classes', 'ClassController');
+        // Route::get('analytics/overview', 'AnalyticsController@overview');
+        // Route::apiResource('reports', 'ReportController');
+        // Route::apiResource('notifications', 'NotificationController');
+        // Route::get('feedback/received', 'FeedbackController@received');
     });
 
-    // Teacher only routes
+    // Teacher only routes (commented out - controllers need verification)
     Route::middleware(['role:teacher'])->group(function () {
 
         // Teacher Dashboard
@@ -190,13 +233,34 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('teacher/feedback-forms/{formId}/analytics', [FeedbackFormController::class, 'getFormAnalytics']);
 
         // Enhanced Management Routes
+
+        // Future teacher routes
+        // Route::get('teacher/dashboard', 'Teacher\DashboardController@index');
+        // Route::get('teacher/my-classes', 'Teacher\ClassController@myClasses');
+        // Route::get('teacher/my-students', 'Teacher\StudentController@myStudents');
+
+        // More future teacher routes
+        // Route::get('teacher/alerts', 'Teacher\AlertController@index');
+        // Route::post('teacher/alerts', 'Teacher\AlertController@store');
+        // Route::put('teacher/alerts/{alert}/resolve', 'Teacher\AlertController@resolve');
+        // Route::post('teacher/feedback/students', 'Teacher\FeedbackController@giveToStudent');
+
+        // Working Feedback Forms Management
+        Route::apiResource('teacher/feedback-forms', FeedbackFormController::class);
+        Route::get('teacher/feedback-classes', [FeedbackFormController::class, 'getMyClasses']);
+        Route::post('teacher/form-assignments', [FeedbackFormController::class, 'assignToClasses']);
+        Route::get('teacher/available-users', [FeedbackFormController::class, 'getAvailableUsers']);
+        Route::post('teacher/user-assignments', [FeedbackFormController::class, 'assignToUsers']);
+        Route::get('teacher/feedback-forms/{formId}/individual-assignments', [FeedbackFormController::class, 'getIndividualAssignments']);
+        Route::get('teacher/analytics', [FeedbackFormController::class, 'getTeacherAnalytics']);
+        Route::get('teacher/feedback-forms/{formId}/analytics', [FeedbackFormController::class, 'getFormAnalytics']);
         Route::post('teacher/bulk-assign-surveys', [FeedbackFormController::class, 'bulkAssignSurveys']);
         Route::get('teacher/survey-templates', [FeedbackFormController::class, 'getSurveyTemplates']);
         Route::post('teacher/create-from-template', [FeedbackFormController::class, 'createFromTemplate']);
         Route::post('teacher/schedule-survey', [FeedbackFormController::class, 'scheduleSurvey']);
     });
 
-    // Student routes
+    // Student routes (commented out - controllers need verification)
     Route::middleware(['role:student'])->group(function () {
 
         // Student Dashboard
@@ -215,6 +279,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Feedback (Submit feedback about teachers/system)
         Route::post('student/feedback', 'Student\FeedbackController@submit')->middleware('permission:feedback.create');
         Route::get('student/feedback/history', 'Student\FeedbackController@history')->middleware('permission:feedback.create');
+
+
+        // Future student routes
+        // Route::get('student/dashboard', 'Student\DashboardController@index');
+
+        // More future student routes
+        // Route::get('student/grades', 'Student\GradeController@index');
+        // Route::get('student/reports', 'Student\ReportController@index');
+        // Route::get('student/performance', 'Student\PerformanceController@index');
+        // Route::get('student/notifications', 'Student\NotificationController@index');
+        // Route::post('student/feedback', 'Student\FeedbackController@submit');
 
         // Feedback Surveys
         Route::get('student/surveys', [FeedbackSurveyController::class, 'index']);
