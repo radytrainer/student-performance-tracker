@@ -28,7 +28,7 @@
           <!-- Notifications -->
           <button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.5-3.5c-.1-.1-.2-.2-.3-.3L12 9V6a2 2 0 00-4 0v3L3.8 13.2c-.1.1-.2.2-.3.3L0 17h5"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5V12a7 7 0 10-14 0v5l-2 2v1h16v-1l-2-2V12z"/>
             </svg>
           </button>
 

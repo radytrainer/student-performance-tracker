@@ -26,15 +26,34 @@
 <script setup>
 import { useAuth } from '@/composables/useAuth'
 import { computed } from 'vue'
-import moment from 'moment'
 
 // Use composable to get current user
 const { user } = useAuth()
 
+// Helper function to format relative time
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return 'N/A'
+  
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffInSeconds = Math.floor((now - date) / 1000)
+  
+  if (diffInSeconds < 60) {
+    return 'Just now'
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60)
+    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600)
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`
+  } else {
+    const days = Math.floor(diffInSeconds / 86400)
+    return `${days} day${days > 1 ? 's' : ''} ago`
+  }
+}
+
 // Format last login nicely
 const formattedLastLogin = computed(() => {
-  return user.value?.last_login
-    ? moment(user.value.last_login).fromNow()
-    : 'N/A'
+  return formatRelativeTime(user.value?.last_login)
 })
 </script>

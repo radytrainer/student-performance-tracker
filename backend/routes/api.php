@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileImageController;
 use App\Http\Controllers\Teacher\FeedbackFormController;
 use App\Http\Controllers\Student\FeedbackSurveyController;
@@ -46,6 +47,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/profile', [App\Http\Controllers\UserController::class, 'show']);
     Route::put('/profile', [App\Http\Controllers\UserController::class, 'update']);
 
+    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show']);
+    Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update']);
+    
     // Profile Image CRUD routes
     Route::get('/profile/image', [ProfileImageController::class, 'show']);
     Route::post('/profile/image', [ProfileImageController::class, 'upload']);
