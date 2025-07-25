@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Student;
+use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -21,8 +23,13 @@ class AuthController extends Controller
             'email' => 'required|string|email|unique:users,email|max:255',
             'password' => 'required|string|min:8|confirmed',
             'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'role' => 'required|in:admin,teacher,student',
+            // Additional fields for students
+            'gender' => 'nullable|in:male,female,other',
+            'date_of_birth' => 'nullable|date',
+            'city' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -34,6 +41,7 @@ class AuthController extends Controller
         }
 
         try {
+            // Create user first
             $user = User::create([
                 'username' => $request->username,
                 'email' => $request->email,
@@ -43,6 +51,13 @@ class AuthController extends Controller
                 'role' => $request->role,
                 'is_active' => true,
             ]);
+
+            // Create role-specific record
+            if ($user->role === 'student') {
+                $this->createStudentRecord($user, $request);
+            } elseif ($user->role === 'teacher') {
+                $this->createTeacherRecord($user, $request);
+            }
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -213,5 +228,59 @@ class AuthController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Create student record
+     */
+    private function createStudentRecord(User $user, Request $request): void
+    {
+        $user->student()->create([
+            'user_id' => $user->id,
+            'student_code' => $this->generateStudentCode(),
+            'date_of_birth' => $request->date_of_birth,
+            'gender' => $request->gender,
+            'address' => trim(($request->city ?? '') . ', ' . ($request->country ?? ''), ', '),
+            'enrollment_date' => now()->toDateString(),
+        ]);
+    }
+
+    /**
+     * Create teacher record
+     */
+    private function createTeacherRecord(User $user, Request $request): void
+    {
+        $user->teacher()->create([
+            'user_id' => $user->id,
+            'teacher_code' => $this->generateTeacherCode(),
+            'department' => null, // Can be set later by admin
+            'qualification' => null, // Can be set later
+            'specialization' => null, // Can be set later
+            'hire_date' => now()->toDateString(),
+        ]);
+    }
+
+    /**
+     * Generate unique student code
+     */
+    private function generateStudentCode(): string
+    {
+        do {
+            $code = 'STU' . date('Y') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        } while (Student::where('student_code', $code)->exists());
+        
+        return $code;
+    }
+
+    /**
+     * Generate unique teacher code
+     */
+    private function generateTeacherCode(): string
+    {
+        do {
+            $code = 'TCH' . date('Y') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        } while (Teacher::where('teacher_code', $code)->exists());
+        
+        return $code;
     }
 }
