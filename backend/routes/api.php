@@ -1,9 +1,7 @@
 <?php
 
-<<<<<<< HEAD
+
 use App\Http\Controllers\Api\SubjectController;
-// use App\Http\Controllers\Api\SubjectController;
->>>>>>> d2c8d1033b9fddf36c839b8d57ca6ba091eb4d13
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;

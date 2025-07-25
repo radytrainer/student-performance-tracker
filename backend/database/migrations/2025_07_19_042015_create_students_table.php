@@ -6,13 +6,10 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('students', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->primary();
+            $table->unsignedBigInteger('user_id')->primary(); // Primary key from users
             $table->string('student_code')->unique();
             $table->date('date_of_birth')->nullable();
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
@@ -22,15 +19,13 @@ return new class extends Migration
             $table->date('enrollment_date');
             $table->unsignedBigInteger('current_class_id')->nullable();
             $table->timestamps();
-            
+
+            // Foreign keys
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            // Note: current_class_id foreign key will be added after classes table is created
+            // You can add current_class_id FK later once classes table is defined
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('students');
