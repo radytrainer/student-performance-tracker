@@ -180,19 +180,43 @@ class AuthController extends Controller
     {
         try {
             $user = $request->user();
+            $user->load(['student', 'teacher']); // Load relationships
+
+            $userData = [
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'role' => $user->role,
+                'is_active' => $user->is_active,
+                'profile_picture' => $user->profile_picture,
+                'phone' => $user->phone,
+                'bio' => $user->bio,
+                'last_login' => $user->last_login,
+            ];
+
+            // Add role-specific data
+            if ($user->role === 'student' && $user->student) {
+                $userData['student_id'] = $user->student->student_code;
+                $userData['student_code'] = $user->student->student_code;
+                $userData['date_of_birth'] = $user->student->date_of_birth;
+                $userData['gender'] = $user->student->gender;
+                $userData['address'] = $user->student->address;
+                $userData['parent_name'] = $user->student->parent_name;
+                $userData['parent_phone'] = $user->student->parent_phone;
+                $userData['enrollment_date'] = $user->student->enrollment_date;
+            } elseif ($user->role === 'teacher' && $user->teacher) {
+                $userData['teacher_code'] = $user->teacher->teacher_code;
+                $userData['department'] = $user->teacher->department;
+                $userData['qualification'] = $user->teacher->qualification;
+                $userData['specialization'] = $user->teacher->specialization;
+                $userData['hire_date'] = $user->teacher->hire_date;
+            }
 
             return response()->json([
                 'success' => true,
-                'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'role' => $user->role,
-                    'is_active' => $user->is_active,
-                    'last_login' => $user->last_login,
-                ]
+                'user' => $userData
             ], 200);
 
         } catch (\Exception $e) {
