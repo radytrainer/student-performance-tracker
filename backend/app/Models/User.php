@@ -31,6 +31,12 @@ class User extends Authenticatable
         'password_hash',
         'remember_token',
     ];
+
+    // Add password accessor for authentication
+    public function getAuthPassword()
+    {
+        return $this->password_hash;
+    }
     protected $casts = [
         'responsibilities' => 'array',
         'qualifications' => 'array',
