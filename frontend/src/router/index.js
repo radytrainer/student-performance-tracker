@@ -149,6 +149,17 @@ const routes = [
       title: 'Student Feedback Surveys'
     }
   },
+  {
+    path: '/teacher/reports',
+    name: 'TeacherReports',
+    component: () => import('@/views/ReportView.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'teacher',
+      requiresPermission: 'teacher.create_reports',
+      title: 'Reports'
+    }
+  },
 
   // Student routes
   {

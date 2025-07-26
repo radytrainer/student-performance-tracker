@@ -120,6 +120,7 @@ export function useAuth() {
         { name: 'Grades', path: '/teacher/grades', icon: 'fas fa-clipboard-list' },
         { name: 'Attendance', path: '/teacher/attendance', icon: 'fas fa-calendar-check' },
         { name: 'Feedback Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-poll' },
+        { name: 'Reports', path: '/teacher/reports', icon: 'fas fa-file-alt' },
         { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
       ],
       student: [

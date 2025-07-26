@@ -1,9 +1,11 @@
 // src/api/auth.js
 
-import apiClient from './axiosConfig'
+import apiClient, { getCsrfToken } from './axiosConfig'
 
 export default {
   async login(credentials) {
+    // Get CSRF token before login
+    await getCsrfToken()
     const response = await apiClient.post('/auth/login', credentials)
     const token = response.data.token
     if (token) {
