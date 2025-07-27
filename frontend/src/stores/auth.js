@@ -12,6 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const initialize = async () => {
     try {
+      isLoading.value = true
       // Check if we have a token in localStorage
       const token = localStorage.getItem('auth_token')
       if (!token) {
@@ -27,6 +28,8 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('auth_token')
       isAuthenticated.value = false
       user.value = null
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -86,14 +89,21 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = async () => {
     try {
-      await authAPI.logout()
-    } catch (err) {
-      console.error('Logout failed:', err)
-    } finally {
-      // Always clear local state regardless of API call success
+      // Clear local state immediately for speed
       user.value = null
       isAuthenticated.value = false
       localStorage.removeItem('auth_token')
+      
+      // Redirect immediately, don't wait for API call
+      router.push('/login')
+      
+      // Call API logout in background (for server-side cleanup)
+      authAPI.logout().catch(err => {
+        console.warn('Background logout API call failed:', err)
+      })
+    } catch (err) {
+      console.error('Logout failed:', err)
+      // Ensure redirect happens even on error
       router.push('/login')
     }
   }

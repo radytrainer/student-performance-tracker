@@ -2,6 +2,39 @@
   <div class="max-w-7xl mx-auto p-2">
     <h1 class="text-2xl font-bold mb-6">🎓 My Grade</h1>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-gray-600">Loading your grades...</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+      <div class="flex items-center mb-4">
+        <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <h3 class="text-lg font-semibold text-red-800">Error Loading Grades</h3>
+      </div>
+      <p class="text-red-700 mb-4">{{ error }}</p>
+      <button 
+        @click="fetchStudentData" 
+        class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+      >
+        Try Again
+      </button>
+    </div>
+
+    <!-- Main Content -->
+    <div v-else>
+
+
+    <!-- ✅ Wrap Exportable Content -->
     <div id="grade-export-content">
       <div class="bg-white shadow-md rounded-lg p-4 mb-4 border">
         <p><strong>Name:</strong> {{ student.name }}</p>
@@ -98,18 +131,29 @@
         </table>
       </div>
     </div>
+    
+    </div> <!-- End Main Content -->
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import html2pdf from 'html2pdf.js'
-import gradeService from '@/api/studentGrade'
-import studentService from '@/api/students'
+import { useAuthStore } from "@/stores/auth"
+import gradesAPI from "@/api/grades"
+// import html2pdf from 'html2pdf.js' // TODO: Install html2pdf.js for PDF export
 
-// Store student and grade data
-const student = ref({ name: '', class: '' })
-const grades = ref([])
+const authStore = useAuthStore()
+
+// Loading and error states
+const loading = ref(true)
+const error = ref(null)
+
+// Student info - get from auth store
+const student = ref({
+  name: '',
+  class: '',
+  student_id: ''
+})
 
 // Term list and filters
 const termList = [
@@ -118,7 +162,7 @@ const termList = [
   { id: 3, name: 'Term 3' },
 ]
 const selectedTermId = ref('')
-const selectedSubject = ref('')
+// const selectedSubject = ref('')
 
 // Simulated current student ID from auth or route
 const currentStudentId = ref(null)
@@ -176,6 +220,14 @@ const currentTermName = computed(() => {
   return term ? term.name : 'All Terms'
 })
 
+// Subject filter
+const selectedSubject = ref('')
+
+// Grade list - loaded from API
+const grades = ref([])
+const gradeSummary = ref(null)
+const studentGPA = ref(0)
+
 const subjectList = computed(() => {
   const filtered = selectedTermId.value
     ? grades.value.filter(g => g.term_id === Number(selectedTermId.value))
@@ -219,6 +271,11 @@ const exportToPDF = () => {
 
 // GPA + Performance
 const gpa = computed(() => {
+  // Use API GPA if available, otherwise calculate from filtered grades
+  if (studentGPA.value && !selectedTermId.value && !selectedSubject.value) {
+    return studentGPA.value
+  }
+  
   if (!filteredGrades.value.length) return 0
   const totalPoints = filteredGrades.value.reduce((sum, g) => {
     const gradePoint = {
@@ -230,6 +287,11 @@ const gpa = computed(() => {
 })
 
 const bestSubject = computed(() => {
+  // Use API summary if available and no filters applied
+  if (gradeSummary.value?.best_subject && !selectedTermId.value && !selectedSubject.value) {
+    return gradeSummary.value.best_subject
+  }
+
   const subjects = {}
   filteredGrades.value.forEach(g => {
     if (!subjects[g.subject]) subjects[g.subject] = []
@@ -244,6 +306,11 @@ const bestSubject = computed(() => {
 })
 
 const weakestSubject = computed(() => {
+  // Use API summary if available and no filters applied
+  if (gradeSummary.value?.weakest_subject && !selectedTermId.value && !selectedSubject.value) {
+    return gradeSummary.value.weakest_subject
+  }
+
   const subjects = {}
   filteredGrades.value.forEach(g => {
     if (!subjects[g.subject]) subjects[g.subject] = []
@@ -256,4 +323,135 @@ const weakestSubject = computed(() => {
   if (!averages.length) return null
   return averages.sort((a, b) => a.avg - b.avg)[0].subject
 })
+
+// Mock data for testing (same as ProfileView)
+const mockGradesData = {
+  grades: [
+    {
+      id: 1, subject: 'Math', term_id: 2, assessment_type: 'Midterm',
+      max_score: 100, score_obtained: 78, score: 78, total: 100, weightage: 30, 
+      grade_letter: 'B', letter_grade: 'B', grade: 'B',
+      remarks: 'Good effort', recorded_by: 'Teacher A', recorded_at: '2025-07-10',
+      date: '2025-07-10', assessment: 'Midterm'
+    },
+    {
+      id: 2, subject: 'Math', term_id: 2, assessment_type: 'Quiz',
+      max_score: 20, score_obtained: 18, score: 18, total: 20, weightage: 10, 
+      grade_letter: 'A', letter_grade: 'A', grade: 'A',
+      remarks: 'Quick learner', recorded_by: 'Teacher A', recorded_at: '2025-07-15',
+      date: '2025-07-15', assessment: 'Quiz'
+    },
+    {
+      id: 3, subject: 'Science', term_id: 2, assessment_type: 'Project',
+      max_score: 50, score_obtained: 40, score: 40, total: 50, weightage: 40, 
+      grade_letter: 'B', letter_grade: 'B', grade: 'B',
+      remarks: '', recorded_by: 'Teacher B', recorded_at: '2025-07-12',
+      date: '2025-07-12', assessment: 'Project'
+    },
+    {
+      id: 4, subject: 'English', term_id: 2, assessment_type: 'Final',
+      max_score: 100, score_obtained: 85, score: 85, total: 100, weightage: 20, 
+      grade_letter: 'A', letter_grade: 'A', grade: 'A',
+      remarks: 'Great improvement', recorded_by: 'Teacher C', recorded_at: '2025-07-20',
+      date: '2025-07-20', assessment: 'Final'
+    },
+    {
+      id: 5, subject: 'Science', term_id: 2, assessment_type: 'Lab Test',
+      max_score: 30, score_obtained: 25, score: 25, total: 30, weightage: 15, 
+      grade_letter: 'B', letter_grade: 'B', grade: 'B',
+      remarks: 'Good practical skills', recorded_by: 'Teacher B', recorded_at: '2025-07-18',
+      date: '2025-07-18', assessment: 'Lab Test'
+    }
+  ],
+  summary: {
+    best_subject: 'English',
+    weakest_subject: 'Science',
+    total_assessments: 5,
+    average_score: 82.6
+  },
+  gpa: 3.4
+};
+
+// API Functions
+const fetchStudentData = async () => {
+  try {
+    loading.value = true
+    error.value = null
+
+    // Get student info from auth store
+    const user = authStore.user
+    if (user) {
+      student.value = {
+        name: user.username || `${user.first_name} ${user.last_name}`.trim() || 'Student',
+        class: user.class || 'N/A',
+        student_id: user.student_id || user.id
+      }
+    }
+
+    if (!student.value.student_id) {
+      throw new Error('No student ID found')
+    }
+
+    console.log('📊 Fetching grades for student:', student.value.student_id)
+
+    // 🧪 TEMPORARY: Use mock data instead of API calls
+    console.log('🧪 Using mock data for testing...');
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Load mock data
+    grades.value = mockGradesData.grades;
+    gradeSummary.value = mockGradesData.summary;
+    studentGPA.value = mockGradesData.gpa;
+    
+    console.log('✅ Mock data loaded successfully');
+    console.log('📊 Grades:', grades.value.length);
+    console.log('📈 Summary:', gradeSummary.value);
+    console.log('🎯 GPA:', studentGPA.value);
+
+    /* 
+    // 🔄 REAL API CALLS (commented out for now)
+    const gradesResponse = await gradesAPI.getStudentGrades(student.value.student_id)
+    if (gradesResponse.data.success) {
+      grades.value = gradesResponse.data.grades || []
+      console.log('✅ Loaded', grades.value.length, 'grades')
+    }
+
+    // Fetch grade summary
+    try {
+      const summaryResponse = await gradesAPI.getStudentGradeSummary(student.value.student_id)
+      if (summaryResponse.data.success) {
+        gradeSummary.value = summaryResponse.data.summary
+        console.log('✅ Loaded grade summary:', gradeSummary.value)
+      }
+    } catch (summaryError) {
+      console.warn('Could not fetch grade summary:', summaryError)
+    }
+
+    // Fetch GPA
+    try {
+      const gpaResponse = await gradesAPI.getStudentGPA(student.value.student_id)
+      if (gpaResponse.data.success) {
+        studentGPA.value = gpaResponse.data.gpa
+        console.log('✅ Loaded GPA:', studentGPA.value)
+      }
+    } catch (gpaError) {
+      console.warn('Could not fetch GPA:', gpaError)
+    }
+    */
+
+  } catch (err) {
+    console.error('Failed to fetch student grades:', err)
+    error.value = err.message || 'Failed to load grades data'
+  } finally {
+    loading.value = false
+  }
+}
+
+// Initialize data on component mount
+onMounted(() => {
+  fetchStudentData()
+})
+
 </script>

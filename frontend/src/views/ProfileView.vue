@@ -80,8 +80,8 @@
               <!-- Quick Stats -->
               <div class="grid grid-cols-2 gap-4 sm:gap-6 max-w-md mx-auto sm:mx-0">
                 <div class="text-center sm:text-left">
-                  <div class="text-2xl font-bold">{{ memberSinceDate }}</div>
-                  <div class="text-blue-200 text-sm">Member Since</div>
+                  <div class="text-2xl font-bold">{{ lastLoginDate }}</div>
+                  <div class="text-blue-200 text-sm">Last Login</div>
                 </div>
                 <div class="text-center sm:text-left">
                   <div class="text-2xl font-bold">{{ user.student_id || user.id }}</div>
@@ -124,6 +124,21 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
               <span>Account Settings</span>
+            </button>
+            <button
+              v-if="user.role === 'student'"
+              @click="activeTab = 'grades'"
+              :class="[
+                'flex items-center px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-300 whitespace-nowrap border-b-2 min-w-0',
+                activeTab === 'grades'
+                  ? 'text-blue-600 border-blue-600 bg-blue-50/50'
+                  : 'text-gray-500 hover:text-gray-700 border-transparent hover:border-gray-300',
+              ]"
+            >
+              <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              <span>My Grades</span>
             </button>
           </div>
 
@@ -500,6 +515,188 @@
               </div>
             </div>
 
+            <!-- My Grades Tab -->
+            <div v-if="activeTab === 'grades' && user.role === 'student'" class="space-y-8">
+              <!-- Grade Summary Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- GPA Card -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    GPA
+                  </h3>
+                  <div class="text-center">
+                    <div v-if="grades.loading" class="text-2xl font-bold text-gray-400">Loading...</div>
+                    <div v-else-if="grades.gpa" class="text-3xl font-bold text-blue-600">{{ grades.gpa.toFixed(2) }}</div>
+                    <div v-else class="text-2xl font-bold text-gray-400">N/A</div>
+                    <div class="text-sm text-gray-600 mt-1">Current GPA</div>
+                  </div>
+                </div>
+
+                <!-- Best Subject Card -->
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Best Subject
+                  </h3>
+                  <div class="text-center">
+                    <div v-if="grades.loading" class="text-lg font-semibold text-gray-400">Loading...</div>
+                    <div v-else-if="grades.summary?.best_subject" class="text-lg font-semibold text-green-600">
+                      {{ grades.summary.best_subject }}
+                    </div>
+                    <div v-else class="text-lg font-semibold text-gray-400">N/A</div>
+                    <div class="text-sm text-gray-600 mt-1">Highest Average</div>
+                  </div>
+                </div>
+
+                <!-- Total Grades Card -->
+                <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-6 border border-purple-200">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Total Grades
+                  </h3>
+                  <div class="text-center">
+                    <div v-if="grades.loading" class="text-2xl font-bold text-gray-400">Loading...</div>
+                    <div v-else class="text-3xl font-bold text-purple-600">{{ grades.data.length }}</div>
+                    <div class="text-sm text-gray-600 mt-1">Recorded Grades</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grades Table -->
+              <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    Recent Grades
+                  </h3>
+                </div>
+                
+                <div v-if="grades.loading" class="p-8 text-center">
+                  <div class="inline-flex items-center px-4 py-2 text-gray-600">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading grades...
+                  </div>
+                </div>
+                
+                <div v-else-if="grades.error" class="p-8 text-center">
+                  <div class="text-red-600">
+                    <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-lg font-semibold">{{ grades.error }}</p>
+                    <button 
+                      @click="fetchStudentGrades(user.student_id)" 
+                      class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+                
+                <div v-else-if="grades.data.length === 0" class="p-8 text-center text-gray-500">
+                  <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <p class="text-lg font-semibold">No grades found</p>
+                  <p class="text-sm">Your grades will appear here once they are recorded by your teachers.</p>
+                </div>
+                
+                <div v-else class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assessment</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                      <tr v-for="grade in grades.data" :key="grade.id" class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="text-sm font-medium text-gray-900">{{ grade.subject }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="text-sm text-gray-900">{{ grade.assessment_type || grade.assessment }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="text-sm text-gray-900">{{ grade.score }}/{{ grade.max_score || grade.total }}</div>
+                          <div class="text-xs text-gray-500">{{ ((grade.score / (grade.max_score || grade.total)) * 100).toFixed(1) }}%</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span :class="[
+                            'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
+                            getGradeBadgeClass(grade.letter_grade || grade.grade)
+                          ]">
+                            {{ grade.letter_grade || grade.grade }}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {{ formatDate(grade.recorded_at || grade.date) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Raw API Data Display (for testing) -->
+              <div class="bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-sm overflow-auto">
+                <h3 class="text-white font-bold mb-4">📡 API Data Structure (for backend development)</h3>
+                
+                <div class="space-y-4">
+                  <!-- Grades API Response -->
+                  <div>
+                    <h4 class="text-yellow-400 font-semibold">GET /students/{studentId}/grades</h4>
+                    <pre class="mt-2 overflow-x-auto">{{
+                      JSON.stringify({
+                        success: true,
+                        message: "Grades retrieved successfully",
+                        grades: grades.data
+                      }, null, 2)
+                    }}</pre>
+                  </div>
+
+                  <!-- Summary API Response -->
+                  <div>
+                    <h4 class="text-yellow-400 font-semibold">GET /students/{studentId}/grades/summary</h4>
+                    <pre class="mt-2 overflow-x-auto">{{
+                      JSON.stringify({
+                        success: true,
+                        message: "Grade summary retrieved successfully", 
+                        summary: grades.summary
+                      }, null, 2)
+                    }}</pre>
+                  </div>
+
+                  <!-- GPA API Response -->
+                  <div>
+                    <h4 class="text-yellow-400 font-semibold">GET /students/{studentId}/gpa</h4>
+                    <pre class="mt-2 overflow-x-auto">{{
+                      JSON.stringify({
+                        success: true,
+                        message: "GPA retrieved successfully",
+                        gpa: grades.gpa
+                      }, null, 2)
+                    }}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Enhanced Action Buttons -->
             <div class="flex flex-col sm:flex-row justify-end gap-4 pt-8 border-t border-gray-200">
               <button
@@ -627,6 +824,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useProfileImage } from "@/composables/useProfileImage";
 import ImageUpload from "@/components/ImageUpload.vue";
 import userProfileAPI from "@/api/userProfile";
+import gradesAPI from "@/api/grades";
 
 const authStore = useAuthStore();
 const { profileImage, getImageUrl, updateProfileImage, deleteProfileImage } = useProfileImage();
@@ -665,6 +863,15 @@ const notification = reactive({
   show: false,
   message: "",
   type: "success",
+});
+
+// Grades state
+const grades = reactive({
+  loading: false,
+  data: [],
+  summary: null,
+  gpa: null,
+  error: null,
 });
 
 // Computed properties
@@ -742,6 +949,30 @@ const getCompletionStatus = () => {
   return "Just started";
 };
 
+const getGradeBadgeClass = (grade) => {
+  if (!grade) return "bg-gray-100 text-gray-800";
+  
+  const gradeUpper = grade.toString().toUpperCase();
+  if (gradeUpper === 'A' || gradeUpper === 'A+') return "bg-green-100 text-green-800";
+  if (gradeUpper === 'A-' || gradeUpper === 'B+') return "bg-blue-100 text-blue-800";
+  if (gradeUpper === 'B' || gradeUpper === 'B-') return "bg-yellow-100 text-yellow-800";
+  if (gradeUpper === 'C+' || gradeUpper === 'C') return "bg-orange-100 text-orange-800";
+  if (gradeUpper === 'C-' || gradeUpper === 'D+' || gradeUpper === 'D') return "bg-red-100 text-red-800";
+  if (gradeUpper === 'F') return "bg-red-200 text-red-900";
+  
+  // For percentage grades
+  const percentage = parseFloat(grade);
+  if (!isNaN(percentage)) {
+    if (percentage >= 90) return "bg-green-100 text-green-800";
+    if (percentage >= 80) return "bg-blue-100 text-blue-800";
+    if (percentage >= 70) return "bg-yellow-100 text-yellow-800";
+    if (percentage >= 60) return "bg-orange-100 text-orange-800";
+    return "bg-red-100 text-red-800";
+  }
+  
+  return "bg-gray-100 text-gray-800";
+};
+
 // Keep all your existing methods (loadProfile, startEditing, cancelEdit, saveProfile, etc.)
 // I'm maintaining the same functionality but with enhanced styling
 
@@ -778,6 +1009,20 @@ const loadProfile = async () => {
       });
       authStore.updateUser(userData);
       originalUser.value = { ...user };
+      
+      // Fetch grades if user is a student
+      if (userData.role === 'student' && userData.student_id) {
+        console.log("👤 User is a student, fetching grades...", {
+          role: userData.role,
+          student_id: userData.student_id
+        });
+        await fetchStudentGrades(userData.student_id);
+      } else {
+        console.log("👤 User is not a student or no student ID, skipping grades fetch", {
+          role: userData.role,
+          student_id: userData.student_id
+        });
+      }
     }
   } catch (error) {
     console.error("Load profile error:", error);
@@ -966,8 +1211,170 @@ const showNotification = (message, type = "success") => {
   }, 5000);
 };
 
+// Mock data for testing (based on existing grades page)
+const mockGradesData = {
+  grades: [
+    {
+      id: 1, subject: 'Math', term_id: 2, assessment_type: 'Midterm',
+      max_score: 100, score_obtained: 78, score: 78, total: 100, weightage: 30, 
+      grade_letter: 'B', letter_grade: 'B', grade: 'B',
+      remarks: 'Good effort', recorded_by: 'Teacher A', recorded_at: '2025-07-10',
+      date: '2025-07-10', assessment: 'Midterm'
+    },
+    {
+      id: 2, subject: 'Math', term_id: 2, assessment_type: 'Quiz',
+      max_score: 20, score_obtained: 18, score: 18, total: 20, weightage: 10, 
+      grade_letter: 'A', letter_grade: 'A', grade: 'A',
+      remarks: 'Quick learner', recorded_by: 'Teacher A', recorded_at: '2025-07-15',
+      date: '2025-07-15', assessment: 'Quiz'
+    },
+    {
+      id: 3, subject: 'Science', term_id: 2, assessment_type: 'Project',
+      max_score: 50, score_obtained: 40, score: 40, total: 50, weightage: 40, 
+      grade_letter: 'B', letter_grade: 'B', grade: 'B',
+      remarks: '', recorded_by: 'Teacher B', recorded_at: '2025-07-12',
+      date: '2025-07-12', assessment: 'Project'
+    },
+    {
+      id: 4, subject: 'English', term_id: 2, assessment_type: 'Final',
+      max_score: 100, score_obtained: 85, score: 85, total: 100, weightage: 20, 
+      grade_letter: 'A', letter_grade: 'A', grade: 'A',
+      remarks: 'Great improvement', recorded_by: 'Teacher C', recorded_at: '2025-07-20',
+      date: '2025-07-20', assessment: 'Final'
+    },
+    {
+      id: 5, subject: 'Science', term_id: 2, assessment_type: 'Lab Test',
+      max_score: 30, score_obtained: 25, score: 25, total: 30, weightage: 15, 
+      grade_letter: 'B', letter_grade: 'B', grade: 'B',
+      remarks: 'Good practical skills', recorded_by: 'Teacher B', recorded_at: '2025-07-18',
+      date: '2025-07-18', assessment: 'Lab Test'
+    }
+  ],
+  summary: {
+    best_subject: 'English',
+    weakest_subject: 'Science',
+    total_assessments: 5,
+    average_score: 82.6
+  },
+  gpa: 3.4
+};
+
+// Grades functions
+const fetchStudentGrades = async (studentId) => {
+  if (!studentId) {
+    console.log("🚫 No student ID provided for grades fetch");
+    return;
+  }
+  
+  console.log("📊 Fetching grades for student ID:", studentId);
+  
+  try {
+    grades.loading = true;
+    grades.error = null;
+    
+    // 🧪 TEMPORARY: Use mock data instead of API calls
+    console.log("🧪 Using mock data for testing...");
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Load mock data
+    grades.data = mockGradesData.grades;
+    grades.summary = mockGradesData.summary;
+    grades.gpa = mockGradesData.gpa;
+    
+    console.log("✅ Mock data loaded successfully:");
+    console.log("📊 Mock API Response Structure:");
+    console.log({
+      "API Endpoint 1": "/students/{studentId}/grades",
+      "Expected Response 1": {
+        success: true,
+        grades: mockGradesData.grades
+      },
+      "API Endpoint 2": "/students/{studentId}/grades/summary", 
+      "Expected Response 2": {
+        success: true,
+        summary: mockGradesData.summary
+      },
+      "API Endpoint 3": "/students/{studentId}/gpa",
+      "Expected Response 3": {
+        success: true,
+        gpa: mockGradesData.gpa
+      }
+    });
+    
+    /* 
+    // 🔄 REAL API CALLS (commented out for now)
+    console.log("🔄 Calling grades API...");
+    const gradesResponse = await gradesAPI.getStudentGrades(studentId);
+    console.log("📈 Grades API response:", gradesResponse.data);
+    
+    if (gradesResponse.data.success) {
+      grades.data = gradesResponse.data.grades || [];
+      console.log("✅ Grades data loaded:", grades.data.length, "grades found");
+    } else {
+      console.log("❌ Grades API returned unsuccessful response");
+    }
+    
+    // Fetch grade summary
+    try {
+      console.log("🔄 Calling grade summary API...");
+      const summaryResponse = await gradesAPI.getStudentGradeSummary(studentId);
+      console.log("📊 Grade summary API response:", summaryResponse.data);
+      
+      if (summaryResponse.data.success) {
+        grades.summary = summaryResponse.data.summary;
+        console.log("✅ Grade summary loaded:", grades.summary);
+      }
+    } catch (summaryError) {
+      console.warn("⚠️ Could not fetch grade summary:", summaryError);
+    }
+    
+    // Fetch GPA
+    try {
+      console.log("🔄 Calling GPA API...");
+      const gpaResponse = await gradesAPI.getStudentGPA(studentId);
+      console.log("🎯 GPA API response:", gpaResponse.data);
+      
+      if (gpaResponse.data.success) {
+        grades.gpa = gpaResponse.data.gpa;
+        console.log("✅ GPA loaded:", grades.gpa);
+      }
+    } catch (gpaError) {
+      console.warn("⚠️ Could not fetch GPA:", gpaError);
+    }
+    */
+    
+    console.log("📋 Final grades state:", {
+      data: grades.data,
+      summary: grades.summary,
+      gpa: grades.gpa,
+      error: grades.error
+    });
+    
+  } catch (error) {
+    console.error("❌ Failed to fetch student grades:", error);
+    console.error("Error details:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    grades.error = error.response?.data?.message || "Failed to load grades";
+    showNotification("Failed to load grades data", "error");
+  } finally {
+    grades.loading = false;
+    console.log("🏁 Grades fetch completed. Loading:", grades.loading);
+  }
+};
+
 const memberSinceDate = computed(() => {
   const formatted = formatDate(user.createdAt);
+  if (formatted === 'N/A') return 'N/A';
+  return formatted.split(',')[0];
+});
+
+const lastLoginDate = computed(() => {
+  const formatted = formatDate(user.lastLogin);
   if (formatted === 'N/A') return 'N/A';
   return formatted.split(',')[0];
 });

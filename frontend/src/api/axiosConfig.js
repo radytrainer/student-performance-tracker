@@ -4,6 +4,7 @@ import axios from 'axios'
 // Create axios instance with base configuration
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  withCredentials: true, // Important for CSRF cookies
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -11,9 +12,26 @@ const apiClient = axios.create({
   }
 })
 
-// ✅ Request interceptor - attach token
+// Function to get CSRF token
+const getCsrfToken = async () => {
+  try {
+    await axios.get('http://localhost:8000/sanctum/csrf-cookie', {
+      withCredentials: true
+    })
+  } catch (error) {
+    console.warn('Failed to get CSRF token:', error)
+  }
+}
+
+// Request interceptor
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Get CSRF token for state-changing operations
+    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+      await getCsrfToken()
+    }
+    
+    // Add authorization token if available
     const token = localStorage.getItem('auth_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -52,4 +70,5 @@ apiClient.interceptors.response.use(
   }
 )
 
+export { getCsrfToken }
 export default apiClient
