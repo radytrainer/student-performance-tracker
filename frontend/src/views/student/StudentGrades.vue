@@ -80,7 +80,8 @@
               <td class="px-4 py-2">
                 {{ grade.score_obtained }} / {{ grade.max_score }}
                 <div class="w-full bg-gray-200 h-2 mt-1 rounded">
-                  <div class="bg-green-500 h-2 rounded" :style="{ width: ((grade.score_obtained / grade.max_score) * 100) + '%' }" />
+                  <div class="bg-green-500 h-2 rounded"
+                    :style="{ width: ((grade.score_obtained / grade.max_score) * 100) + '%' }" />
                 </div>
               </td>
               <td class="px-4 py-2">{{ grade.weightage }}%</td>
@@ -101,33 +102,34 @@
 </template>
 
 <script setup>
-<<<<<<< HEAD
 import { ref, computed, onMounted } from 'vue'
 import html2pdf from 'html2pdf.js'
 import gradeService from '@/api/studentGrade'
-=======
-import { ref, computed } from 'vue'
-// import html2pdf from 'html2pdf.js' // TODO: Install html2pdf.js for PDF export
->>>>>>> 8cae6472d42ef0a5ac75d348d498c77b42335436
+import studentService from '@/api/students'
 
-const student = ref({ name: 'Aliya Developer', class: 'WD2025-A' })
+// Store student and grade data
+const student = ref({ name: '', class: '' })
 const grades = ref([])
 
+// Term list and filters
 const termList = [
   { id: 1, name: 'Term 1' },
   { id: 2, name: 'Term 2' },
   { id: 3, name: 'Term 3' },
 ]
-
 const selectedTermId = ref('')
 const selectedSubject = ref('')
 
+// Simulated current student ID from auth or route
+const currentStudentId = ref(null)
+
+// Fetch grades
 const fetchGrades = async () => {
   try {
     const { data } = await gradeService.getAllGrades()
     grades.value = data.map(g => ({
       id: g.id,
-      subject: g.class_subject_id, // ideally map ID to subject name here
+      subject: g.class_subject?.subject?.name || 'Unknown',
       term_id: g.term_id,
       assessment_type: g.assessment_type,
       max_score: g.max_score,
@@ -143,8 +145,32 @@ const fetchGrades = async () => {
   }
 }
 
-onMounted(fetchGrades)
+// Fetch current student info (from token or static ID)
+const fetchStudent = async () => {
+  try {
+    const tokenData = JSON.parse(localStorage.getItem('user')) // or decode JWT token
+    const id = tokenData?.id
+    if (!id) throw new Error('Student ID not found')
 
+    currentStudentId.value = id
+
+    const { data } = await studentService.getStudent(id)
+    student.value = {
+      name: `${data.first_name} ${data.last_name}`,
+      class: data.class?.name || '—'
+    }
+  } catch (err) {
+    console.error('Failed to fetch student info:', err)
+  }
+}
+
+// Call both fetchers on mount
+onMounted(() => {
+  fetchStudent()
+  fetchGrades()
+})
+
+// Computed values
 const currentTermName = computed(() => {
   const term = termList.find(t => t.id === Number(selectedTermId.value))
   return term ? term.name : 'All Terms'
@@ -181,7 +207,6 @@ const gradeColor = (letter) => {
 const formatDate = (str) => new Date(str).toLocaleDateString()
 
 const exportToPDF = () => {
-<<<<<<< HEAD
   const element = document.getElementById('grade-export-content')
   const options = {
     margin: 0.5,
@@ -190,24 +215,9 @@ const exportToPDF = () => {
     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
   }
   html2pdf().from(element).set(options).save()
-=======
-  // Temporary workaround: Use browser's print functionality
-  alert('PDF Export feature requires html2pdf.js library. For now, you can use Ctrl+P to print/save as PDF.')
-  window.print()
-  
-  // TODO: Implement proper PDF export when html2pdf.js is installed
-  // const element = document.getElementById('grade-export-content')
-  // const options = {
-  //   margin: 0.5,
-  //   filename: `${student.value.name}-Grades-${currentTermName.value}.pdf`,
-  //   image: { type: 'jpeg', quality: 0.98 },
-  //   html2canvas: { scale: 2 },
-  //   jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-  // }
-  // html2pdf().from(element).set(options).save()
->>>>>>> 8cae6472d42ef0a5ac75d348d498c77b42335436
 }
 
+// GPA + Performance
 const gpa = computed(() => {
   if (!filteredGrades.value.length) return 0
   const totalPoints = filteredGrades.value.reduce((sum, g) => {

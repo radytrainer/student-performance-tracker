@@ -197,7 +197,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('student/dashboard', 'Student\DashboardController@index');
 
         // Own Data Access
-        Route::get('student/grades', [GradeController::class, 'index'])->middleware('permission:grades.view.own');
+        Route::middleware('auth:sanctum')->get('student/grades', [GradeController::class, 'index']);
         Route::get('student/attendance', 'Student\AttendanceController@index')->middleware('permission:attendance.view.own');
         Route::get('student/reports', 'Student\ReportController@index')->middleware('permission:reports.view.own');
         Route::get('student/performance', 'Student\PerformanceController@index')->middleware('permission:grades.view.own');
