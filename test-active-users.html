@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Active Users</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .user { 
+            display: inline-block; 
+            margin: 10px; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 8px;
+            text-align: center;
+        }
+        .avatar { 
+            width: 50px; 
+            height: 50px; 
+            border-radius: 50%; 
+            object-fit: cover;
+            margin-bottom: 5px;
+        }
+        .initials {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 auto 5px;
+        }
+        #loading { color: #666; }
+        #error { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Active Users Test</h1>
+    <button onclick="testActiveUsers()">Test Active Users API</button>
+    <div id="loading" style="display: none;">Loading...</div>
+    <div id="error" style="display: none;"></div>
+    <div id="results"></div>
+
+    <script>
+        async function testActiveUsers() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const results = document.getElementById('results');
+            
+            // Reset states
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.innerHTML = '';
+            
+            try {
+                console.log('Testing active users API...');
+                
+                const response = await axios.get('http://localhost:8000/api/active-users', {
+                    params: {
+                        active_only: true,
+                        per_page: 8
+                    }
+                });
+                
+                console.log('API Response:', response.data);
+                
+                const data = response.data;
+                let users = [];
+                
+                if (data.data && Array.isArray(data.data)) {
+                    users = data.data;
+                } else if (Array.isArray(data)) {
+                    users = data;
+                }
+                
+                if (users.length > 0) {
+                    results.innerHTML = '<h3>Active Users (' + users.length + '):</h3>';
+                    
+                    users.forEach(user => {
+                        const userDiv = document.createElement('div');
+                        userDiv.className = 'user';
+                        
+                        const avatarHtml = user.profile_picture 
+                            ? `<img src="${user.profile_picture}" alt="${user.first_name}" class="avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                            : '';
+                        
+                        const initialsHtml = `<div class="initials" style="${user.profile_picture ? 'display:none' : ''}">${getInitials(user)}</div>`;
+                        
+                        userDiv.innerHTML = `
+                            ${avatarHtml}
+                            ${initialsHtml}
+                            <div><strong>${user.first_name} ${user.last_name}</strong></div>
+                            <div><small>${user.role}</small></div>
+                            <div><small>${user.email}</small></div>
+                        `;
+                        
+                        results.appendChild(userDiv);
+                    });
+                } else {
+                    results.innerHTML = '<p>No active users found.</p>';
+                }
+                
+            } catch (err) {
+                console.error('Error testing active users:', err);
+                error.style.display = 'block';
+                error.textContent = 'Error: ' + (err.response?.data?.message || err.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function getInitials(user) {
+            const firstName = user.first_name || '';
+            const lastName = user.last_name || '';
+            
+            if (firstName && lastName) {
+                return firstName.charAt(0) + lastName.charAt(0);
+            }
+            if (firstName) {
+                return firstName.charAt(0);
+            }
+            if (user.email) {
+                return user.email.charAt(0);
+            }
+            return '??';
+        }
+        
+        // Auto-test on page load
+        window.onload = () => {
+            testActiveUsers();
+        };
+    </script>
+</body>
+</html>
