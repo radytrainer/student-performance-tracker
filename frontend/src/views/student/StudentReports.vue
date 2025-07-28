@@ -10,38 +10,54 @@
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
 
-    <!-- Success Message -->
-    <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-      <div class="flex">
+    <!-- Toast Notification -->
+    <div 
+      v-if="successMessage" 
+      class="fixed top-24 right-6 z-50 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ease-in-out"
+      :class="successMessage ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'"
+    >
+      <div class="flex items-center p-4">
         <div class="flex-shrink-0">
-          <i class="fas fa-check-circle text-green-400"></i>
+          <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-check text-green-600 text-sm"></i>
+          </div>
         </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-green-800">Success</h3>
-          <p class="text-sm text-green-700 mt-1">{{ successMessage }}</p>
+        <div class="ml-3 flex-1">
+          <p class="text-sm text-gray-800">{{ successMessage }}</p>
         </div>
-        <div class="ml-auto pl-3">
-          <button @click="successMessage = ''" class="text-green-400 hover:text-green-600">
-            <i class="fas fa-times"></i>
+        <div class="ml-3 flex-shrink-0">
+          <button 
+            @click="successMessage = ''" 
+            class="text-gray-400 hover:text-gray-600 focus:outline-none transition ease-in-out duration-150"
+          >
+            <i class="fas fa-times text-xs"></i>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-      <div class="flex">
+    <!-- Error Toast Notification -->
+    <div 
+      v-if="error" 
+      class="fixed right-6 z-50 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ease-in-out"
+      :class="error ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'"
+      :style="{ top: successMessage ? '100px' : '96px' }"
+    >
+      <div class="flex items-center p-4">
         <div class="flex-shrink-0">
-          <i class="fas fa-exclamation-triangle text-red-400"></i>
+          <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-red-600 text-sm"></i>
+          </div>
         </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error Loading Reports</h3>
-          <p class="text-sm text-red-700 mt-1">{{ error }}</p>
+        <div class="ml-3 flex-1">
+          <p class="text-sm text-gray-800">{{ error }}</p>
+        </div>
+        <div class="ml-3 flex-shrink-0">
           <button 
-            @click="loadDashboardData" 
-            class="mt-2 text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded transition-colors"
+            @click="error = ''" 
+            class="text-gray-400 hover:text-gray-600 focus:outline-none transition ease-in-out duration-150"
           >
-            Try Again
+            <i class="fas fa-times text-xs"></i>
           </button>
         </div>
       </div>
@@ -86,8 +102,8 @@
               v-model="reportConfig.format"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="pdf">PDF</option>
-              <option value="excel">Excel</option>
+              <option value="pdf">PDF (Coming Soon)</option>
+              <option value="excel">Excel (.xlsx)</option>
             </select>
           </div>
 
@@ -345,7 +361,7 @@ const successMessage = ref('')
 const reportConfig = reactive({
   type: 'academic_summary',
   period: 'current_quarter',
-  format: 'pdf'
+  format: 'excel'
 })
 
 // Data
@@ -376,7 +392,7 @@ const loadDashboardData = async () => {
     achievements.value = data.achievements
   } catch (err) {
     console.error('Error loading dashboard data:', err)
-    error.value = 'Failed to load reports data. Please try again.'
+    showErrorMessage('Failed to load reports data. Please try again.')
   } finally {
     loading.value = false
   }
@@ -397,7 +413,15 @@ const showSuccessMessage = (message) => {
   successMessage.value = message
   setTimeout(() => {
     successMessage.value = ''
-  }, 5000) // Clear after 5 seconds
+  }, 4000) // Clear after 4 seconds
+}
+
+// Show error message
+const showErrorMessage = (message) => {
+  error.value = message
+  setTimeout(() => {
+    error.value = ''
+  }, 6000) // Clear after 6 seconds (errors might need more time to read)
 }
 
 // Methods
@@ -423,7 +447,7 @@ const generateReport = async () => {
         window.URL.revokeObjectURL(url)
         
         // Show success message without refreshing
-        showSuccessMessage('Report generated and downloaded successfully!')
+        showSuccessMessage('PDF report downloaded successfully!')
       } else {
         // Handle JSON response (temporary until PDF generation is fully set up)
         showSuccessMessage('Report generated successfully!')
@@ -432,13 +456,36 @@ const generateReport = async () => {
       
       // Only reload recent reports section, not the entire dashboard
       await loadRecentReports()
+    } else if (reportConfig.format === 'excel') {
+      // Handle Excel download
+      if (response.data instanceof Blob) {
+        const blob = new Blob([response.data], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${reportConfig.type}_${new Date().toISOString().split('T')[0]}.xlsx`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        showSuccessMessage('Excel report downloaded successfully!')
+      } else {
+        showSuccessMessage('Excel report ready for download!')
+        console.log('Report data:', response.data)
+      }
+      
+      // Only reload recent reports section, not the entire dashboard
+      await loadRecentReports()
     } else {
-      // Handle Excel or other formats
+      // Handle other formats
       showSuccessMessage('Report generated successfully!')
     }
   } catch (err) {
     console.error('Error generating report:', err)
-    error.value = 'Failed to generate report. Please try again.'
+    showErrorMessage('Failed to generate report. Please try again.')
   } finally {
     generating.value = false
   }
@@ -470,9 +517,11 @@ const downloadReport = async (report) => {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
+    
+    showSuccessMessage('Report downloaded successfully!')
   } catch (err) {
     console.error('Error downloading report:', err)
-    alert('Failed to download report. Please try again.')
+    showErrorMessage('Failed to download report. Please try again.')
   }
 }
 
@@ -481,7 +530,7 @@ const viewReport = (report) => {
   if (report.status === 'completed') {
     downloadReport(report)
   } else {
-    alert('Report is still being processed. Please try again later.')
+    showErrorMessage('Report is still being processed. Please try again later.')
   }
 }
 

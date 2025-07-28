@@ -10,7 +10,7 @@ export const reportsAPI = {
   // Generate a new report
   generateReport: async (reportConfig) => {
     const response = await axios.post('/student/reports/generate', reportConfig, {
-      responseType: reportConfig.format === 'pdf' ? 'blob' : 'json'
+      responseType: (reportConfig.format === 'pdf' || reportConfig.format === 'excel') ? 'blob' : 'json'
     })
     return response
   },
