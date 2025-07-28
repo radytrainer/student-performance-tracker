@@ -14,6 +14,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\AcademicSummaryExport;
+use App\Exports\GradeReportExport;
+use App\Exports\AttendanceReportExport;
+use App\Exports\ProgressReportExport;
+use App\Exports\TranscriptExport;
 // use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
@@ -612,16 +618,52 @@ class ReportController extends Controller
     }
 
     /**
-     * Generate Excel report (placeholder)
+     * Generate Excel report
      */
     private function generateExcelReport($type, $data)
     {
-        // For now, return JSON data
-        // In production, you would use Laravel Excel package
-        return response()->json([
-            'message' => 'Excel export not implemented yet',
-            'data' => $data
-        ]);
+        $filename = "{$type}_" . $this->student->student_code . "_" . now()->format('Y-m-d') . ".xlsx";
+        
+        try {
+            switch ($type) {
+                case 'academic_summary':
+                    $export = new AcademicSummaryExport($data);
+                    break;
+                case 'grade_report':
+                    $export = new GradeReportExport($data);
+                    break;
+                case 'attendance_report':
+                    $export = new AttendanceReportExport($data);
+                    break;
+                case 'progress_report':
+                    $export = new ProgressReportExport($data);
+                    break;
+                case 'transcript':
+                    $export = new TranscriptExport($data);
+                    break;
+                default:
+                    $export = new AcademicSummaryExport($data);
+            }
+
+            // Create report record
+            $reportCard = ReportCard::create([
+                'student_id' => $this->student->user_id,
+                'term_id' => Term::where('is_current', true)->first()->id ?? null,
+                'generated_by' => Auth::id(),
+                'overall_grade' => $data['gpa'] ?? 0,
+                'attendance_percentage' => $data['attendance']['percentage'] ?? 0,
+                'file_path' => null, // Excel files are not stored, downloaded directly
+                'generated_at' => now()
+            ]);
+
+            return Excel::download($export, $filename);
+            
+        } catch (\Exception $e) {
+            Log::error('Excel generation failed: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to generate Excel report: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
