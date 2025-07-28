@@ -38,6 +38,9 @@ Route::post('/users', [UserController::class, 'store']);
 Route::put('/users/{id}', [UserController::class, 'update']);
 Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
 
+// Active users endpoint for sidebar (public access for now)
+Route::get('/active-users', [UserController::class, 'index']);
+
 // Simple test route
 Route::get('/test', function () {
     return response()->json(['message' => 'API is working', 'timestamp' => now()]);
@@ -69,10 +72,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
         
-        // User Management (new implementation)
-        Route::apiResource('users', UserController::class);
-        Route::put('users/{id}', [UserController::class, 'update']);
-        Route::patch('users/{id}/status', [UserController::class, 'toggleStatus']);
+        // User Management (admin access only)
+        Route::apiResource('admin/users', UserController::class);
+        Route::put('admin/users/{id}', [UserController::class, 'update']);
+        Route::patch('admin/users/{id}/status', [UserController::class, 'toggleStatus']);
         
         // Legacy User Management routes (commented out - controllers don't exist)
         // Route::apiResource('admin/users', 'Admin\UserController');
