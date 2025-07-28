@@ -15,6 +15,12 @@ export const reportsAPI = {
     return response
   },
 
+  // Get detailed report information
+  getReportDetails: async (reportId) => {
+    const response = await axios.get(`/student/reports/${reportId}`)
+    return response.data
+  },
+
   // Download an existing report
   downloadReport: async (reportId) => {
     const response = await axios.get(`/student/reports/${reportId}/download`, {

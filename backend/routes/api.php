@@ -159,6 +159,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Student Reports Routes
         Route::get('student/reports', [App\Http\Controllers\Student\ReportController::class, 'index']);
         Route::post('student/reports/generate', [App\Http\Controllers\Student\ReportController::class, 'generate']);
+        Route::get('student/reports/{id}', [App\Http\Controllers\Student\ReportController::class, 'show']);
         Route::get('student/reports/{id}/download', [App\Http\Controllers\Student\ReportController::class, 'download']);
         
         // More future student routes
