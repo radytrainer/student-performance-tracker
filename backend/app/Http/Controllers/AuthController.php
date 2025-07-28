@@ -329,17 +329,14 @@ class AuthController extends Controller
     /**
      * Handle social provider callback
      */
-    public function handleProviderCallback(string $provider): JsonResponse
+    public function handleProviderCallback(string $provider)
     {
         try {
             if (!in_array($provider, ['google', 'facebook'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unsupported provider'
-                ], 400);
+                return redirect('http://localhost:5173/login?error=unsupported_provider');
             }
 
-            $socialUser = Socialite::driver($provider)->stateless()->user();
+            $socialUser = Socialite::driver($provider)->user();
 
             // Check if user exists by email
             $user = User::where('email', $socialUser->getEmail())->first();
@@ -370,29 +367,18 @@ class AuthController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Social login successful',
-                'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'role' => $user->role,
-                    'is_active' => $user->is_active,
-                    'profile_picture' => $user->profile_picture,
-                ],
-                'token' => $token,
-                'token_type' => 'Bearer'
-            ], 200);
+            // Redirect to frontend with token
+            return redirect('http://localhost:5173/login?token=' . $token . '&user=' . urlencode(json_encode([
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'role' => $user->role,
+            ])));
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Social login failed',
-                'error' => $e->getMessage()
-            ], 500);
+            return redirect('http://localhost:5173/login?error=social_login_failed&message=' . urlencode($e->getMessage()));
         }
     }
 }
