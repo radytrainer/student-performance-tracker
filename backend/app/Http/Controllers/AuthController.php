@@ -368,7 +368,7 @@ class AuthController extends Controller
             $token = $user->createToken('auth_token')->plainTextToken;
 
             // Redirect to frontend with token
-            return redirect('http://localhost:5173/login?token=' . $token . '&user=' . urlencode(json_encode([
+            return redirect('http://localhost:3000/login?token=' . $token . '&user=' . urlencode(json_encode([
                 'id' => $user->id,
                 'username' => $user->username,
                 'email' => $user->email,
@@ -378,7 +378,7 @@ class AuthController extends Controller
             ])));
 
         } catch (\Exception $e) {
-            return redirect('http://localhost:5173/login?error=social_login_failed&message=' . urlencode($e->getMessage()));
+            return redirect('http://localhost:3000/login?error=social_login_failed&message=' . urlencode($e->getMessage()));
         }
     }
 }
