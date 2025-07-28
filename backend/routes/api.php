@@ -156,9 +156,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Future student routes
         // Route::get('student/dashboard', 'Student\DashboardController@index');
         
+        // Student Reports Routes
+        Route::get('student/reports', [App\Http\Controllers\Student\ReportController::class, 'index']);
+        Route::post('student/reports/generate', [App\Http\Controllers\Student\ReportController::class, 'generate']);
+        Route::get('student/reports/{id}/download', [App\Http\Controllers\Student\ReportController::class, 'download']);
+        
         // More future student routes
         // Route::get('student/grades', 'Student\GradeController@index');
-        // Route::get('student/reports', 'Student\ReportController@index');
         // Route::get('student/performance', 'Student\PerformanceController@index');
         // Route::get('student/notifications', 'Student\NotificationController@index');
         // Route::post('student/feedback', 'Student\FeedbackController@submit');
@@ -201,5 +205,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 });
+
 
 
