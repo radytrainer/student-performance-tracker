@@ -10,7 +10,14 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileImageController;
 use App\Http\Controllers\Teacher\FeedbackFormController;
 use App\Http\Controllers\Student\FeedbackSurveyController;
+use App\Http\Controllers\Teacher\AttendanceController;
 
+// Attendance routes for admin and teachers
+Route::middleware(['role:admin,teacher'])->group(function () {
+    Route::get('/attendance', [AttendanceController::class, 'index']);
+    Route::post('/attendance', [AttendanceController::class, 'store']);
+    Route::get('/attendance/export', [AttendanceController::class, 'export']); // Optional CSV export
+});
 
 /*
 |--------------------------------------------------------------------------
