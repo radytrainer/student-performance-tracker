@@ -74,14 +74,7 @@ apiClient.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-// ✅ Add token to every request if it exists
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// Remove duplicate token interceptor (already handled above)
 
 export { getCsrfToken }
 export default apiClient
