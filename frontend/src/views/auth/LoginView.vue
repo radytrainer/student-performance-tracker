@@ -85,6 +85,7 @@
                   :auth-error="authStore.error"
                   @submit="handleSignIn"
                   @update:data="updateSignInData"
+                  @social-login="handleSocialLogin"
                 />
 
                 <!-- Register Form -->
@@ -277,9 +278,13 @@ const handleRegister = async (formData) => {
 };
 
 // Social login handler
-const handleSocialLogin = (provider) => {
-  console.log(`Social login with ${provider}`);
-  // Add your social login logic here
+const handleSocialLogin = async (provider) => {
+  try {
+    // Instead of popup, redirect to the social login URL directly
+    window.location.href = `http://localhost:8000/api/auth/social/${provider}`;
+  } catch (error) {
+    console.error('Social login error:', error);
+  }
 };
 
 // Helper to get error message
