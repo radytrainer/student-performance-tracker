@@ -667,6 +667,115 @@ class ReportController extends Controller
     }
 
     /**
+     * Get detailed report information
+     */
+    public function show($id)
+    {
+        try {
+            $report = ReportCard::where('student_id', $this->student->user_id)
+                ->with(['term', 'generatedBy', 'student.user', 'student.currentClass'])
+                ->findOrFail($id);
+
+            // Get the same data that was used to generate this report
+            $reportData = $this->getReportDataForView($report);
+
+            return response()->json([
+                'report' => [
+                    'id' => $report->id,
+                    'generated_at' => $report->generated_at,
+                    'overall_grade' => $report->overall_grade,
+                    'attendance_percentage' => $report->attendance_percentage,
+                    'principal_remarks' => $report->principal_remarks,
+                    'term' => $report->term ? [
+                        'id' => $report->term->id,
+                        'term_name' => $report->term->term_name,
+                        'academic_year' => $report->term->academic_year,
+                        'start_date' => $report->term->start_date,
+                        'end_date' => $report->term->end_date,
+                    ] : null,
+                    'generated_by' => $report->generatedBy ? [
+                        'name' => $report->generatedBy->first_name . ' ' . $report->generatedBy->last_name,
+                        'role' => $report->generatedBy->role
+                    ] : null,
+                ],
+                'student' => [
+                    'name' => $report->student->user->first_name . ' ' . $report->student->user->last_name,
+                    'student_code' => $report->student->student_code,
+                    'class' => $report->student->currentClass->class_name ?? 'Not Assigned',
+                ],
+                'data' => $reportData
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching report details: ' . $e->getMessage());
+            return response()->json(['error' => 'Report not found or access denied'], 404);
+        }
+    }
+
+    /**
+     * Get report data for viewing (recreate the data used during generation)
+     */
+    private function getReportDataForView($report)
+    {
+        $termId = $report->term_id;
+        $studentId = $this->student->user_id;
+
+        // Get current stats
+        $currentStats = [
+            'gpa' => $this->calculateGPA($studentId, $termId),
+            'attendance' => $this->calculateAttendancePercentage($studentId, $termId),
+            'class_rank' => $this->getClassRank($studentId, $termId),
+            'credits_earned' => $this->getCreditsEarned($studentId)
+        ];
+
+        // Get grades for the term
+        $grades = Grade::where('student_id', $studentId)
+            ->when($termId, function($query, $termId) {
+                return $query->where('term_id', $termId);
+            })
+            ->with(['classSubject.subject', 'term'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Get attendance records
+        $attendanceRecords = Attendance::where('student_id', $studentId)
+            ->when($termId && $report->term, function($query) use ($report) {
+                $term = $report->term;
+                return $query->whereBetween('date', [$term->start_date, $term->end_date]);
+            })
+            ->with(['class', 'recordedBy'])
+            ->orderBy('date', 'desc')
+            ->take(50) // Limit to recent 50 records for performance
+            ->get();
+
+        // Group grades by subject
+        $gradesBySubject = $grades->groupBy('classSubject.subject.subject_name');
+
+        // Get recent achievements
+        $achievements = $this->getAchievements();
+
+        return [
+            'current_stats' => $currentStats,
+            'grades' => $grades,
+            'grades_by_subject' => $gradesBySubject,
+            'attendance_records' => $attendanceRecords,
+            'achievements' => $achievements,
+            'term_summary' => [
+                'total_assessments' => $grades->count(),
+                'subjects_count' => $gradesBySubject->count(),
+                'average_percentage' => $grades->avg(function($grade) {
+                    return $grade->max_score > 0 ? ($grade->score_obtained / $grade->max_score) * 100 : 0;
+                }),
+                'attendance_summary' => [
+                    'total_days' => $attendanceRecords->count(),
+                    'present_days' => $attendanceRecords->where('status', 'present')->count(),
+                    'late_days' => $attendanceRecords->where('status', 'late')->count(),
+                    'absent_days' => $attendanceRecords->where('status', 'absent')->count(),
+                ]
+            ]
+        ];
+    }
+
+    /**
      * Download existing report
      */
     public function download($id)

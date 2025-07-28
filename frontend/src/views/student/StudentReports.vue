@@ -284,9 +284,16 @@
           <h3 class="text-lg font-medium text-gray-900 mb-2">No reports generated yet</h3>
           <p class="text-gray-500">Generate your first report using the options above.</p>
         </div>
-      </div>
+        </div>
 
-      <!-- Academic Progress Summary -->
+        <!-- Report Details Modal -->
+    <ReportDetailsModal 
+      :is-open="showReportModal"
+      :report-id="selectedReportId"
+      @close="closeReportModal"
+    />
+
+    <!-- Academic Progress Summary -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <div class="px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-semibold text-gray-800">Academic Progress Summary</h2>
@@ -349,6 +356,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { reportsAPI } from '@/api/reports'
+import ReportDetailsModal from '@/components/student/ReportDetailsModal.vue'
 
 const { hasPermission } = useAuth()
 
@@ -357,6 +365,10 @@ const loading = ref(true)
 const generating = ref(false)
 const error = ref(null)
 const successMessage = ref('')
+
+// Modal state
+const showReportModal = ref(false)
+const selectedReportId = ref(null)
 
 const reportConfig = reactive({
   type: 'academic_summary',
@@ -526,12 +538,17 @@ const downloadReport = async (report) => {
 }
 
 const viewReport = (report) => {
-  // For now, just download the report
   if (report.status === 'completed') {
-    downloadReport(report)
+    selectedReportId.value = report.id
+    showReportModal.value = true
   } else {
     showErrorMessage('Report is still being processed. Please try again later.')
   }
+}
+
+const closeReportModal = () => {
+  showReportModal.value = false
+  selectedReportId.value = null
 }
 
 const getReportTypeClass = (type) => {
