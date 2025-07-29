@@ -1,5 +1,5 @@
 <template>
-  <header class="relative bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+  <header class="relative bg-gradient-to-r from-blue-10 via-purple-500 to-blue-00 overflow-hidden">
     <!-- Animated Background Elements -->
     <div class="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-600/20 to-pink-600/20"></div>
     <div class="absolute top-0 left-0 w-full h-full">
@@ -17,7 +17,7 @@
         <div class="flex items-center space-x-6">
           <!-- Logo -->
           <div class="relative group">
-            <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+            <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
             <div class="relative w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-all duration-300">
               <BookOpen class="w-8 h-8 text-white" />
             </div>
