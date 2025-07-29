@@ -1,174 +1,186 @@
-import { ref } from "vue"
+import { ref, computed } from 'vue'
+import { useAuth } from '@/composables/useAuth'
 
-export const useAttendanceManager = () => {
-  // State
-  const loading = ref(true)
+export function useAttendanceManager() {
+  const { getAuthToken } = useAuth()
+  
+  const loading = ref(false)
   const classes = ref([])
   const attendanceData = ref([])
   const recentAttendance = ref([])
-  const selectedClass = ref("")
-  const selectedDate = ref(new Date().toISOString().split("T")[0])
-  const selectedPeriod = ref("1")
+  const selectedClass = ref('')
+  const selectedDate = ref(new Date().toISOString().split('T')[0])
+  const selectedPeriod = ref('1')
   const hasChanges = ref(false)
 
-  // Mock data
-  const mockClasses = [
-    { id: 1, subject: "Mathematics", section: "Section A", grade: "11" },
-    { id: 2, subject: "Physics", section: "Section B", grade: "12" },
-    { id: 3, subject: "Chemistry", section: "Section A", grade: "12" },
-    { id: 4, subject: "Biology", section: "Section C", grade: "11" },
-    { id: 5, subject: "English", section: "Section A", grade: "10" },
-  ]
+  // API helper function
+  const apiCall = async (url, options = {}) => {
+    const token = getAuthToken()
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'X-Requested-With': 'XMLHttpRequest',
+        ...options.headers
+      }
+    }
 
-  const mockAttendanceData = [
-    {
-      studentId: 1,
-      student: { id: "ST001", name: "Alice Johnson" },
-      status: "present",
-      excused: false,
-      notes: "",
-      attendanceRate: 95,
-    },
-    {
-      studentId: 2,
-      student: { id: "ST002", name: "Bob Smith" },
-      status: "absent",
-      excused: true,
-      notes: "Doctor appointment",
-      attendanceRate: 88,
-    },
-    {
-      studentId: 3,
-      student: { id: "ST003", name: "Carol Davis" },
-      status: "late",
-      excused: false,
-      notes: "Transportation delay",
-      attendanceRate: 92,
-    },
-    {
-      studentId: 4,
-      student: { id: "ST004", name: "David Wilson" },
-      status: "present",
-      excused: false,
-      notes: "",
-      attendanceRate: 78,
-    },
-    {
-      studentId: 5,
-      student: { id: "ST005", name: "Emma Brown" },
-      status: "present",
-      excused: false,
-      notes: "",
-      attendanceRate: 96,
-    },
-  ]
+    const response = await fetch(url, { ...defaultOptions, ...options })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return await response.json()
+  }
 
-  const mockRecentAttendance = [
-    { date: "2024-01-14", period: 1, present: 26, absent: 2, late: 0 },
-    { date: "2024-01-13", period: 1, present: 25, absent: 1, late: 2 },
-    { date: "2024-01-12", period: 1, present: 28, absent: 0, late: 0 },
-    { date: "2024-01-11", period: 1, present: 24, absent: 3, late: 1 },
-    { date: "2024-01-10", period: 1, present: 27, absent: 1, late: 0 },
-  ]
-
-  // Methods
-  const loadAttendance = async () => {
-    if (!selectedClass.value) return
-
+  const loadClasses = async () => {
     try {
       loading.value = true
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      attendanceData.value = [...mockAttendanceData]
-      recentAttendance.value = [...mockRecentAttendance]
-      hasChanges.value = false
+      const data = await apiCall('/api/attendance/classes')
+      classes.value = data.classes
     } catch (error) {
-      console.error("Error loading attendance:", error)
+      console.error('Error loading classes:', error)
+      // Handle error (show notification, etc.)
     } finally {
       loading.value = false
+    }
+  }
+
+  const loadAttendance = async () => {
+    if (!selectedClass.value) {
+      attendanceData.value = []
+      return
+    }
+    
+    try {
+      loading.value = true
+      const params = new URLSearchParams({
+        class_id: selectedClass.value,
+        date: selectedDate.value,
+        period: selectedPeriod.value
+      })
+      
+      const data = await apiCall(`/api/attendance?${params}`)
+      attendanceData.value = data.attendances
+      hasChanges.value = false
+      
+      // Load recent attendance for the selected class
+      await loadRecentAttendance()
+    } catch (error) {
+      console.error('Error loading attendance:', error)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const loadRecentAttendance = async () => {
+    if (!selectedClass.value) return
+    
+    try {
+      const data = await apiCall(`/api/attendance/recent/${selectedClass.value}`)
+      recentAttendance.value = data.recent_attendance
+    } catch (error) {
+      console.error('Error loading recent attendance:', error)
     }
   }
 
   const saveAttendance = async () => {
+    if (!selectedClass.value || !hasChanges.value) return
+    
     try {
       loading.value = true
-
-      // TODO: Save to API
+      
       const payload = {
-        classId: selectedClass.value,
+        class_id: selectedClass.value,
         date: selectedDate.value,
         period: selectedPeriod.value,
-        records: attendanceData.value.map((record) => ({
-          studentId: record.studentId,
-          status: record.status,
-          excused: record.excused,
-          notes: record.notes,
-        })),
+        attendance: attendanceData.value
       }
-
-      console.log("Saving attendance:", payload)
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
+      
+      const data = await apiCall('/api/attendance/bulk', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      
       hasChanges.value = false
-
-      // Show success notification
-      alert("Attendance saved successfully!")
+      
+      // Show success message
+      console.log('Attendance saved successfully:', data.message)
+      
+      // Reload recent attendance
+      await loadRecentAttendance()
+      
+      return { success: true, message: data.message }
     } catch (error) {
-      console.error("Error saving attendance:", error)
-      alert("Failed to save attendance. Please try again.")
+      console.error('Error saving attendance:', error)
+      return { success: false, message: 'Failed to save attendance' }
     } finally {
       loading.value = false
     }
   }
 
-  const exportAttendance = () => {
-    if (!attendanceData.value.length) return
-
-    // Create CSV content
-    const headers = ["Student ID", "Student Name", "Status", "Excused", "Notes", "Attendance Rate"]
-    const csvContent = [
-      headers.join(","),
-      ...attendanceData.value.map((record) =>
-        [
-          record.student.id,
-          `"${record.student.name}"`,
-          record.status,
-          record.excused ? "Yes" : "No",
-          `"${record.notes}"`,
-          `${record.attendanceRate}%`,
-        ].join(","),
-      ),
-    ].join("\n")
-
-    // Download CSV
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `attendance_${selectedDate.value}_period${selectedPeriod.value}.csv`
-    link.click()
-    window.URL.revokeObjectURL(url)
-  }
-
-  const initializeData = async () => {
+  const exportAttendance = async () => {
+    if (!selectedClass.value) return
+    
     try {
-      loading.value = true
-      // Load classes
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      classes.value = [...mockClasses]
+      const params = new URLSearchParams({
+        class_id: selectedClass.value,
+        start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        end_date: selectedDate.value
+      })
+      
+      const token = getAuthToken()
+      const response = await fetch(`/api/attendance/export?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `attendance_export_${selectedDate.value}.csv`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
     } catch (error) {
-      console.error("Error loading data:", error)
-    } finally {
-      loading.value = false
+      console.error('Error exporting attendance:', error)
     }
+  }
+
+  const loadCalendarData = async (month) => {
+    if (!selectedClass.value) return []
+    
+    try {
+      const params = new URLSearchParams({
+        class_id: selectedClass.value,
+        month: month || new Date().toISOString().slice(0, 7)
+      })
+      
+      const data = await apiCall(`/api/attendance/calendar?${params}`)
+      return data.calendar_data
+    } catch (error) {
+      console.error('Error loading calendar data:', error)
+      return []
+    }
+  }
+
+  const markChanged = () => {
+    hasChanges.value = true
   }
 
   // Initialize on composable creation
-  initializeData()
+  const initialize = async () => {
+    await loadClasses()
+  }
 
   return {
+    // State
     loading,
     classes,
     attendanceData,
@@ -177,8 +189,14 @@ export const useAttendanceManager = () => {
     selectedDate,
     selectedPeriod,
     hasChanges,
+    
+    // Methods
+    loadClasses,
     loadAttendance,
     saveAttendance,
     exportAttendance,
+    loadCalendarData,
+    markChanged,
+    initialize
   }
 }
