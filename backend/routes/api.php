@@ -197,7 +197,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('student/survey-stats', [FeedbackSurveyController::class, 'getStats']);
         
         Route::get('/student/my-attendance', [App\Http\Controllers\Student\AttendanceController::class, 'index']);
-
+        
     });
 
     // Shared routes (role-specific access handled by policies)
