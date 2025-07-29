@@ -42,6 +42,12 @@ use App\Http\Controllers\Teacher\AttendanceController;
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
+// Social Authentication routes (need web middleware for session)
+Route::middleware('web')->group(function () {
+    Route::get('/auth/social/{provider}', [AuthController::class, 'redirectToProvider']);
+    Route::get('/auth/social/{provider}/callback', [AuthController::class, 'handleProviderCallback']);
+});
+
 // Temporary public access for testing user management
 Route::get('/users', [UserController::class, 'index']);
 Route::get('/users/{id}', [UserController::class, 'show']);
