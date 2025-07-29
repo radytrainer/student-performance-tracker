@@ -1,7 +1,7 @@
 <template>
   <div class="report-view">
     <div class="content-header">
-      <h1>Reports</h1>
+      <TeacherReports/>
     </div>
     
     <div class="report-content">
@@ -12,6 +12,8 @@
 
 <script setup>
 // Report functionality will be added here
+import TeacherReports from './teacher/TeacherReports.vue';
+
 </script>
 
 <style scoped>

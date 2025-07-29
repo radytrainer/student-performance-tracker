@@ -73,6 +73,11 @@ export const usersAPI = {
         ...filters 
       } 
     })
+  },
+
+  // Get active users for sidebar
+  getActiveUsers(params = {}) {
+    return axios.get('/active-users', { params })
   }
 }
 
