@@ -10,7 +10,18 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileImageController;
 use App\Http\Controllers\Teacher\FeedbackFormController;
 use App\Http\Controllers\Student\FeedbackSurveyController;
+use App\Http\Controllers\Teacher\AttendanceController;
 
+// Attendance routes for admin and teachers
+// Route::middleware(['auth:sanctum', 'role:admin,teacher'])->group(function () {
+    Route::get('/attendance', [AttendanceController::class, 'index']); 
+    Route::get('/attendance/{id}', [AttendanceController::class, 'show']);               // Get attendance for class/date
+    Route::post('/attendance', [AttendanceController::class, 'store']);              // Save attendance records
+    Route::get('/attendance/my-classes', [AttendanceController::class, 'getMyClasses']); // Get teacher's classes
+    Route::get('/attendance/recent', [AttendanceController::class, 'getRecentAttendance']); // Get recent attendance
+    Route::get('/attendance/export', [AttendanceController::class, 'export']);       // Export CSV
+    Route::get('/attendance/stats', [AttendanceController::class, 'getStats']);      // Get attendance statistics
+// });
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +50,8 @@ Route::middleware('web')->group(function () {
 
 // Temporary public access for testing user management
 Route::get('/users', [UserController::class, 'index']);
+Route::get('/users/{id}', [UserController::class, 'show']);
+
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
 Route::post('/users', [UserController::class, 'store']);
 Route::put('/users/{id}', [UserController::class, 'update']);
