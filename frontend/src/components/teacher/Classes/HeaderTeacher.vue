@@ -11,17 +11,10 @@
       <div class="flex items-center justify-between py-8">
         <!-- Left side - Logo and Title -->
         <div class="flex items-center space-x-6">
-          <!-- Logo -->
-          <div class="relative group">
-            <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-            <div class="relative w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-all duration-300">
-              <BookOpen class="w-8 h-8 text-white" />
-            </div>
-          </div>
                     
           <!-- Title and Subtitle -->
           <div class="space-y-1">
-            <h1 class="text-4xl font-black bg-gradient-to-r from-gray-900 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 class="text-4xl font-black bg-gradient-to-r from-purple-900 via-blue-600 to-purple-600 bg-clip-text text-transparent">
               My Classes
             </h1>
             <p class="text-gray-600 font-medium text-lg">
