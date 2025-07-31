@@ -14,9 +14,10 @@ const apiClient = axios.create({
 // Function to get CSRF token
 const getCsrfToken = async () => {
   try {
-    await axios.get('http://localhost:8000/sanctum/csrf-cookie', {
+    await axios.create({
+      baseURL: 'http://localhost:8000',
       withCredentials: true
-    })
+    }).get('/sanctum/csrf-cookie')
   } catch (error) {
     console.warn('Failed to get CSRF token:', error)
   }
@@ -74,14 +75,7 @@ apiClient.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-// ✅ Add token to every request if it exists
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// Remove duplicate token interceptor (already handled above)
 
 export { getCsrfToken }
 export default apiClient

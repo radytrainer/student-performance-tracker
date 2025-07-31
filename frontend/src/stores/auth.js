@@ -112,6 +112,17 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = { ...user.value, ...userData }
   }
 
+  const setAuthData = (token, userData) => {
+    // Store token in localStorage
+    localStorage.setItem('auth_token', token)
+    
+    // Set user data
+    user.value = userData
+    isAuthenticated.value = true
+    
+    console.log('Social login successful:', userData)
+  }
+
   return {
     user,
     isAuthenticated,
@@ -122,6 +133,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     updateUser,
+    setAuthData,
     getRedirectPath
   }
 })

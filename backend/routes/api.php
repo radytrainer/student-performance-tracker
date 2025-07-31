@@ -23,7 +23,18 @@ use App\Http\Controllers\ClassSubjectController;
 
 
 
+use App\Http\Controllers\Teacher\AttendanceController;
 
+// Attendance routes for admin and teachers
+// Route::middleware(['auth:sanctum', 'role:admin,teacher'])->group(function () {
+    Route::get('/attendance', [AttendanceController::class, 'index']); 
+    Route::get('/attendance/{id}', [AttendanceController::class, 'show']);               // Get attendance for class/date
+    Route::post('/attendance', [AttendanceController::class, 'store']);              // Save attendance records
+    Route::get('/attendance/my-classes', [AttendanceController::class, 'getMyClasses']); // Get teacher's classes
+    Route::get('/attendance/recent', [AttendanceController::class, 'getRecentAttendance']); // Get recent attendance
+    Route::get('/attendance/export', [AttendanceController::class, 'export']);       // Export CSV
+    Route::get('/attendance/stats', [AttendanceController::class, 'getStats']);      // Get attendance statistics
+// });
 
 /*
 |--------------------------------------------------------------------------
@@ -46,12 +57,23 @@ use App\Http\Controllers\ClassSubjectController;
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
+// Social Authentication routes (need web middleware for session)
+Route::middleware('web')->group(function () {
+    Route::get('/auth/social/{provider}', [AuthController::class, 'redirectToProvider']);
+    Route::get('/auth/social/{provider}/callback', [AuthController::class, 'handleProviderCallback']);
+});
+
 // Temporary public access for testing user management
 Route::get('/users', [UserController::class, 'index']);
+Route::get('/users/{id}', [UserController::class, 'show']);
+
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
 Route::post('/users', [UserController::class, 'store']);
 Route::put('/users/{id}', [UserController::class, 'update']);
 Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
+
+// Active users endpoint for sidebar (public access for now)
+Route::get('/active-users', [UserController::class, 'index']);
 
 // Simple test route
 Route::get('/test', function () {
@@ -98,10 +120,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
         
-        // User Management (new implementation)
-        Route::apiResource('users', UserController::class);
-        Route::put('users/{id}', [UserController::class, 'update']);
-        Route::patch('users/{id}/status', [UserController::class, 'toggleStatus']);
+        // User Management (admin access only)
+        Route::apiResource('admin/users', UserController::class);
+        Route::put('admin/users/{id}', [UserController::class, 'update']);
+        Route::patch('admin/users/{id}/status', [UserController::class, 'toggleStatus']);
         
         // Legacy User Management routes (commented out - controllers don't exist)
         // Route::apiResource('admin/users', 'Admin\UserController');
@@ -185,9 +207,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Future student routes
         // Route::get('student/dashboard', 'Student\DashboardController@index');
         
+        // Student Reports Routes
+        Route::get('student/reports', [App\Http\Controllers\Student\ReportController::class, 'index']);
+        Route::post('student/reports/generate', [App\Http\Controllers\Student\ReportController::class, 'generate']);
+        Route::get('student/reports/{id}', [App\Http\Controllers\Student\ReportController::class, 'show']);
+        Route::get('student/reports/{id}/download', [App\Http\Controllers\Student\ReportController::class, 'download']);
+        
         // More future student routes
         // Route::get('student/grades', 'Student\GradeController@index');
-        // Route::get('student/reports', 'Student\ReportController@index');
         // Route::get('student/performance', 'Student\PerformanceController@index');
         // Route::get('student/notifications', 'Student\NotificationController@index');
         // Route::post('student/feedback', 'Student\FeedbackController@submit');
@@ -199,7 +226,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('student/survey-stats', [FeedbackSurveyController::class, 'getStats']);
         
         Route::get('/student/my-attendance', [App\Http\Controllers\Student\AttendanceController::class, 'index']);
-
+        
     });
 
     // Shared routes (role-specific access handled by policies)
@@ -230,5 +257,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ]);
     });
 });
+
 
 
