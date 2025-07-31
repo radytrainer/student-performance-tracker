@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -306,5 +307,88 @@ class AuthController extends Controller
         } while (Teacher::where('teacher_code', $code)->exists());
         
         return $code;
+    }
+
+    /**
+     * Redirect to social provider
+     */
+    public function redirectToProvider(string $provider)
+    {
+        try {
+            if (!in_array($provider, ['google', 'facebook'])) {
+                return redirect('http://localhost:5173/login?error=unsupported_provider');
+            }
+
+            return Socialite::driver($provider)->redirect();
+
+        } catch (\Exception $e) {
+            return redirect('http://localhost:5173/login?error=oauth_error&message=' . urlencode($e->getMessage()));
+        }
+    }
+
+    /**
+     * Handle social provider callback
+     */
+    public function handleProviderCallback(string $provider)
+    {
+        try {
+            if (!in_array($provider, ['google', 'facebook'])) {
+                return redirect('http://localhost:5173/login?error=unsupported_provider');
+            }
+
+            $socialUser = Socialite::driver($provider)->user();
+
+            // Check if user exists by email
+            $user = User::where('email', $socialUser->getEmail())->first();
+
+            if ($user) {
+                // Update user info if necessary
+                $user->update([
+                    'last_login' => now(),
+                    'profile_picture' => $socialUser->getAvatar()
+                ]);
+            } else {
+                // Generate unique username if needed
+                $baseUsername = $socialUser->getNickname() ?? explode('@', $socialUser->getEmail())[0];
+                $username = $baseUsername;
+                $counter = 1;
+                
+                while (User::where('username', $username)->exists()) {
+                    $username = $baseUsername . '_' . $counter;
+                    $counter++;
+                }
+
+                // Create new user
+                $user = User::create([
+                    'username' => $username,
+                    'email' => $socialUser->getEmail(),
+                    'password_hash' => Hash::make(bin2hex(random_bytes(16))), // Random password
+                    'first_name' => $socialUser->getName() ?? '',
+                    'last_name' => '',
+                    'role' => 'student', // Default role
+                    'is_active' => true,
+                    'profile_picture' => $socialUser->getAvatar(),
+                    'email_verified_at' => now()
+                ]);
+
+                // Create student record for new social users
+                $this->createStudentRecord($user, new Request());
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect to frontend with token
+            return redirect('http://localhost:3000/login?token=' . $token . '&user=' . urlencode(json_encode([
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'role' => $user->role,
+            ])));
+
+        } catch (\Exception $e) {
+            return redirect('http://localhost:3000/login?error=social_login_failed&message=' . urlencode($e->getMessage()));
+        }
     }
 }
