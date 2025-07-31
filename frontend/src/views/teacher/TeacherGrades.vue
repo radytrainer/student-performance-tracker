@@ -809,8 +809,6 @@ tr {
 /* Focus styles for form inputs */
 select:focus, input:focus {
   outline: none;
-  ring-width: 2px;
-  ring-color: rgba(59, 130, 246, 0.5);
 }
 
 /* Animation for loading spinner */
