@@ -776,9 +776,7 @@ onMounted(() => {
 }
 
 /* Modal scrollable content */
-.max-h-[90vh] {
-  max-height: 90vh;
-}
+
 
 .overflow-y-auto {
   overflow-y: auto;
