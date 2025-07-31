@@ -8,51 +8,42 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class GradeController extends BaseController
 {
-    /**
-     * Display a listing of grades (role-based filtering applied)
-     */
     public function index(Request $request)
     {
-        $this->authorize('viewAny', Grade::class);
-
         $user = $this->getCurrentUser();
-        $query = Grade::with(['student.user', 'classSubject.subject', 'classSubject.class', 'term', 'recordedBy']);
-        
-        // Apply role-based filtering automatically
-        $query = $this->applyRoleBasedFilters($query, $user);
-        
-        // Additional filters
-        if ($request->has('student_id')) {
-            $query->forStudent($request->student_id);
-        }
-        
-        if ($request->has('term_id')) {
-            $query->forTerm($request->term_id);
-        }
-        
-        if ($request->has('assessment_type')) {
-            $query->byAssessmentType($request->assessment_type);
-        }
-        
-        if ($request->has('class_id')) {
-            $query->whereHas('classSubject', function ($q) use ($request) {
-                $q->where('class_id', $request->class_id);
+
+        $query = Grade::with([
+            'student.user',
+            'term',
+            'classSubject.class',
+            'classSubject.subject',
+        ])->accessibleToUser($user);
+
+        if ($request->filled('class_id')) {
+            $query->whereHas('classSubject.class', function ($q) use ($request) {
+                $q->where('id', $request->class_id);
             });
         }
 
-        $perPage = $request->get('per_page', 15);
-        $grades = $query->latest('recorded_at')->paginate($perPage);
+        if ($request->filled('subject_id')) {
+            $query->whereHas('classSubject.subject', function ($q) use ($request) {
+                $q->where('id', $request->subject_id);
+            });
+        }
 
-        return $this->paginatedResponse($grades, 'Grades retrieved successfully');
+        if ($request->filled('term_id')) {
+            $query->where('term_id', $request->term_id);
+        }
+
+        if ($request->filled('assessment_type')) {
+            $query->where('assessment_type', $request->assessment_type);
+        }
+
+        return $this->successResponse($query->get(), 'Grades retrieved successfully');
     }
 
-    /**
-     * Store a newly created grade
-     */
     public function store(Request $request)
     {
-        $this->authorize('create', Grade::class);
-
         $request->validate([
             'student_id' => 'required|exists:students,user_id',
             'class_subject_id' => 'required|exists:class_subjects,id',
@@ -65,8 +56,8 @@ class GradeController extends BaseController
             'remarks' => 'nullable|string',
         ]);
 
-        // Check if user can create grade for this class subject
         $user = $this->getCurrentUser();
+
         if ($user->isTeacher()) {
             $classSubject = \App\Models\ClassSubject::findOrFail($request->class_subject_id);
             if ($classSubject->teacher_id !== $user->teacher->user_id) {
@@ -88,46 +79,38 @@ class GradeController extends BaseController
             'recorded_at' => now(),
         ]);
 
-        $grade->load(['student.user', 'classSubject.subject', 'term', 'recordedBy']);
+        $grade->load(['student.user', 'classSubject.subject', 'classSubject.class', 'term', 'recordedBy']);
 
         return $this->successResponse($grade, 'Grade created successfully', 201);
     }
 
-    /**
-     * Display the specified grade
-     */
     public function show($id)
     {
         $user = $this->getCurrentUser();
-        $query = Grade::with(['student.user', 'classSubject.subject', 'classSubject.class', 'term', 'recordedBy']);
-        
-        // Apply role-based filtering
-        $query = $this->applyRoleBasedFilters($query, $user);
-        
+
         try {
-            $grade = $query->findOrFail($id);
-            $this->authorize('view', $grade);
-            
+            $grade = Grade::with(['student.user', 'classSubject.subject', 'classSubject.class', 'term', 'recordedBy'])->findOrFail($id);
+
+            if ($user->isTeacher() && $grade->recorded_by !== $user->id) {
+                return $this->errorResponse('Unauthorized', 403);
+            }
+
             return $this->successResponse($grade, 'Grade retrieved successfully');
         } catch (ModelNotFoundException $e) {
-            return $this->errorResponse('Grade not found or access denied', 404);
+            return $this->errorResponse('Grade not found', 404);
         }
     }
 
-    /**
-     * Update the specified grade
-     */
     public function update(Request $request, $id)
     {
         $user = $this->getCurrentUser();
-        $query = Grade::query();
-        
-        // Apply role-based filtering
-        $query = $this->applyRoleBasedFilters($query, $user);
-        
+
         try {
-            $grade = $query->findOrFail($id);
-            $this->authorize('update', $grade);
+            $grade = Grade::findOrFail($id);
+
+            if ($user->isTeacher() && $grade->recorded_by !== $user->id) {
+                return $this->errorResponse('Unauthorized', 403);
+            }
 
             $request->validate([
                 'assessment_type' => 'sometimes|in:exam,quiz,assignment,project,participation',
@@ -147,60 +130,54 @@ class GradeController extends BaseController
 
             return $this->successResponse($grade, 'Grade updated successfully');
         } catch (ModelNotFoundException $e) {
-            return $this->errorResponse('Grade not found or access denied', 404);
+            return $this->errorResponse('Grade not found', 404);
         }
     }
 
-    /**
-     * Remove the specified grade
-     */
     public function destroy($id)
     {
         $user = $this->getCurrentUser();
-        $query = Grade::query();
-        
-        // Apply role-based filtering
-        $query = $this->applyRoleBasedFilters($query, $user);
-        
+
         try {
-            $grade = $query->findOrFail($id);
-            $this->authorize('delete', $grade);
+            $grade = Grade::findOrFail($id);
+
+            if ($user->isTeacher() && $grade->recorded_by !== $user->id) {
+                return $this->errorResponse('Unauthorized', 403);
+            }
 
             $grade->delete();
 
             return $this->successResponse(null, 'Grade deleted successfully');
         } catch (ModelNotFoundException $e) {
-            return $this->errorResponse('Grade not found or access denied', 404);
+            return $this->errorResponse('Grade not found', 404);
         }
     }
 
-    /**
-     * Get grades for a specific student (role-based access)
-     */
     public function studentGrades($studentId, Request $request)
     {
         $user = $this->getCurrentUser();
-        
-        // Check if user can view this student's grades
+
         $student = \App\Models\Student::findOrFail($studentId);
-        $this->authorize('viewStudentGrades', [Grade::class, $student->user]);
+
+        // Simple role check
+        if ($user->isTeacher() && $student->class->teacher_id !== $user->id) {
+            return $this->errorResponse('Unauthorized', 403);
+        }
 
         $query = Grade::with(['classSubject.subject', 'term', 'recordedBy'])
                      ->accessibleToUser($user)
                      ->forStudent($studentId);
-        
-        // Additional filters
-        if ($request->has('term_id')) {
+
+        if ($request->filled('term_id')) {
             $query->forTerm($request->term_id);
         }
-        
-        if ($request->has('assessment_type')) {
+
+        if ($request->filled('assessment_type')) {
             $query->byAssessmentType($request->assessment_type);
         }
 
         $grades = $query->orderBy('recorded_at', 'desc')->get();
 
-        // Calculate statistics
         $statistics = [
             'total_grades' => $grades->count(),
             'average_score' => $grades->avg('score_obtained'),
@@ -220,13 +197,8 @@ class GradeController extends BaseController
         ], 'Student grades retrieved successfully');
     }
 
-    /**
-     * Bulk create grades
-     */
     public function bulkStore(Request $request)
     {
-        $this->authorize('create', Grade::class);
-
         $request->validate([
             'grades' => 'required|array',
             'grades.*.student_id' => 'required|exists:students,user_id',
@@ -246,11 +218,10 @@ class GradeController extends BaseController
 
         foreach ($request->grades as $index => $gradeData) {
             try {
-                // Check permission for each class subject if teacher
                 if ($user->isTeacher()) {
                     $classSubject = \App\Models\ClassSubject::findOrFail($gradeData['class_subject_id']);
                     if ($classSubject->teacher_id !== $user->teacher->user_id) {
-                        $errors[] = "Grade {$index}: You can only create grades for your assigned subjects";
+                        $errors[] = "Grade {$index}: Unauthorized";
                         continue;
                     }
                 }
@@ -281,5 +252,12 @@ class GradeController extends BaseController
             'errors' => $errors,
             'grades' => $createdGrades
         ], 'Bulk grade creation completed');
+    }
+
+    public function assessmentTypes()
+    {
+        $types = Grade::select('assessment_type')->distinct()->pluck('assessment_type');
+
+        return response()->json($types);
     }
 }
