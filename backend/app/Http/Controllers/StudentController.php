@@ -9,42 +9,50 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class StudentController extends BaseController
 {
+     public function index()
+{
+    return response()->json([
+        'success' => true,
+        'data' => Student::with('user')->get()
+    ]);
+}
+
     /**
      * Display a listing of students (role-based filtering applied)
      */
-    public function index(Request $request)
-    {
-        $this->authorize('viewAny', Student::class);
+    // public function index(Request $request)
+    // {
+    //     $this->authorize('viewAny', Student::class);
 
-        $user = $this->getCurrentUser();
-        $query = Student::with(['user', 'currentClass']);
+    //     $user = $this->getCurrentUser();
+    //     $query = Student::with(['user', 'currentClass']);
         
-        // Apply role-based filtering automatically
-        $query = $this->applyRoleBasedFilters($query, $user);
+    //     // Apply role-based filtering automatically
+    //     $query = $this->applyRoleBasedFilters($query, $user);
         
-        // Additional filters
-        if ($request->has('class_id')) {
-            $query->inClass($request->class_id);
-        }
+    //     // Additional filters
+    //     if ($request->has('class_id')) {
+    //         $query->inClass($request->class_id);
+    //     }
         
-        if ($request->has('gender')) {
-            $query->byGender($request->gender);
-        }
+    //     if ($request->has('gender')) {
+    //         $query->byGender($request->gender);
+    //     }
         
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
-            })->orWhere('student_code', 'like', "%{$search}%");
-        }
+    //     if ($request->has('search')) {
+    //         $search = $request->search;
+    //         $query->whereHas('user', function ($q) use ($search) {
+    //             $q->where('first_name', 'like', "%{$search}%")
+    //               ->orWhere('last_name', 'like', "%{$search}%")
+    //               ->orWhere('username', 'like', "%{$search}%");
+    //         })->orWhere('student_code', 'like', "%{$search}%");
+    //     }
 
-        $perPage = $request->get('per_page', 15);
-        $students = $query->active()->paginate($perPage);
+    //     $perPage = $request->get('per_page', 15);
+    //     $students = $query->active()->paginate($perPage);
 
-        return $this->paginatedResponse($students, 'Students retrieved successfully');
-    }
+    //     return $this->paginatedResponse($students, 'Students retrieved successfully');
+    // }
 
     /**
      * Store a newly created student
