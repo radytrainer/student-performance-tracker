@@ -39,7 +39,7 @@ class Grade extends Model
 
     public function classSubject(): BelongsTo
     {
-        return $this->belongsTo(ClassSubject::class);
+        return $this->belongsTo(ClassSubject::class, 'class_subject_id', 'id');
     }
 
     public function term(): BelongsTo
@@ -55,16 +55,17 @@ class Grade extends Model
     // Query scopes for role-based filtering
     public function scopeAccessibleToUser($query, User $user)
     {
+         if ($user->role === 'teacher') {
+            return $query->where('recorded_by', $user->id);
+        }
+
+        return $query;
+
         if ($user->isAdmin()) {
             return $query; // Admin can see all grades
         }
 
-        if ($user->isTeacher()) {
-            // Teachers can only see grades for their assigned subjects
-            return $query->whereHas('classSubject', function ($q) use ($user) {
-                $q->where('teacher_id', $user->teacher->user_id);
-            });
-        }
+    
 
         if ($user->isStudent()) {
             // Students can only see their own grades
