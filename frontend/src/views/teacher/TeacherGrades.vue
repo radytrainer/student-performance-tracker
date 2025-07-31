@@ -1,33 +1,33 @@
 <template>
   <div class="p-6">
-    <h1 class="text-2xl font-bold mb-4">Manage Grades</h1>
+    <h1 class="text-2xl font-bold mb-4 text-gray-800">Manage Grades</h1>
 
     <!-- Filters -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <div>
-        <label class="block mb-1 font-medium">Class</label>
-        <select v-model="filters.class_id" @change="fetchGrades" class="w-full border p-2 rounded">
+        <label class="block mb-1 font-medium text-gray-700">Class</label>
+        <select v-model="filters.class_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
           <option value="">All</option>
           <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
         </select>
       </div>
       <div>
-        <label class="block mb-1 font-medium">Subject</label>
-        <select v-model="filters.subject_id" @change="fetchGrades" class="w-full border p-2 rounded">
+        <label class="block mb-1 font-medium text-gray-700">Subject</label>
+        <select v-model="filters.subject_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
           <option value="">All</option>
           <option v-for="sub in subjects" :key="sub.id" :value="sub.id">{{ sub.subject_name }}</option>
         </select>
       </div>
       <div>
-        <label class="block mb-1 font-medium">Term</label>
-        <select v-model="filters.term_id" @change="fetchGrades" class="w-full border p-2 rounded">
+        <label class="block mb-1 font-medium text-gray-700">Term</label>
+        <select v-model="filters.term_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
           <option value="">All</option>
           <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
         </select>
       </div>
       <div>
-        <label class="block mb-1 font-medium">Assessment Type</label>
-        <select v-model="filters.assessment_type" @change="fetchGrades" class="w-full border p-2 rounded">
+        <label class="block mb-1 font-medium text-gray-700">Assessment Type</label>
+        <select v-model="filters.assessment_type" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
           <option value="">All</option>
           <option v-for="type in assessmentTypes" :key="type">{{ type }}</option>
         </select>
@@ -36,36 +36,36 @@
 
     <!-- Charts Row -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <!-- Grade Distribution Chart -->
-      <div class="bg-white p-4 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Grade Distribution</h2>
+      <!-- Grade Distribution Pie Chart -->
+      <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Grade Distribution</h2>
         <div class="w-full h-64">
           <canvas ref="gradeChart" @click="handleGradeChartClick"></canvas>
         </div>
-        <div v-if="selectedGradeGroup" class="mt-4 p-3 bg-gray-50 rounded">
-          <h3 class="font-medium">Details for {{ selectedGradeGroup.grade }} grades</h3>
-          <p>Count: {{ selectedGradeGroup.count }}</p>
-          <p>Average Score: {{ selectedGradeGroup.avgScore.toFixed(1) }}</p>
+        <div v-if="selectedGradeGroup" class="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
+          <h3 class="font-medium text-gray-800">Details for {{ selectedGradeGroup.grade }} grades</h3>
+          <p class="text-gray-600">Count: {{ selectedGradeGroup.count }}</p>
+          <p class="text-gray-600">Average Score: {{ selectedGradeGroup.avgScore.toFixed(1) }}</p>
           <div class="mt-2">
-            <h4 class="font-medium text-sm mb-1">Students:</h4>
+            <h4 class="font-medium text-sm mb-1 text-gray-700">Students:</h4>
             <ul class="text-sm max-h-40 overflow-y-auto">
-              <li v-for="grade in selectedGradeGroup.grades" :key="grade.id" class="py-1 border-b">
+              <li v-for="grade in selectedGradeGroup.grades" :key="grade.id" class="py-1 border-b border-gray-100">
                 {{ grade.student?.user?.first_name }} {{ grade.student?.user?.last_name }} - {{ grade.score_obtained }}
               </li>
             </ul>
           </div>
-          <button @click="selectedGradeGroup = null" class="text-blue-600 text-sm mt-2">Close</button>
+          <button @click="selectedGradeGroup = null" class="text-blue-600 text-sm mt-2 hover:underline">Close</button>
         </div>
       </div>
 
       <!-- Student Scores Chart -->
-      <div class="bg-white p-4 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Student Scores</h2>
+      <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Student Scores</h2>
         <div class="w-full h-64">
           <canvas ref="scoresChart" @click="handleScoresChartClick"></canvas>
         </div>
-        <div v-if="selectedStudentGrade" class="mt-4 p-3 bg-gray-50 rounded">
-          <h3 class="font-medium">Details for {{ selectedStudentGrade.studentName }}</h3>
+        <div v-if="selectedStudentGrade" class="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
+          <h3 class="font-medium text-gray-800">Details for {{ selectedStudentGrade.studentName }}</h3>
           <div class="grid grid-cols-2 gap-2 mt-2">
             <div>
               <p class="text-sm text-gray-600">Score:</p>
@@ -104,116 +104,170 @@
     </div>
 
     <!-- Grade Table -->
-    <div class="p-4">
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">Teacher Grades</h2>
-        <button @click="openAddModal" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-          + Add New Grade
+        <h2 class="text-xl font-semibold text-gray-800">Teacher Grades</h2>
+        <button @click="openAddModal" class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+          </svg>
+          Add New Grade
         </button>
       </div>
 
-      <div v-if="loading" class="text-blue-600">Loading grades...</div>
-      <div v-else-if="error" class="text-red-500">{{ error }}</div>
-      <div v-else-if="grades.length === 0" class="text-gray-500">No grades available.</div>
+      <div v-if="loading" class="flex justify-center items-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+      <div v-else-if="error" class="text-red-500 p-4 bg-red-50 rounded-md">{{ error }}</div>
+      <div v-else-if="grades.length === 0" class="text-gray-500 p-4 text-center">No grades available.</div>
 
-      <table v-else class="w-full table-auto border-collapse border border-gray-300">
-        <thead>
-          <tr class="bg-gray-200">
-            <th class="p-2 border">Student</th>
-            <th class="p-2 border">Class</th>
-            <th class="p-2 border">Subject</th>
-            <th class="p-2 border">Term</th>
-            <th class="p-2 border">Assessment Type</th>
-            <th class="p-2 border">Score</th>
-            <th class="p-2 border">Grade</th>
-            <th class="p-2 border">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="grade in grades" :key="grade.id">
-            <td class="p-2 border">{{ grade.student?.user?.first_name }} {{ grade.student?.user?.last_name }}</td>
-            <td class="p-2 border">{{ grade.class_subject?.class?.class_name }}</td>
-            <td class="p-2 border">{{ grade.class_subject?.subject?.subject_name }}</td>
-            <td class="p-2 border">{{ grade.term?.term_name }}</td>
-            <td class="p-2 border">{{ grade.assessment_type }}</td>
-            <td class="p-2 border">{{ grade.score_obtained }}</td>
-            <td class="p-2 border">{{ grade.grade_letter }}</td>
-            <td class="p-2 border flex gap-2">
-              <button class="text-blue-600 hover:underline" @click="openEditModal(grade)">Edit</button>
-              <button class="text-red-600 hover:underline" @click="deleteGrade(grade.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Term</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assessment</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="grade in grades" :key="grade.id" class="hover:bg-gray-50 transition-colors">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 font-medium">
+                      {{ getInitials(grade.student?.user?.first_name, grade.student?.user?.last_name) }}
+                    </span>
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">
+                      {{ grade.student?.user?.first_name }} {{ grade.student?.user?.last_name }}
+                    </div>
+                    <div class="text-sm text-gray-500">ID: {{ grade.student_id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ grade.class_subject?.class?.class_name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ grade.class_subject?.subject?.subject_name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ grade.term?.term_name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                      :class="getAssessmentBadgeClass(grade.assessment_type)">
+                  {{ grade.assessment_type }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" 
+                  :class="getScoreTextClass(grade.score_obtained)">
+                {{ grade.score_obtained }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                      :class="getGradeBadgeClass(grade.grade_letter)">
+                  {{ grade.grade_letter || 'N/A' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button @click="openEditModal(grade)" class="text-blue-500 hover:text-blue-700 mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+                <button @click="deleteGrade(grade.id)" class="text-red-500 hover:text-red-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Add/Edit Grade Modal -->
-    <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white w-full max-w-lg p-6 rounded shadow-lg">
-        <h3 class="text-xl font-bold mb-4">{{ isEditMode ? 'Edit Grade' : 'Add New Grade' }}</h3>
+    <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white w-full max-w-lg rounded-lg shadow-xl max-h-[90vh] flex flex-col">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-xl font-bold text-gray-800">{{ isEditMode ? 'Edit Grade' : 'Add New Grade' }}</h3>
+        </div>
+        <div class="overflow-y-auto p-6 flex-1">
+          <form @submit.prevent="submitNewGrade">
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Student</label>
+              <select v-model="newGrade.student_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option disabled value="">Select student</option>
+                <option v-for="student in students" :key="student.id" :value="student.user_id">
+                  {{ student.user?.first_name }} {{ student.user?.last_name }}
+                </option>
+              </select>
+            </div>
 
-        <form @submit.prevent="submitNewGrade">
-          <div class="mb-3">
-            <label class="block font-medium mb-1">Student</label>
-            <select v-model="newGrade.student_id" class="w-full border p-2 rounded" required>
-              <option disabled value="">Select student</option>
-              <option v-for="student in students" :key="student.id" :value="student.user_id">
-                {{ student.user?.first_name }} {{ student.user?.last_name }}
-              </option>
-            </select>
-          </div>
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Class-Subject</label>
+              <select v-model="newGrade.class_subject_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option v-for="cs in classSubjects" :key="cs.id" :value="cs.id">
+                  {{ cs.class.class_name }} - {{ cs.subject.subject_name }}
+                </option>
+              </select>
+            </div>
 
-          <div class="mb-3">
-            <label class="block font-medium mb-1">Class-Subject</label>
-            <select v-model="newGrade.class_subject_id" class="w-full border p-2 rounded" required>
-              <option v-for="cs in classSubjects" :key="cs.id" :value="cs.id">
-                {{ cs.class.class_name }} - {{ cs.subject.subject_name }}
-              </option>
-            </select>
-          </div>
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Term</label>
+              <select v-model="newGrade.term_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
+              </select>
+            </div>
 
-          <div class="mb-3">
-            <label class="block font-medium mb-1">Term</label>
-            <select v-model="newGrade.term_id" class="w-full border p-2 rounded" required>
-              <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
-            </select>
-          </div>
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Assessment Type</label>
+              <select v-model="newGrade.assessment_type" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option v-for="type in assessmentTypes" :key="type" :value="type">{{ type }}</option>
+              </select>
+            </div>
 
-          <div class="mb-3">
-            <label class="block font-medium mb-1">Assessment Type</label>
-            <select v-model="newGrade.assessment_type" class="w-full border p-2 rounded" required>
-              <option v-for="type in assessmentTypes" :key="type" :value="type">{{ type }}</option>
-            </select>
-          </div>
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Score</label>
+              <input 
+                v-model="newGrade.score_obtained" 
+                type="number" 
+                min="0" 
+                max="100" 
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
+                required
+                @input="calculateGradeLetter"
+              />
+            </div>
 
-          <div class="mb-3">
-            <label class="block font-medium mb-1">Score</label>
-            <input 
-              v-model="newGrade.score_obtained" 
-              type="number" 
-              min="0" 
-              max="100" 
-              class="w-full border p-2 rounded" 
-              required
-              @input="calculateGradeLetter"
-            />
-          </div>
-
-          <div class="mb-3">
-            <label class="block font-medium mb-1">Grade Letter</label>
-            <select v-model="newGrade.grade_letter" class="w-full border p-2 rounded">
-              <option value="">Auto-calculate</option>
-              <option v-for="letter in gradeLetters" :key="letter" :value="letter">{{ letter }}</option>
-            </select>
-          </div>
-
-          <div class="flex justify-end gap-2">
-            <button type="button" @click="showAddModal = false" class="px-4 py-2 border rounded">Cancel</button>
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+            <div class="mb-6">
+              <label class="block font-medium mb-1 text-gray-700">Grade Letter</label>
+              <select v-model="newGrade.grade_letter" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Auto-calculate</option>
+                <option v-for="letter in gradeLetters" :key="letter" :value="letter">{{ letter }}</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+          <div class="flex justify-end gap-3">
+            <button type="button" @click="showAddModal = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" @click="submitNewGrade" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
               {{ isEditMode ? 'Update' : 'Submit' }}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   </div>
@@ -375,15 +429,14 @@ const updateGradeDistributionChart = () => {
   const chartData = {
     labels: labels,
     datasets: [{
-      label: 'Number of Students',
+      label: 'Grade Distribution',
       data: data,
       backgroundColor: labels.map((letter, i) => 
         backgroundColors[i] || 'rgba(201, 203, 207, 0.7)'
       ),
-      borderColor: labels.map((letter, i) => 
-        backgroundColors[i] ? backgroundColors[i].replace('0.7', '1') : 'rgba(201, 203, 207, 1)'
-      ),
-      borderWidth: 1
+      borderColor: 'rgba(255, 255, 255, 0.8)',
+      borderWidth: 1,
+      hoverOffset: 10
     }]
   }
 
@@ -392,23 +445,24 @@ const updateGradeDistributionChart = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
+        position: 'right',
       },
       tooltip: {
         callbacks: {
           label: function(context) {
-            return `${context.label}: ${context.raw} students`
+            const label = context.label || ''
+            const value = context.raw || 0
+            const total = context.dataset.data.reduce((a, b) => a + b, 0)
+            const percentage = Math.round((value / total) * 100)
+            return `${label}: ${value} (${percentage}%)`
           }
         }
       }
     },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1
-        }
-      }
+    cutout: '60%',
+    animation: {
+      animateScale: true,
+      animateRotate: true
     }
   }
 
@@ -419,7 +473,7 @@ const updateGradeDistributionChart = () => {
       gradeChartInstance.value.update()
     } else if (gradeChart.value) {
       gradeChartInstance.value = new Chart(gradeChart.value, {
-        type: 'bar',
+        type: 'pie',
         data: chartData,
         options: chartOptions
       })
@@ -658,6 +712,42 @@ const deleteGrade = async (id) => {
   }
 }
 
+const getInitials = (firstName, lastName) => {
+  if (!firstName || !lastName) return '??'
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+}
+
+const getAssessmentBadgeClass = (type) => {
+  const classes = {
+    'quiz': 'bg-purple-100 text-purple-800',
+    'exam': 'bg-red-100 text-red-800',
+    'project': 'bg-green-100 text-green-800',
+    'assignment': 'bg-yellow-100 text-yellow-800'
+  }
+  return classes[type] || 'bg-gray-100 text-gray-800'
+}
+
+const getGradeBadgeClass = (grade) => {
+  const classes = {
+    'A': 'bg-green-100 text-green-800',
+    'B': 'bg-blue-100 text-blue-800',
+    'C': 'bg-yellow-100 text-yellow-800',
+    'D': 'bg-orange-100 text-orange-800',
+    'E': 'bg-red-100 text-red-800',
+    'F': 'bg-red-100 text-red-800'
+  }
+  return classes[grade] || 'bg-gray-100 text-gray-800'
+}
+
+const getScoreTextClass = (score) => {
+  if (score >= 90) return 'text-green-600'
+  if (score >= 80) return 'text-blue-600'
+  if (score >= 70) return 'text-yellow-600'
+  if (score >= 60) return 'text-orange-600'
+  if (score >= 50) return 'text-red-500'
+  return 'text-red-600'
+}
+
 watch(grades, updateCharts, { deep: true })
 
 onMounted(() => {
@@ -666,20 +756,83 @@ onMounted(() => {
 </script>
 
 <style scoped>
-select:invalid {
-  color: gray;
+/* Custom scrollbar for the table container */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
 }
 
-canvas {
-  width: 100% !important;
-  height: 100% !important;
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
 }
 
-.bg-gray-50 {
-  background-color: #f9fafb;
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
 }
 
-.max-h-40 {
-  max-height: 10rem;
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Modal scrollable content */
+.max-h-[90vh] {
+  max-height: 90vh;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for modal */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Smooth transitions for hover effects */
+tr {
+  transition: background-color 0.2s ease;
+}
+
+/* Focus styles for form inputs */
+select:focus, input:focus {
+  outline: none;
+  ring-width: 2px;
+  ring-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Modal transition */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
 }
 </style>
