@@ -64,15 +64,75 @@
         </nav>
 
         <!-- Active Users Section -->
-        <div class="p-4 border-t border-white/10  ">
-          <p class="text-white/60 text-xs font-medium uppercase tracking-wider mb-3">Active Users</p>
+        <div class="p-4 border-t border-white/10">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-white/60 text-xs font-medium uppercase tracking-wider">Active Users</p>
+            <button 
+              @click="refreshActiveUsers" 
+              :disabled="isLoading"
+              class="text-white/40 hover:text-white/70 transition-colors duration-200 disabled:opacity-50"
+              title="Refresh active users"
+            >
+              <svg class="w-3 h-3" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </button>
+          </div>
+          
           <div class="flex -space-x-2">
-            <div v-for="i in 5" :key="i" 
-                 class="w-8 h-8 rounded-full border-2 border-white/30 shadow-lg hover:scale-110 transition-transform duration-300 cursor-pointer"
-                 :class="getActiveUserColor(i)">
+            <!-- Display active users with profile pictures -->
+            <div 
+              v-for="(user, index) in activeUsers" 
+              :key="user.id" 
+              class="relative group cursor-pointer"
+              :title="`${user.first_name} ${user.last_name} (${user.role})`"
+            >
+              <!-- User avatar with image or initials -->
+              <div class="w-8 h-8 rounded-full border-2 border-white/30 shadow-lg hover:scale-110 transition-transform duration-300 overflow-hidden">
+                <img 
+                  v-if="getUserImage(user)"
+                  :src="getUserImage(user)" 
+                  :alt="`${user.first_name} ${user.last_name}`"
+                  class="w-full h-full object-cover"
+                  @error="$event.target.style.display = 'none'"
+                />
+                <div 
+                  v-else
+                  class="w-full h-full flex items-center justify-center text-xs font-semibold text-white"
+                  :class="getUserColor(user, index)"
+                >
+                  {{ getUserInitials(user) }}
+                </div>
+              </div>
+              
+              <!-- Online indicator -->
+              <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border border-white/50"></div>
             </div>
-            <div class="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white/70 hover:scale-110 transition-transform duration-300 cursor-pointer">
-              +3
+            
+            <!-- Show additional users count if more than 5 -->
+            <div 
+              v-if="totalActiveUsers > 5" 
+              class="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs text-white/70 hover:scale-110 transition-transform duration-300 cursor-pointer"
+              :title="`${totalActiveUsers - 5} more active users`"
+            >
+              +{{ totalActiveUsers - 5 }}
+            </div>
+            
+            <!-- Loading state -->
+            <div 
+              v-if="isLoading && activeUsers.length === 0" 
+              class="flex -space-x-2"
+            >
+              <div v-for="i in 3" :key="i" class="w-8 h-8 rounded-full bg-white/10 border-2 border-white/20 animate-pulse"></div>
+            </div>
+            
+            <!-- Error state -->
+            <div 
+              v-if="error && activeUsers.length === 0" 
+              class="text-white/40 text-xs"
+              :title="error"
+            >
+              Unable to load users
             </div>
           </div>
         </div>
@@ -101,11 +161,22 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useProfileImage } from '@/composables/useProfileImage'
+import { useActiveUsers } from '@/composables/useActiveUsers'
 import ImageUpload from '@/components/ImageUpload.vue'
 
 const route = useRoute()
 const { getAvailableRoutes, user, userRole } = useAuth()
 const { profileImage } = useProfileImage()
+const {
+  activeUsers,
+  totalActiveUsers,
+  isLoading,
+  error,
+  refreshActiveUsers,
+  getUserImage,
+  getUserInitials,
+  getUserColor
+} = useActiveUsers()
 
 const isOpen = ref(true)
 const isMobile = ref(window.innerWidth < 768)
@@ -129,16 +200,7 @@ const handleRouteClick = () => {
   }
 }
 
-const getActiveUserColor = (index) => {
-  const colors = [
-    'bg-gradient-to-br from-pink-400 to-orange-400',
-    'bg-gradient-to-br from-blue-400 to-purple-400', 
-    'bg-gradient-to-br from-green-400 to-blue-400',
-    'bg-gradient-to-br from-yellow-400 to-red-400',
-    'bg-gradient-to-br from-purple-400 to-indigo-400'
-  ]
-  return colors[index - 1]
-}
+
 
 const updateSize = () => {
   isMobile.value = window.innerWidth < 768
