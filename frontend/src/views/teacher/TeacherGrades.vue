@@ -776,6 +776,8 @@ onMounted(() => {
 }
 
 /* Modal scrollable content */
+
+
 .overflow-y-auto {
   overflow-y: auto;
 }
@@ -807,7 +809,6 @@ tr {
 /* Focus styles for form inputs */
 select:focus, input:focus {
   outline: none;
-
 }
 
 /* Animation for loading spinner */
