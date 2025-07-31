@@ -776,10 +776,6 @@ onMounted(() => {
 }
 
 /* Modal scrollable content */
-.max-h-[90vh] {
-  max-height: 90vh;
-}
-
 .overflow-y-auto {
   overflow-y: auto;
 }
@@ -811,8 +807,7 @@ tr {
 /* Focus styles for form inputs */
 select:focus, input:focus {
   outline: none;
-  ring-width: 2px;
-  ring-color: rgba(59, 130, 246, 0.5);
+
 }
 
 /* Animation for loading spinner */
