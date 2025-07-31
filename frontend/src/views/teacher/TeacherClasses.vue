@@ -6,12 +6,6 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Classes Overview Cards -->
       <div v-if="!selectedClass" class="space-y-8">
-        <!-- Page Header -->
-        <div class="mb-8">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h2>
-          <p class="text-gray-600 text-lg">Manage your classes and track student performance</p>
-        </div>
-
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div class="group bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transition-all duration-300">
