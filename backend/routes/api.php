@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\SubjectController;
-// use App\Http\Controllers\Api\SubjectController;
+
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -10,6 +10,19 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfileImageController;
 use App\Http\Controllers\Teacher\FeedbackFormController;
 use App\Http\Controllers\Student\FeedbackSurveyController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\TermController;
+use App\Http\Controllers\ClassController;
+use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\ClassSubjectController;
+
+
+
+
+
+
+
 
 
 /*
@@ -24,9 +37,11 @@ use App\Http\Controllers\Student\FeedbackSurveyController;
 */
 
 
-// Route::get('/subjects', [SubjectController::class, 'index']);
 
 
+
+
+// Route::get('/class-subjects', [ClassSubjectController::class, 'index']);
 // Public routes (no authentication required)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -45,7 +60,21 @@ Route::get('/test', function () {
 
 // Protected routes (authentication required)
 Route::middleware(['auth:sanctum'])->group(function () {
-    
+
+    Route::get('/grades', [GradeController::class, 'index']);
+    Route::post('/grades', [GradeController::class, 'store']);
+    Route::get('/grades/{id}', [GradeController::class, 'show']);
+    Route::put('/grades/{id}', [GradeController::class, 'update']);
+    Route::delete('/grades/{id}', [GradeController::class, 'destroy']);
+    Route::post('/grades/bulk', [GradeController::class, 'bulkStore']);
+    Route::get('/student-grades/{student_id}', [GradeController::class, 'studentGrades']);
+    Route::get('/classes', [ClassController::class, 'index']);
+    Route::get('/subjects', [SubjectController::class, 'index']);
+    Route::get('/terms', [TermController::class, 'index']);
+    Route::get('/students', [StudentController::class, 'index']);
+    Route::get('/grades/assessment-types', [GradeController::class, 'assessmentTypes']);
+    Route::get('/my-class-subjects', [ClassSubjectController::class, 'myClassSubjects']);
+
     // Auth routes
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/user', [AuthController::class, 'user']);
@@ -107,10 +136,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Admin & Teacher routes (commented out for now - controllers need verification)
     Route::middleware(['role:admin,teacher'])->group(function () {
-        
+
         // Future routes - need to verify controllers exist
         // Route::apiResource('students', StudentController::class);
-        // Route::apiResource('grades', GradeController::class);
+        Route::apiResource('grades', GradeController::class);
         
         // Future routes - controllers need to be verified/created
         // Route::apiResource('attendance', 'AttendanceController');
@@ -174,11 +203,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // Shared routes (role-specific access handled by policies)
-    Route::get('subjects', 'SubjectController@index');
-    Route::get('subjects/{subject}', 'SubjectController@show');
-    Route::get('terms', 'TermController@index');
-    Route::get('terms/{term}', 'TermController@show');
-    Route::get('terms/current', 'TermController@current');
+    // Route::get('subjects', 'SubjectController@index');
+    // Route::get('subjects/{subject}', 'SubjectController@show');
+    // Route::get('terms', 'TermController@index');
+    // Route::get('terms/{term}', 'TermController@show');
+    // Route::get('terms/current', 'TermController@current');
     
     // General notifications and alerts
     Route::get('my-notifications', 'NotificationController@my');
