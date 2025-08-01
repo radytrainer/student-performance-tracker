@@ -122,7 +122,7 @@ class GradeController extends BaseController
             ]);
 
             $grade->update($request->only([
-                'assessment_type', 'max_score', 'score_obtained', 
+                'assessment_type', 'max_score', 'score_obtained',
                 'weightage', 'grade_letter', 'remarks'
             ]));
 
