@@ -308,6 +308,8 @@ class AuthController extends Controller
         
         return $code;
     }
+<<<<<<< HEAD
+=======
 
     /**
      * Redirect to social provider
@@ -391,4 +393,5 @@ class AuthController extends Controller
             return redirect('http://localhost:3000/login?error=social_login_failed&message=' . urlencode($e->getMessage()));
         }
     }
+>>>>>>> main
 }
