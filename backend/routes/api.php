@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\SubjectController;
 // use App\Http\Controllers\Api\SubjectController;
 
 
