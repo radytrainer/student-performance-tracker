@@ -1,454 +1,849 @@
 <template>
-  <div v-if="hasPermission('teacher.manage_attendance')" class="p-6">
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Attendance Management</h1>
-      <p class="text-gray-600 mt-1">Track and manage student attendance</p>
+  <div class="p-6">
+    <!-- 🔹 1. Attendance Dashboard / Class Selection -->
+    <h1 class="text-2xl font-bold mb-4 text-gray-800">Manage Attendance</h1>
+    <div class="p-6">
+      <!-- 🔹 1. Attendance Dashboard / Class Selection -->
+      <h1 class="text-2xl font-bold mb-6 text-gray-800">Manage Attendance</h1>
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-end"
+      >
+        <div class="w-full">
+          <label class="block mb-1 font-medium text-gray-700">Class</label>
+          <select
+            v-model="filters.class_id"
+            @change="fetchAttendance"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Classes</option>
+            <option v-for="cls in classes" :key="cls.id" :value="cls.id">
+              {{ cls.class_name }}
+            </option>
+          </select>
+        </div>
+        <div class="w-full">
+          <label class="block mb-1 font-medium text-gray-700">Date</label>
+          <input
+            type="date"
+            v-model="filters.date"
+            value="defaultDate"
+            @change="fetchAttendance"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div class="w-full">
+          <label class="block mb-1 font-medium text-gray-700">Subject</label>
+          <select
+            v-model="filters.subject_id"
+            @change="fetchAttendance"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Subjects</option>
+            <option
+              v-for="subject in subjects"
+              :key="subject.id"
+              :value="subject.id"
+            >
+              {{ subject.subject_name }}
+            </option>
+          </select>
+        </div>
+        <div class="w-full">
+          <button
+            @click="openTakeAttendanceModal"
+            class="w-full flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors mt-6 sm:mt-0"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Take Attendance
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
-
-    <!-- Main Content -->
-    <div v-else class="space-y-6">
-      <!-- Controls -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Class</label>
-            <select
-              v-model="selectedClass"
-              @change="loadAttendance"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select a class</option>
-              <option v-for="cls in classes" :key="cls.id" :value="cls.id">
-                {{ cls.subject }} - {{ cls.section }}
-              </option>
-            </select>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
-            <input
-              v-model="selectedDate"
-              @change="loadAttendance"
-              type="date"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Period</label>
-            <select
-              v-model="selectedPeriod"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="1">1st Period</option>
-              <option value="2">2nd Period</option>
-              <option value="3">3rd Period</option>
-              <option value="4">4th Period</option>
-              <option value="5">5th Period</option>
-              <option value="6">6th Period</option>
-            </select>
-          </div>
-
-          <div class="flex items-end space-x-2">
+    <!-- 🔹 2. Take Attendance Interface -->
+    <div
+      v-if="showAttendanceModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white w-full max-w-lg rounded-lg shadow-xl max-h-[90vh] flex flex-col"
+      >
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-xl font-bold text-gray-800">Take Attendance</h3>
+        </div>
+        <div class="overflow-y-auto p-6 flex-1">
+          <form @submit.prevent="submitAttendance">
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Date</label>
+              <input
+                type="date"
+                v-model="newAttendance.date"
+                value="defaultDate"
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
             <button
-              @click="takeAttendance"
-              :disabled="!selectedClass"
-              class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              type="button"
+              @click="markAllPresent"
+              class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
             >
-              <i class="fas fa-calendar-check mr-2"></i>
-              Take Attendance
+              Mark All Present
             </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Stats -->
-      <div v-if="selectedClass && attendanceData.length > 0" class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-check text-green-600"></i>
-              </div>
-            </div>
-            <div class="ml-4">
-              <div class="text-2xl font-bold text-green-600">{{ stats.present }}</div>
-              <div class="text-sm text-gray-600">Present</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-times text-red-600"></i>
-              </div>
-            </div>
-            <div class="ml-4">
-              <div class="text-2xl font-bold text-red-600">{{ stats.absent }}</div>
-              <div class="text-sm text-gray-600">Absent</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-clock text-yellow-600"></i>
-              </div>
-            </div>
-            <div class="ml-4">
-              <div class="text-2xl font-bold text-yellow-600">{{ stats.late }}</div>
-              <div class="text-sm text-gray-600">Late</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-percentage text-blue-600"></i>
-              </div>
-            </div>
-            <div class="ml-4">
-              <div class="text-2xl font-bold text-blue-600">{{ stats.attendanceRate }}%</div>
-              <div class="text-sm text-gray-600">Attendance Rate</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Attendance Table -->
-      <div v-if="selectedClass" class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-800">
-              Attendance for {{ formatDate(selectedDate) }}
-            </h2>
-            <div class="flex items-center space-x-3">
-              <button
-                @click="markAllPresent"
-                class="text-green-600 hover:text-green-800 text-sm font-medium"
+            <div
+              v-for="student in filteredStudents"
+              :key="student.id"
+              class="mb-4 border-b pb-2"
+            >
+              <label class="block font-medium mb-1 text-gray-700">
+                {{ student.user?.first_name }}
+                {{ student.user?.last_name }} (ID: {{ student.user_id }})
+              </label>
+              <select
+                v-model="studentAttendance[student.user_id]"
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                required
               >
-                Mark All Present
-              </button>
-              <button
-                @click="saveAttendance"
-                :disabled="!hasChanges"
-                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
-                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Absent</th>
-                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Late</th>
-                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Excused</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance %</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="record in attendanceData" :key="record.studentId" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div class="flex-shrink-0 h-10 w-10">
-                      <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span class="text-blue-600 font-medium">{{ record.student.name.charAt(0) }}</span>
-                      </div>
-                    </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">{{ record.student.name }}</div>
-                      <div class="text-sm text-gray-500">{{ record.student.id }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <input
-                    v-model="record.status"
-                    @change="markChanged"
-                    type="radio"
-                    value="present"
-                    class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                  />
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <input
-                    v-model="record.status"
-                    @change="markChanged"
-                    type="radio"
-                    value="absent"
-                    class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
-                  />
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <input
-                    v-model="record.status"
-                    @change="markChanged"
-                    type="radio"
-                    value="late"
-                    class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300"
-                  />
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <input
-                    v-model="record.excused"
-                    @change="markChanged"
-                    type="checkbox"
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                </td>
-                <td class="px-6 py-4">
-                  <input
-                    v-model="record.notes"
-                    @change="markChanged"
-                    type="text"
-                    placeholder="Add notes..."
-                    class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <span class="text-sm font-medium" :class="getAttendanceRateClass(record.attendanceRate)">
-                    {{ record.attendanceRate }}%
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Empty State -->
-        <div v-if="attendanceData.length === 0" class="text-center py-12">
-          <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No students found</h3>
-          <p class="text-gray-500">Select a class to view student attendance records.</p>
-        </div>
-      </div>
-
-      <!-- No Class Selected -->
-      <div v-else class="text-center py-12">
-        <i class="fas fa-calendar-check text-gray-400 text-4xl mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Select a class to manage attendance</h3>
-        <p class="text-gray-500">Choose a class from the dropdown above to take attendance.</p>
-      </div>
-
-      <!-- Attendance History -->
-      <div v-if="selectedClass" class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-800">Recent Attendance Records</h2>
-        </div>
-        <div class="p-6">
-          <div class="space-y-3">
-            <div v-for="record in recentAttendance" :key="record.date" 
-                 class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-              <div>
-                <div class="font-medium text-gray-900">{{ formatDate(record.date) }}</div>
-                <div class="text-sm text-gray-500">Period {{ record.period }}</div>
-              </div>
-              <div class="flex items-center space-x-4">
-                <div class="text-center">
-                  <div class="text-lg font-semibold text-green-600">{{ record.present }}</div>
-                  <div class="text-xs text-gray-500">Present</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-lg font-semibold text-red-600">{{ record.absent }}</div>
-                  <div class="text-xs text-gray-500">Absent</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-lg font-semibold text-yellow-600">{{ record.late }}</div>
-                  <div class="text-xs text-gray-500">Late</div>
-                </div>
-                <button
-                  @click="viewAttendanceDetails(record)"
-                  class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                <option
+                  v-for="status in attendanceStatuses"
+                  :key="status"
+                  :value="status"
                 >
-                  View Details
-                </button>
-              </div>
+                  {{ status }}
+                </option>
+              </select>
+              <input
+                v-model="studentAttendanceNotes[student.user_id]"
+                type="text"
+                placeholder="Notes (e.g., sick leave)"
+                class="mt-2 w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
+            <button
+              type="submit"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+            >
+              Save Attendance
+            </button>
+          </form>
+        </div>
+        <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+          <button
+            type="button"
+            @click="showAttendanceModal = false"
+            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🔹 3. View Attendance Records -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">Attendance Records</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div>
+          <label class="block mb-1 font-medium text-gray-700">Class</label>
+          <select
+            v-model="viewFilters.class_id"
+            @change="fetchAttendance"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Classes</option>
+            <option v-for="cls in classes" :key="cls.id" :value="cls.id">
+              {{ cls.class_name }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-1 font-medium text-gray-700">Student</label>
+          <select
+            v-model="viewFilters.student_id"
+            @change="fetchAttendance"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Students</option>
+            <option
+              v-for="student in students"
+              :key="student.user_id"
+              :value="student.user_id"
+            >
+              {{ student.user?.first_name }} {{ student.user?.last_name }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-1 font-medium text-gray-700">Date Range</label>
+          <input
+            type="date"
+            v-model="viewFilters.start_date"
+            @change="fetchAttendance"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block mb-1 font-medium text-gray-700">Status</label>
+          <select
+            v-model="viewFilters.status"
+            @change="fetchAttendance"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Statuses</option>
+            <option
+              v-for="status in attendanceStatuses"
+              :key="status"
+              :value="status"
+            >
+              {{ status }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div v-if="loading" class="flex justify-center items-center py-8">
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"
+        ></div>
+      </div>
+      <div v-else-if="error" class="text-red-500 p-4 bg-red-50 rounded-md">
+        {{ error }}
+      </div>
+      <div
+        v-else-if="attendanceRecords.length === 0"
+        class="text-gray-500 p-4 text-center"
+      >
+        No attendance records available.
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Student ID
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Full Name
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Class
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Date
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Notes
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr
+              v-for="record in attendanceRecords"
+              :key="record.id"
+              class="hover:bg-gray-50 transition-colors"
+            >
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ record.student_id }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ record.student?.user?.first_name }}
+                {{ record.student?.user?.last_name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ record.class?.class_name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ formatDate(record.date) }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span
+                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                  :class="getStatusBadgeClass(record.status)"
+                >
+                  {{ record.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ record.notes || "N/A" }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- 📅 Calendar View (Optional) -->
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold text-gray-800">Calendar View</h3>
+        <div class="w-full h-64 bg-gray-100 flex items-center justify-center">
+          Calendar Placeholder (Green: Present, Red: Absent, Yellow: Late)
+        </div>
+      </div>
+      <!-- 📈 Attendance Summary per Student with Charts -->
+      <div
+        v-for="student in uniqueStudents"
+        :key="student.user_id"
+        class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200"
+      >
+        <h3 class="text-lg font-semibold text-gray-800">
+          {{ student.user?.first_name }} {{ student.user?.last_name }}
+        </h3>
+        <div class="grid grid-cols-2 gap-4 mt-2">
+          <div>
+            <p class="text-gray-600">
+              Present: {{ getAttendanceCount(student.user_id, "Present") }}
+            </p>
+          </div>
+          <div>
+            <p class="text-gray-600">
+              Absent: {{ getAttendanceCount(student.user_id, "Absent") }}
+            </p>
+          </div>
+          <div>
+            <p class="text-gray-600">
+              Late: {{ getAttendanceCount(student.user_id, "Late") }}
+            </p>
+          </div>
+          <div>
+            <p class="text-gray-600">
+              Excused: {{ getAttendanceCount(student.user_id, "Excused") }}
+            </p>
+          </div>
+          <div>
+            <p class="text-gray-600">
+              Total Days: {{ getTotalDays(student.user_id) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-gray-600">
+              Attendance %:
+              {{ getAttendancePercentage(student.user_id).toFixed(1) }}%
+            </p>
+          </div>
+        </div>
+        <div class="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+          <div
+            :style="{
+              width: getAttendancePercentage(student.user_id) + '%',
+              backgroundColor:
+                getAttendancePercentage(student.user_id) < 75
+                  ? '#ef4444'
+                  : '#22c55e',
+            }"
+            class="h-2.5 rounded-full"
+          ></div>
+        </div>
+      </div>
+      <!-- Analytics Charts -->
+      <div class="mt-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">
+          Attendance Analysis Dashboard
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Attendance % by Grade -->
+          <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">
+              Attendance % by Grade
+            </h3>
+            <chart
+              type="bar"
+              :data="{
+                labels: ['9', '10', '11', '12'],
+                datasets: [
+                  {
+                    label: 'Past Week',
+                    data: [92, 93, 91, 91],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                  },
+                  {
+                    label: 'Current Week',
+                    data: [97, 95, 91, 95],
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1,
+                  },
+                  {
+                    label: 'YTD',
+                    data: [98, 95, 82, 91],
+                    backgroundColor: 'rgba(255, 205, 86, 0.7)',
+                    borderColor: 'rgba(255, 205, 86, 1)',
+                    borderWidth: 1,
+                  },
+                ],
+              }"
+              :options="{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: { display: true, text: 'Attendance %' },
+                  },
+                },
+              }"
+              class="w-full h-64"
+            ></chart>
+          </div>
+          <!-- % Student Absent YTD -->
+          <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">
+              % Student Absent YTD
+            </h3>
+            <chart
+              type="pie"
+              :data="{
+                labels: ['0 Days', '1-4 Days', '5-9 Days', '10-14 Days'],
+                datasets: [
+                  {
+                    label: 'Absent %',
+                    data: [11, 4, 30, 55],
+                    backgroundColor: [
+                      'rgba(201, 203, 207, 0.7)',
+                      'rgba(54, 162, 235, 0.7)',
+                      'rgba(255, 205, 86, 0.7)',
+                      'rgba(255, 99, 132, 0.7)',
+                    ],
+                    borderColor: 'rgba(255, 255, 255, 0.8)',
+                    borderWidth: 1,
+                  },
+                ],
+              }"
+              :options="{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right' } },
+              }"
+              class="w-full h-64"
+            ></chart>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <!-- Attendance % by Day of the Week -->
+          <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">
+              Attendance % by Day of the Week
+            </h3>
+            <chart
+              type="radar"
+              :data="{
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Web', 'Sat'],
+                datasets: [
+                  {
+                    label: 'Attendance %',
+                    data: [82, 90, 0, 0, 95, 85, 0],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                  },
+                ],
+              }"
+              :options="{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                  r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } },
+                },
+              }"
+              class="w-full h-64"
+            ></chart>
+          </div>
+          <!-- Suspension by Grade -->
+          <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">
+              Suspension by Grade
+            </h3>
+            <chart
+              type="bar"
+              :data="{
+                labels: ['9', '10', '11', '12'],
+                datasets: [
+                  {
+                    label: 'Out of School',
+                    data: [2.1, 1.1, 2.1, 0.8],
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1,
+                  },
+                  {
+                    label: 'In School',
+                    data: [1.1, 1.1, 1.1, 1.1],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                  },
+                ],
+              }"
+              :options="{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Count' },
+                  },
+                },
+              }"
+              class="w-full h-64"
+            ></chart>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Unauthorized Access -->
-  <div v-else class="p-6">
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <i class="fas fa-exclamation-triangle text-red-400"></i>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Access Denied</h3>
-          <p class="text-sm text-red-700 mt-1">You don't have permission to manage attendance.</p>
-        </div>
+    <!-- 🔹 4. Export / Reporting Features -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Export / Reports</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          @click="exportCSV"
+          class="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          📄 Export CSV
+        </button>
+        <button
+          @click="exportPDF"
+          class="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          📄 Export PDF
+        </button>
+        <button
+          @click="showAnalytics"
+          class="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          📊 Analytics View
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useAuth } from '@/composables/useAuth'
+import { ref, onMounted, watch, computed } from "vue";
+import axios from "axios";
 
-const { hasPermission } = useAuth()
-
-// State
-const loading = ref(true)
-const classes = ref([])
-const attendanceData = ref([])
-const recentAttendance = ref([])
-const selectedClass = ref('')
-const selectedDate = ref(new Date().toISOString().split('T')[0])
-const selectedPeriod = ref('1')
-const hasChanges = ref(false)
-
-// Mock data
-const mockClasses = [
-  { id: 1, subject: 'Mathematics', section: 'Section A', grade: '11' },
-  { id: 2, subject: 'Physics', section: 'Section B', grade: '12' },
-  { id: 3, subject: 'Chemistry', section: 'Section A', grade: '12' }
-]
-
-const mockAttendanceData = [
-  {
-    studentId: 1,
-    student: { id: 'ST001', name: 'Alice Johnson' },
-    status: 'present',
-    excused: false,
-    notes: '',
-    attendanceRate: 95
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api",
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
-  {
-    studentId: 2,
-    student: { id: 'ST002', name: 'Bob Smith' },
-    status: 'absent',
-    excused: true,
-    notes: 'Doctor appointment',
-    attendanceRate: 88
-  },
-  {
-    studentId: 3,
-    student: { id: 'ST003', name: 'Carol Davis' },
-    status: 'late',
-    excused: false,
-    notes: 'Transportation delay',
-    attendanceRate: 92
+});
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("auth_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-]
+  return config;
+});
 
-const mockRecentAttendance = [
-  { date: '2024-01-14', period: 1, present: 26, absent: 2, late: 0 },
-  { date: '2024-01-13', period: 1, present: 25, absent: 1, late: 2 },
-  { date: '2024-01-12', period: 1, present: 28, absent: 0, late: 0 }
-]
+const loading = ref(false);
+const error = ref(null);
+const attendanceRecords = ref([]);
+const classes = ref([]);
+const students = ref([]);
+const subjects = ref([]);
+const showAttendanceModal = ref(false);
+const attendanceStatuses = ref(["Present", "Absent", "Late", "Excused"]);
 
-// Computed
-const stats = computed(() => {
-  const present = attendanceData.value.filter(r => r.status === 'present').length
-  const absent = attendanceData.value.filter(r => r.status === 'absent').length
-  const late = attendanceData.value.filter(r => r.status === 'late').length
-  const total = attendanceData.value.length
-  const attendanceRate = total > 0 ? Math.round(((present + late) / total) * 100) : 0
+const filters = ref({
+  class_id: "",
+  date: new Date("2025-08-01T10:08:00+07:00").toISOString().split("T")[0],
+  subject_id: "",
+});
 
-  return {
-    present,
-    absent,
-    late,
-    attendanceRate
-  }
-})
+const viewFilters = ref({
+  class_id: "",
+  student_id: "",
+  start_date: "",
+  end_date: "",
+  status: "",
+});
 
-// Methods
-const loadAttendance = async () => {
-  if (!selectedClass.value) return
-  
+const newAttendance = ref({
+  class_id: "",
+  date: new Date("2025-08-01T10:08:00+07:00").toISOString().split("T")[0],
+});
+
+const studentAttendance = ref({});
+const studentAttendanceNotes = ref({});
+
+const defaultDate = computed(
+  () => new Date("2025-08-01T10:08:00+07:00").toISOString().split("T")[0]
+);
+
+const fetchAll = async () => {
+  loading.value = true;
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500))
-    attendanceData.value = mockAttendanceData
-    recentAttendance.value = mockRecentAttendance
-    hasChanges.value = false
-  } catch (error) {
-    console.error('Error loading attendance:', error)
+    const [cls, sub, stu] = await Promise.all([
+      apiClient.get("/classes"),
+      apiClient.get("/subjects"),
+      apiClient.get("/students"),
+    ]);
+    classes.value = cls.data.data;
+    subjects.value = sub.data.data;
+    students.value = stu.data.data;
+    await fetchAttendance();
+  } catch (err) {
+    error.value =
+      "Failed to load data: " + (err.response?.data?.message || err.message);
+  } finally {
+    loading.value = false;
   }
-}
+};
 
-const takeAttendance = () => {
-  if (!selectedClass.value) return
-  loadAttendance()
-}
+const fetchAttendance = async () => {
+  loading.value = true;
+  try {
+    const params = { ...filters.value, ...viewFilters.value };
+    const res = await apiClient.get("/attendances", { params });
+    attendanceRecords.value = res.data.data;
+  } catch (err) {
+    error.value =
+      "Failed to load attendance records: " +
+      (err.response?.data?.message || err.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const openTakeAttendanceModal = () => {
+  showAttendanceModal.value = true;
+  resetAttendanceForm();
+};
+
+const resetAttendanceForm = () => {
+  newAttendance.value.class_id = filters.value.class_id || "";
+  newAttendance.value.date = filters.value.date;
+  studentAttendance.value = {};
+  studentAttendanceNotes.value = {};
+  filteredStudents.value.forEach((student) => {
+    studentAttendance.value[student.user_id] = "Present";
+    studentAttendanceNotes.value[student.user_id] = "";
+  });
+};
+
+const filteredStudents = computed(() => {
+  if (!filters.value.class_id) return students.value;
+  return students.value.filter(
+    (student) => student.class_id === filters.value.class_id
+  );
+});
 
 const markAllPresent = () => {
-  attendanceData.value.forEach(record => {
-    record.status = 'present'
-  })
-  markChanged()
-}
+  filteredStudents.value.forEach((student) => {
+    studentAttendance.value[student.user_id] = "Present";
+    studentAttendanceNotes.value[student.user_id] = "";
+  });
+};
 
-const markChanged = () => {
-  hasChanges.value = true
-}
-
-const saveAttendance = async () => {
+const submitAttendance = async () => {
   try {
-    // TODO: Save to API
-    console.log('Saving attendance:', {
-      classId: selectedClass.value,
-      date: selectedDate.value,
-      period: selectedPeriod.value,
-      records: attendanceData.value
-    })
-    
-    hasChanges.value = false
-    alert('Attendance saved successfully!')
-  } catch (error) {
-    console.error('Error saving attendance:', error)
-    alert('Failed to save attendance. Please try again.')
+    const payloads = filteredStudents.value.map((student) => ({
+      student_id: student.user_id,
+      class_id: newAttendance.value.class_id,
+      date: newAttendance.value.date,
+      status: studentAttendance.value[student.user_id],
+      notes: studentAttendanceNotes.value[student.user_id] || null,
+      recorded_by: localStorage.getItem("user_id") || null,
+      recorded_at: new Date().toISOString(),
+    }));
+    await apiClient.post("/attendances/bulk", payloads);
+    showAttendanceModal.value = false;
+    await fetchAttendance();
+  } catch (err) {
+    alert(err.response?.data?.message || "Failed to save attendance");
   }
-}
+};
 
-const getAttendanceRateClass = (rate) => {
-  if (rate >= 90) return 'text-green-600'
-  if (rate >= 80) return 'text-yellow-600'
-  return 'text-red-600'
-}
+const uniqueStudents = computed(() => {
+  const studentIds = [
+    ...new Set(attendanceRecords.value.map((r) => r.student_id)),
+  ];
+  return students.value.filter((s) => studentIds.includes(s.user_id));
+});
 
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString()
-}
+const getAttendanceCount = (studentId, status) => {
+  return attendanceRecords.value.filter(
+    (r) => r.student_id === studentId && r.status === status
+  ).length;
+};
 
-const viewAttendanceDetails = (record) => {
-  console.log('View attendance details:', record)
-}
+const getTotalDays = (studentId) => {
+  return attendanceRecords.value.filter((r) => r.student_id === studentId)
+    .length;
+};
 
-onMounted(async () => {
-  try {
-    loading.value = true
-    // Load classes
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    classes.value = mockClasses
-  } catch (error) {
-    console.error('Error loading data:', error)
-  } finally {
-    loading.value = false
-  }
-})
+const getAttendancePercentage = (studentId) => {
+  const total = getTotalDays(studentId);
+  const present = getAttendanceCount(student.user_id, "Present");
+  return total > 0 ? (present / total) * 100 : 0;
+};
+
+const exportCSV = () => {
+  const headers = [
+    "Student ID",
+    "Full Name",
+    "Class",
+    "Date",
+    "Status",
+    "Notes",
+  ];
+  const rows = attendanceRecords.value.map((record) => [
+    record.student_id,
+    `${record.student?.user?.first_name} ${record.student?.user?.last_name}`,
+    record.class?.class_name,
+    formatDate(record.date),
+    record.status,
+    record.notes || "",
+  ]);
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+  ].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `attendance_${new Date().toISOString().split("T")[0]}.csv`;
+  link.click();
+};
+
+const exportPDF = () => {
+  alert("PDF export functionality to be implemented");
+};
+
+const showAnalytics = () => {
+  alert("Analytics view to be implemented");
+};
+
+const getStatusBadgeClass = (status) => {
+  const classes = {
+    Present: "bg-green-100 text-green-800",
+    Absent: "bg-red-100 text-red-800",
+    Late: "bg-yellow-100 text-yellow-800",
+    Excused: "bg-blue-100 text-blue-800",
+  };
+  return classes[status] || "bg-gray-100 text-gray-800";
+};
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+watch(() => ({ ...filters.value, ...viewFilters.value }), fetchAttendance, {
+  deep: true,
+});
+
+onMounted(() => {
+  fetchAll();
+});
 </script>
+
+<style scoped>
+/* Custom scrollbar for the table container */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Modal scrollable content */
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for modal */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Smooth transitions for hover effects */
+tr {
+  transition: background-color 0.2s ease;
+}
+
+/* Focus styles for form inputs */
+select:focus,
+input:focus {
+  outline: none;
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+</style>
+```

@@ -141,6 +141,12 @@
               </svg>
               Excel
             </button>
+            <button @click="exportToCSV" class="flex items-center gap-2 bg-indigo-100 px-4 py-2 rounded-lg text-indigo-800 hover:bg-indigo-200 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              CSV
+            </button>
           </div>
         </div>
 
@@ -468,6 +474,33 @@ const exportToExcel = () => {
 onMounted(() => {
   fetchAttendance()
 })
+const exportToCSV = () => {
+  if (!filteredAttendance.value.length) return alert('No data to export')
+  
+  const headers = ['Date', 'Status', 'Subject', 'Time']
+  const data = filteredAttendance.value.map(r => [
+    formatDate(r.date),
+    capitalizeFirstLetter(r.status),
+    r.subject_name,
+    formatTimeOnly(r.recorded_at)
+  ])
+  
+  // Create CSV content
+  let csvContent = "data:text/csv;charset=utf-8,"
+    + headers.join(',') + "\n"
+    + data.map(row => row.join(',')).join("\n")
+  
+  // Create download link
+  const encodedUri = encodeURI(csvContent)
+  const link = document.createElement("a")
+  link.setAttribute("href", encodedUri)
+  link.setAttribute("download", `attendance_${new Date().toISOString().slice(0,10)}.csv`)
+  document.body.appendChild(link)
+  
+  // Trigger download
+  link.click()
+  document.body.removeChild(link)
+}
 </script>
 
 <style scoped>
