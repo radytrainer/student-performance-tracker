@@ -9,9 +9,6 @@ import Footer from '@/layout/Footer.vue'
 
 const authStore = useAuthStore()
 
-// Check authentication status when app loads
-authStore.initialize()
-
 // Computed property to check if user is authenticated
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 

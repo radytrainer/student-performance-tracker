@@ -1,206 +1,624 @@
 <template>
-  <div v-if="hasPermission('teacher.manage_classes')" class="p-6">
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">My Classes</h1>
-      <p class="text-gray-600 mt-1">Manage your assigned classes and students</p>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <i class="fas fa-exclamation-circle text-red-400"></i>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <!-- Header -->
+    <HeaderTeacher />
+    
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Classes Overview Cards -->
+      <div v-if="!selectedClass" class="space-y-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div class="group bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transition-all duration-300">
+            <div class="flex items-center">
+              <div class="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg group-hover:shadow-blue-500/25 transition-shadow duration-300">
+                <BookOpen class="w-7 h-7 text-white" />
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Classes</p>
+                <p class="text-3xl font-bold text-gray-900">{{ classes.length }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="group bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transition-all duration-300">
+            <div class="flex items-center">
+              <div class="p-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl shadow-lg group-hover:shadow-emerald-500/25 transition-shadow duration-300">
+                <Users class="w-7 h-7 text-white" />
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Students</p>
+                <p class="text-3xl font-bold text-gray-900">{{ totalStudents }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="group bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transition-all duration-300">
+            <div class="flex items-center">
+              <div class="p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl shadow-lg group-hover:shadow-amber-500/25 transition-shadow duration-300">
+                <Calendar class="w-7 h-7 text-white" />
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Avg Attendance</p>
+                <p class="text-3xl font-bold text-gray-900">87%</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="group bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20 hover:shadow-2xl hover:scale-105 transition-all duration-300">
+            <div class="flex items-center">
+              <div class="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg group-hover:shadow-purple-500/25 transition-shadow duration-300">
+                <TrendingUp class="w-7 h-7 text-white" />
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Avg Performance</p>
+                <p class="text-3xl font-bold text-gray-900">B+</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error loading classes</h3>
-          <p class="text-sm text-red-700 mt-1">{{ error }}</p>
-        </div>
-      </div>
-    </div>
 
-    <!-- Main Content -->
-    <div v-else class="space-y-6">
-      <!-- Header Actions -->
-      <div class="flex justify-between items-center">
-        <div class="flex items-center space-x-4">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search classes..."
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <select
-            v-model="subjectFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Subjects</option>
-            <option v-for="subject in subjects" :key="subject" :value="subject">{{ subject }}</option>
-          </select>
-        </div>
-        <div class="text-sm text-gray-600">
-          {{ filteredClasses.length }} class{{ filteredClasses.length !== 1 ? 'es' : '' }} assigned
-        </div>
-      </div>
-
-      <!-- Classes Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div
-          v-for="cls in filteredClasses"
-          :key="cls.id"
-          class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-        >
-          <div class="p-6">
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex-1">
-                <h3 class="text-lg font-semibold text-gray-900">{{ cls.subject }}</h3>
-                <p class="text-sm text-gray-500">{{ cls.className }} • {{ cls.section }}</p>
-                <div class="mt-2">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Grade {{ cls.grade }}
+        <!-- Classes Grid -->
+        <div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-6">Your Classes</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div v-for="classItem in classes" :key="classItem.id"
+              class="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl hover:scale-105 transition-all duration-300 overflow-hidden">
+              <div class="h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+              <div class="p-6">
+                <div class="flex items-start justify-between mb-6">
+                  <div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-1">{{ classItem.name }}</h3>
+                    <p class="text-sm text-gray-500 font-medium">{{ classItem.academicYear }}</p>
+                  </div>
+                  <span class="px-3 py-1 bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800 text-xs font-semibold rounded-full shadow-sm">Active</span>
+                </div>
+                
+                <div class="space-y-3 mb-6">
+                  <div class="flex items-center text-sm text-gray-600">
+                    <div class="w-8 h-8 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg flex items-center justify-center mr-3">
+                      <MapPin class="w-4 h-4 text-gray-500" />
+                    </div>
+                    <span class="font-medium">Room {{ classItem.room }}</span>
+                  </div>
+                  <div class="flex items-center text-sm text-gray-600">
+                    <div class="w-8 h-8 bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg flex items-center justify-center mr-3">
+                      <Users class="w-4 h-4 text-blue-500" />
+                    </div>
+                    <span class="font-medium">{{ classItem.studentCount }} Students</span>
+                  </div>
+                  <div class="flex items-center text-sm text-gray-600">
+                    <div class="w-8 h-8 bg-gradient-to-r from-purple-100 to-purple-200 rounded-lg flex items-center justify-center mr-3">
+                      <Clock class="w-4 h-4 text-purple-500" />
+                    </div>
+                    <span class="font-medium">{{ classItem.schedule }}</span>
+                  </div>
+                </div>
+                
+                <div class="flex flex-wrap gap-2 mb-6">
+                  <span v-for="subject in classItem.subjects" :key="subject"
+                    class="px-3 py-1 bg-gradient-to-r from-indigo-100 to-indigo-200 text-indigo-800 text-xs font-semibold rounded-full shadow-sm">
+                    {{ subject }}
                   </span>
                 </div>
-              </div>
-              <div class="flex-shrink-0">
-                <i class="fas fa-chalkboard-teacher text-blue-500 text-xl"></i>
-              </div>
-            </div>
-
-            <!-- Class Stats -->
-            <div class="grid grid-cols-2 gap-4 mb-4">
-              <div class="text-center p-3 bg-gray-50 rounded-lg">
-                <div class="text-2xl font-bold text-blue-600">{{ cls.studentCount }}</div>
-                <div class="text-sm text-gray-600">Students</div>
-              </div>
-              <div class="text-center p-3 bg-gray-50 rounded-lg">
-                <div class="text-2xl font-bold text-green-600">{{ cls.avgAttendance }}%</div>
-                <div class="text-sm text-gray-600">Attendance</div>
-              </div>
-            </div>
-
-            <!-- Recent Activity -->
-            <div class="mb-4">
-              <h4 class="text-sm font-medium text-gray-700 mb-2">Recent Activity</h4>
-              <div class="space-y-1">
-                <div v-for="activity in cls.recentActivity" :key="activity.id" class="text-xs text-gray-600">
-                  • {{ activity.description }}
+                
+                <div class="flex space-x-2">
+                  <button @click="viewClassDetails(classItem)"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                    View Details
+                  </button>
+                  <button @click="viewStudents(classItem)"
+                    class="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-4 py-3 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
+                    Students
+                  </button>
+                  <button
+                    class="px-4 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
+                    <MoreHorizontal class="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex space-x-2">
-              <button
-                @click="viewClass(cls)"
-                class="flex-1 bg-blue-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <i class="fas fa-eye mr-1"></i>
-                View Class
-              </button>
-              <button
-                @click="takeAttendance(cls)"
-                class="flex-1 bg-green-600 text-white text-sm py-2 px-3 rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <i class="fas fa-calendar-check mr-1"></i>
-                Attendance
-              </button>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="mt-3 flex justify-between text-sm">
-              <button
-                @click="addGrade(cls)"
-                class="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Add Grade
-              </button>
-              <button
-                @click="viewReports(cls)"
-                class="text-purple-600 hover:text-purple-800 font-medium"
-              >
-                View Reports
-              </button>
-              <button
-                @click="manageClass(cls)"
-                class="text-gray-600 hover:text-gray-800 font-medium"
-              >
-                Manage
-              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Empty State -->
-      <div v-if="filteredClasses.length === 0" class="text-center py-12">
-        <i class="fas fa-chalkboard text-gray-400 text-4xl mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No classes found</h3>
-        <p class="text-gray-500">
-          {{ classes.length === 0 ? 'You have no classes assigned yet.' : 'Try adjusting your search or filter criteria.' }}
-        </p>
-      </div>
-    </div>
+      <!-- Class Detail Component -->
+      <div v-if="selectedClass" class="space-y-8">
+        <!-- Breadcrumb and Actions -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <button
+              @click="selectedClass = null"
+              class="flex items-center text-gray-600 hover:text-gray-900 px-4 py-2 rounded-xl hover:bg-white/60 backdrop-blur-sm transition-all duration-200 shadow-md"
+            >
+              <ArrowLeft class="w-5 h-5 mr-2" />
+              Back to Classes
+            </button>
+            <div class="text-sm text-gray-500 font-medium">Classes / {{ selectedClass.name }}</div>
+          </div>
+          <div class="flex space-x-3">
+            <button
+              @click="showNotes = true"
+              class="bg-gradient-to-r from-amber-100 to-orange-200 hover:from-amber-200 hover:to-orange-300 text-orange-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <StickyNote class="w-4 h-4 mr-2 inline" />
+              Notes
+            </button>
+            <button
+              class="bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <Settings class="w-4 h-4 mr-2 inline" />
+              Settings
+            </button>
+          </div>
+        </div>
 
-    <!-- Quick Action Modals -->
-    <div v-if="showAttendanceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-medium mb-4">Take Attendance</h3>
-        <p class="text-gray-600 mb-4">{{ selectedClass?.subject }} - {{ selectedClass?.section }}</p>
-        <p class="text-gray-600 mb-4">Attendance taking interface will be implemented here.</p>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="showAttendanceModal = false"
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            @click="saveAttendance"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            Save Attendance
-          </button>
+        <!-- Class Header -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+          <div class="flex items-start justify-between mb-8">
+            <div>
+              <h2 class="text-4xl font-bold text-gray-900 mb-2">{{ selectedClass.name }}</h2>
+              <p class="text-gray-600 text-lg font-medium">{{ selectedClass.academicYear }} • Room {{ selectedClass.room }}</p>
+            </div>
+            <div class="text-right bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-2xl shadow-md border border-white/20">
+              <p class="text-sm text-gray-500 font-semibold uppercase tracking-wide mb-1">Class Teacher</p>
+              <p class="font-bold text-gray-900 text-lg">Ms. Sarah Johnson</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 p-6 rounded-2xl shadow-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-blue-700 font-bold text-sm uppercase tracking-wide mb-1">Students</p>
+                  <p class="text-3xl font-bold text-blue-900">{{ selectedClass.studentCount }}</p>
+                </div>
+                <div class="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <Users class="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-amber-50 to-orange-100 border border-orange-200 p-6 rounded-2xl shadow-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-orange-700 font-bold text-sm uppercase tracking-wide mb-1">Attendance Rate</p>
+                  <p class="text-3xl font-bold text-orange-900">{{ selectedClass.attendanceRate }}%</p>
+                </div>
+                <div class="p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl shadow-lg">
+                  <Calendar class="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 p-6 rounded-2xl shadow-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-purple-700 font-bold text-sm uppercase tracking-wide mb-1">Average Grade</p>
+                  <p class="text-3xl font-bold text-purple-900">{{ selectedClass.avgGrade }}</p>
+                </div>
+                <div class="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <TrendingUp class="w-8 h-8 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
+          <div class="border-b border-gray-200/50">
+            <nav class="flex space-x-8 px-8">
+              <button
+                v-for="tab in tabs"
+                :key="tab.id"
+                @click="activeTab = tab.id"
+                :class="[
+                  'py-6 px-2 border-b-2 font-semibold text-sm flex items-center space-x-2 transition-all duration-200',
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ]"
+              >
+                <component :is="tab.icon" class="w-5 h-5" />
+                <span>{{ tab.name }}</span>
+              </button>
+            </nav>
+          </div>
+
+          <div class="p-8">
+            <!-- Students Tab -->
+            <div v-if="activeTab === 'students'" class="space-y-8">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                  <div class="relative">
+                    <Search class="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      v-model="studentSearch"
+                      type="text"
+                      placeholder="Search students..."
+                      class="pl-12 w-80 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/60 backdrop-blur-sm shadow-md font-medium"
+                    />
+                  </div>
+                  <select
+                    v-model="statusFilter"
+                    class="border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/60 backdrop-blur-sm shadow-md font-medium"
+                  >
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div class="flex space-x-3">
+                  <button
+                    class="bg-gradient-to-r from-amber-100 to-orange-200 hover:from-amber-200 hover:to-orange-300 text-orange-700 px-4 py-3 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <Download class="w-4 h-4 mr-2 inline" />
+                    Export
+                  </button>
+                  <button
+                    @click="showBulkAssign = true"
+                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <Plus class="w-4 h-4 mr-2 inline" />
+                    Add Student
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl overflow-hidden shadow-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                    <tr>
+                      <th class="px-8 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Student</th>
+                      <th class="px-8 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Code</th>
+                      <th class="px-8 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
+                      <th class="px-8 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                      <th class="px-8 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Attendance</th>
+                      <th class="px-8 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white/40 backdrop-blur-sm divide-y divide-gray-200">
+                    <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-white/60 transition-colors duration-200">
+                      <td class="px-8 py-6 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <User class="w-6 h-6 text-white" />
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-bold text-gray-900">{{ student.name }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-8 py-6 whitespace-nowrap text-sm font-bold text-gray-900">{{ student.code }}</td>
+                      <td class="px-8 py-6 whitespace-nowrap text-sm text-gray-600 font-medium">{{ student.email }}</td>
+                      <td class="px-8 py-6 whitespace-nowrap">
+                        <span
+                          :class="[
+                            'px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm',
+                            student.status === 'active' 
+                              ? 'bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800' 
+                              : 'bg-gradient-to-r from-red-100 to-red-200 text-red-800'
+                          ]"
+                        >
+                          {{ student.status }}
+                        </span>
+                      </td>
+                      <td class="px-8 py-6 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="w-20 bg-gray-200 rounded-full h-3 mr-3 shadow-inner">
+                            <div
+                              class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full shadow-sm"
+                              :style="`width: ${student.attendance}%`"
+                            ></div>
+                          </div>
+                          <span class="text-sm font-bold text-gray-900">{{ student.attendance }}%</span>
+                        </div>
+                      </td>
+                      <td class="px-8 py-6 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                          <button
+                            @click="viewStudentProfile(student)"
+                            class="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            <Eye class="w-5 h-5" />
+                          </button>
+                          <button
+                            class="text-emerald-600 hover:text-emerald-900 hover:bg-emerald-50 p-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            <BookOpen class="w-5 h-5" />
+                          </button>
+                          <button
+                            class="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            <Calendar class="w-5 h-5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Subjects Tab -->
+            <div v-if="activeTab === 'subjects'" class="space-y-8">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div
+                  v-for="subject in selectedClass.subjectDetails"
+                  :key="subject.id"
+                  class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 hover:shadow-xl hover:scale-105 transition-all duration-300 shadow-lg"
+                >
+                  <div class="flex items-start justify-between mb-6">
+                    <div>
+                      <h4 class="font-bold text-gray-900 text-xl mb-1">{{ subject.name }}</h4>
+                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher }}</p>
+                    </div>
+                    <span class="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs font-bold rounded-full shadow-sm">
+                      {{ subject.code }}
+                    </span>
+                  </div>
+                  <div class="space-y-4 mb-8">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-600 font-medium">Average Grade:</span>
+                      <span class="font-bold text-gray-900">{{ subject.avgGrade }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-600 font-medium">Assignments:</span>
+                      <span class="font-bold text-gray-900">{{ subject.assignments }}</span>
+                    </div>
+                  </div>
+                  <div class="flex space-x-3">
+                    <button
+                      class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                    >
+                      Gradebook
+                    </button>
+                    <button
+                      class="flex-1 bg-gradient-to-r from-amber-100 to-orange-200 hover:from-amber-200 hover:to-orange-300 text-orange-700 px-4 py-3 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                    >
+                      Attendance
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Schedule Tab -->
+            <div v-if="activeTab === 'schedule'" class="space-y-8">
+              <div class="flex justify-between items-center">
+                <h3 class="text-2xl font-bold text-gray-900">Weekly Schedule</h3>
+                <button
+                  class="bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-4 py-3 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <Printer class="w-4 h-4 mr-2 inline" />
+                  Print
+                </button>
+              </div>
+              <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl overflow-hidden shadow-lg">
+                <table class="min-w-full border-collapse">
+                  <thead>
+                    <tr class="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <th class="border border-gray-200 px-6 py-4 text-left text-sm font-bold text-gray-900">Time</th>
+                      <th
+                        v-for="day in weekDays"
+                        :key="day"
+                        class="border border-gray-200 px-6 py-4 text-left text-sm font-bold text-gray-900"
+                      >
+                        {{ day }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="period in periods" :key="period.time" class="hover:bg-white/60 transition-colors duration-200">
+                      <td class="border border-gray-200 px-6 py-4 text-sm font-bold text-gray-900 bg-gradient-to-r from-gray-50 to-gray-100">
+                        {{ period.time }}
+                      </td>
+                      <td v-for="day in weekDays" :key="day" class="border border-gray-200 px-6 py-4 text-sm">
+                        <div
+                          v-if="period.schedule[day]"
+                          class="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 px-3 py-2 rounded-lg text-xs font-bold shadow-sm"
+                        >
+                          {{ period.schedule[day] }}
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Performance Tab -->
+            <div v-if="activeTab === 'performance'" class="space-y-8">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
+                  <h4 class="font-bold text-gray-900 mb-6 text-xl">Attendance Overview</h4>
+                  <div class="space-y-6">
+                    <div class="flex justify-between items-center">
+                      <span class="text-sm text-gray-600 font-medium">Present</span>
+                      <span class="text-sm font-bold text-emerald-600">87%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+                      <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 h-3 rounded-full shadow-sm" style="width: 87%"></div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="text-sm text-gray-600 font-medium">Absent</span>
+                      <span class="text-sm font-bold text-red-600">13%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+                      <div class="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full shadow-sm" style="width: 13%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
+                  <h4 class="font-bold text-gray-900 mb-6 text-xl">Grade Distribution</h4>
+                  <div class="space-y-4">
+                    <div v-for="grade in gradeDistribution" :key="grade.grade" class="flex justify-between items-center">
+                      <span class="text-sm text-gray-600 font-medium">Grade {{ grade.grade }}</span>
+                      <div class="flex items-center space-x-4">
+                        <div class="w-24 bg-gray-200 rounded-full h-3 shadow-inner">
+                          <div
+                            class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full shadow-sm"
+                            :style="`width: ${grade.percentage}%`"
+                          ></div>
+                        </div>
+                        <span class="text-sm font-bold text-gray-900 w-8">{{ grade.count }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
+                <h4 class="font-bold text-gray-900 mb-6 text-xl">Subject Performance</h4>
+                <div class="space-y-6">
+                  <div
+                    v-for="subject in selectedClass.subjectDetails"
+                    :key="subject.id"
+                    class="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-md border border-white/20"
+                  >
+                    <div>
+                      <p class="font-bold text-gray-900 text-lg">{{ subject.name }}</p>
+                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher }}</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-2xl font-bold text-gray-900">{{ subject.avgGrade }}</p>
+                      <p class="text-sm text-gray-600 font-medium">Class Average</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div v-if="showGradeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-medium mb-4">Add Grade</h3>
-        <p class="text-gray-600 mb-4">{{ selectedClass?.subject }} - {{ selectedClass?.section }}</p>
-        <p class="text-gray-600 mb-4">Grade entry form will be implemented here.</p>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="showGradeModal = false"
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            @click="saveGrade"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Add Grade
-          </button>
+    <!-- Student Profile Modal -->
+    <div v-if="selectedStudent" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white/90 backdrop-blur-lg rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-white/20">
+        <div class="p-8 border-b border-gray-200/50">
+          <div class="flex justify-between items-center">
+            <h3 class="text-2xl font-bold text-gray-900">Student Profile</h3>
+            <button @click="selectedStudent = null"
+              class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+              <X class="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+        <div class="p-8 space-y-8">
+          <div class="flex items-center space-x-6">
+            <div class="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <User class="w-10 h-10 text-white" />
+            </div>
+            <div>
+              <h4 class="text-2xl font-bold text-gray-900">{{ selectedStudent.name }}</h4>
+              <p class="text-gray-600 font-medium text-lg">{{ selectedStudent.code }}</p>
+              <p class="text-gray-600 font-medium">{{ selectedStudent.email }}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-6">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-2xl shadow-md">
+              <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide">Status</p>
+              <p class="font-bold text-lg capitalize">{{ selectedStudent.status }}</p>
+            </div>
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-2xl shadow-md">
+              <p class="text-sm text-gray-600 font-semibold uppercase tracking-wide">Attendance Rate</p>
+              <p class="font-bold text-lg">{{ selectedStudent.attendance }}%</p>
+            </div>
+          </div>
+          <div class="flex space-x-4">
+            <button
+              class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+              View Grades
+            </button>
+            <button
+              class="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+              View Attendance
+            </button>
+            <button
+              class="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+              Export Info
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Unauthorized Access -->
-  <div v-else class="p-6">
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <i class="fas fa-exclamation-triangle text-red-400"></i>
+    <!-- Bulk Assign Students Modal -->
+    <div v-if="showBulkAssign" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white/90 backdrop-blur-lg rounded-2xl max-w-md w-full shadow-2xl border border-white/20">
+        <div class="p-6 border-b border-gray-200/50">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xl font-bold text-gray-900">Add Students</h3>
+            <button @click="showBulkAssign = false"
+              class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
         </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Access Denied</h3>
-          <p class="text-sm text-red-700 mt-1">You don't have permission to manage classes.</p>
+        <div class="p-6 space-y-6">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-3">Select Students</label>
+            <div class="max-h-48 overflow-y-auto bg-gray-50/50 rounded-xl p-3 space-y-2 border border-gray-200">
+              <label v-for="student in availableStudents" :key="student.id"
+                class="flex items-center space-x-3 p-2 hover:bg-white/60 rounded-lg transition-colors duration-200">
+                <input type="checkbox" :value="student.id" v-model="selectedStudentsForBulk"
+                  class="rounded text-blue-600 focus:ring-blue-500">
+                <span class="text-sm font-medium">{{ student.name }} ({{ student.code }})</span>
+              </label>
+            </div>
+          </div>
+          <div class="flex space-x-3">
+            <button @click="showBulkAssign = false"
+              class="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+              Cancel
+            </button>
+            <button
+              class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+              Add Students
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes Modal -->
+    <div v-if="showNotes" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white/90 backdrop-blur-lg rounded-2xl max-w-lg w-full shadow-2xl border border-white/20">
+        <div class="p-6 border-b border-gray-200/50">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xl font-bold text-gray-900">Class Notes</h3>
+            <button @click="showNotes = false"
+              class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div class="p-6 space-y-6">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-3">Add Note</label>
+            <textarea v-model="newNote" rows="4"
+              class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/60 backdrop-blur-sm shadow-md font-medium resize-none"
+              placeholder="Enter your note here..."></textarea>
+          </div>
+          <div class="space-y-3 max-h-48 overflow-y-auto">
+            <div v-for="note in classNotes" :key="note.id"
+              class="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-xl shadow-md border border-white/20">
+              <p class="text-sm text-gray-900 font-medium">{{ note.content }}</p>
+              <p class="text-xs text-gray-500 mt-2 font-medium">{{ note.date }}</p>
+            </div>
+          </div>
+          <div class="flex space-x-3">
+            <button @click="showNotes = false"
+              class="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+              Close
+            </button>
+            <button @click="addNote"
+              class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+              Add Note
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -208,143 +626,191 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useAuth } from '@/composables/useAuth'
+import { ref, computed } from 'vue'
+import {
+  BookOpen, Users, Calendar, TrendingUp, MapPin, Clock, Plus, User,
+  MoreHorizontal, ArrowLeft, StickyNote, Settings, Search, Download,
+  Eye, Printer, X
+} from 'lucide-vue-next'
+import HeaderTeacher from '@/components/teacher/Classes/HeaderTeacher.vue'
 
-const { hasPermission } = useAuth()
-
-// State
-const loading = ref(true)
-const error = ref(null)
-const classes = ref([])
-const searchQuery = ref('')
-const subjectFilter = ref('')
-const showAttendanceModal = ref(false)
-const showGradeModal = ref(false)
+// Reactive data
 const selectedClass = ref(null)
+const activeTab = ref('students')
+const selectedStudent = ref(null)
+const showBulkAssign = ref(false)
+const showNotes = ref(false)
+const studentSearch = ref('')
+const statusFilter = ref('')
+const selectedStudentsForBulk = ref([])
+const newNote = ref('')
 
 // Mock data
-const mockClasses = [
+const classes = ref([
   {
     id: 1,
-    subject: 'Mathematics',
-    className: 'Advanced Algebra',
-    section: 'Section A',
-    grade: '11',
+    name: 'Grade 10A',
+    academicYear: '2024-2025',
+    room: '101',
     studentCount: 28,
-    avgAttendance: 92,
-    recentActivity: [
-      { id: 1, description: 'Quiz added for Chapter 5' },
-      { id: 2, description: '3 students submitted assignment' },
-      { id: 3, description: 'Attendance taken for today' }
+    schedule: 'Mon-Fri 8:00-14:00',
+    subjects: ['Mathematics', 'Physics', 'Chemistry'],
+    attendanceRate: 87,
+    avgGrade: 'B+',
+    subjectDetails: [
+      { id: 1, name: 'Mathematics', teacher: 'Mr. Smith', code: 'MATH10', avgGrade: 'B+', assignments: 12 },
+      { id: 2, name: 'Physics', teacher: 'Dr. Johnson', code: 'PHYS10', avgGrade: 'A-', assignments: 8 },
+      { id: 3, name: 'Chemistry', teacher: 'Ms. Davis', code: 'CHEM10', avgGrade: 'B', assignments: 10 }
     ]
   },
   {
     id: 2,
-    subject: 'Physics',
-    className: 'General Physics',
-    section: 'Section B',
-    grade: '12',
-    studentCount: 24,
-    avgAttendance: 88,
-    recentActivity: [
-      { id: 1, description: 'Lab report grades entered' },
-      { id: 2, description: 'New assignment posted' }
+    name: 'Grade 11B',
+    academicYear: '2024-2025',
+    room: '205',
+    studentCount: 25,
+    schedule: 'Mon-Fri 9:00-15:00',
+    subjects: ['Biology', 'English', 'History'],
+    attendanceRate: 92,
+    avgGrade: 'A-',
+    subjectDetails: [
+      { id: 4, name: 'Biology', teacher: 'Dr. Wilson', code: 'BIO11', avgGrade: 'A-', assignments: 9 },
+      { id: 5, name: 'English', teacher: 'Ms. Brown', code: 'ENG11', avgGrade: 'B+', assignments: 15 },
+      { id: 6, name: 'History', teacher: 'Mr. Taylor', code: 'HIST11', avgGrade: 'A', assignments: 7 }
     ]
   },
   {
     id: 3,
-    subject: 'Chemistry',
-    className: 'Organic Chemistry',
-    section: 'Section A',
-    grade: '12',
+    name: 'Grade 12C',
+    academicYear: '2024-2025',
+    room: '301',
     studentCount: 22,
-    avgAttendance: 95,
-    recentActivity: [
-      { id: 1, description: 'Exam scheduled for next week' },
-      { id: 2, description: 'Study materials uploaded' }
+    schedule: 'Mon-Fri 10:00-16:00',
+    subjects: ['Advanced Math', 'Computer Science'],
+    attendanceRate: 89,
+    avgGrade: 'A',
+    subjectDetails: [
+      { id: 7, name: 'Advanced Mathematics', teacher: 'Dr. Anderson', code: 'AMATH12', avgGrade: 'A', assignments: 14 },
+      { id: 8, name: 'Computer Science', teacher: 'Mr. Garcia', code: 'CS12', avgGrade: 'A-', assignments: 11 }
     ]
+  }
+])
+
+const students = ref([
+  { id: 1, name: 'Alice Johnson', code: 'STU001', email: 'alice@school.edu', status: 'active', attendance: 95, classId: 1 },
+  { id: 2, name: 'Bob Smith', code: 'STU002', email: 'bob@school.edu', status: 'active', attendance: 88, classId: 1 },
+  { id: 3, name: 'Carol Davis', code: 'STU003', email: 'carol@school.edu', status: 'active', attendance: 92, classId: 1 },
+  { id: 4, name: 'David Wilson', code: 'STU004', email: 'david@school.edu', status: 'inactive', attendance: 76, classId: 1 },
+  { id: 5, name: 'Emma Brown', code: 'STU005', email: 'emma@school.edu', status: 'active', attendance: 94, classId: 2 },
+  { id: 6, name: 'Frank Miller', code: 'STU006', email: 'frank@school.edu', status: 'active', attendance: 87, classId: 2 }
+])
+
+const availableStudents = ref([
+  { id: 7, name: 'Grace Taylor', code: 'STU007' },
+  { id: 8, name: 'Henry Anderson', code: 'STU008' },
+  { id: 9, name: 'Ivy Garcia', code: 'STU009' },
+  { id: 10, name: 'Jack Martinez', code: 'STU010' }
+])
+
+const classNotes = ref([
+  { id: 1, content: 'Remember to prepare for the upcoming parent-teacher conference next week.', date: '2024-01-15' },
+  { id: 2, content: 'Several students need extra help with algebra concepts.', date: '2024-01-10' }
+])
+
+const tabs = [
+  { id: 'students', name: 'Students', icon: Users },
+  { id: 'subjects', name: 'Subjects', icon: BookOpen },
+  { id: 'schedule', name: 'Schedule', icon: Calendar },
+  { id: 'performance', name: 'Performance', icon: TrendingUp }
+]
+
+const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const periods = [
+  {
+    time: '08:00-09:00',
+    schedule: {
+      Monday: 'Mathematics',
+      Tuesday: 'Physics',
+      Wednesday: 'Mathematics',
+      Thursday: 'Chemistry',
+      Friday: 'Mathematics'
+    }
+  },
+  {
+    time: '09:00-10:00',
+    schedule: {
+      Monday: 'Physics',
+      Tuesday: 'Mathematics',
+      Wednesday: 'Chemistry',
+      Thursday: 'Physics',
+      Friday: 'Chemistry'
+    }
+  },
+  {
+    time: '10:00-11:00',
+    schedule: {
+      Monday: 'Chemistry',
+      Tuesday: 'Chemistry',
+      Wednesday: 'Physics',
+      Thursday: 'Mathematics',
+      Friday: 'Physics'
+    }
   }
 ]
 
-// Computed
-const subjects = computed(() => {
-  return [...new Set(classes.value.map(cls => cls.subject))]
+const gradeDistribution = [
+  { grade: 'A', count: 8, percentage: 30 },
+  { grade: 'B', count: 12, percentage: 45 },
+  { grade: 'C', count: 6, percentage: 20 },
+  { grade: 'D', count: 2, percentage: 5 }
+]
+
+// Computed properties
+const totalStudents = computed(() => {
+  return classes.value.reduce((total, cls) => total + cls.studentCount, 0)
 })
 
-const filteredClasses = computed(() => {
-  let filtered = classes.value
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(cls =>
-      cls.subject.toLowerCase().includes(query) ||
-      cls.className.toLowerCase().includes(query) ||
-      cls.section.toLowerCase().includes(query)
+const filteredStudents = computed(() => {
+  if (!selectedClass.value) return []
+  let filtered = students.value.filter(student => student.classId === selectedClass.value.id)
+  
+  if (studentSearch.value) {
+    filtered = filtered.filter(student =>
+      student.name.toLowerCase().includes(studentSearch.value.toLowerCase()) ||
+      student.code.toLowerCase().includes(studentSearch.value.toLowerCase())
     )
   }
-
-  if (subjectFilter.value) {
-    filtered = filtered.filter(cls => cls.subject === subjectFilter.value)
+  
+  if (statusFilter.value) {
+    filtered = filtered.filter(student => student.status === statusFilter.value)
   }
-
+  
   return filtered
 })
 
 // Methods
-const viewClass = (cls) => {
-  // TODO: Navigate to class details view
-  console.log('View class:', cls)
+const viewClassDetails = (classItem) => {
+  selectedClass.value = classItem
+  activeTab.value = 'students'
 }
 
-const takeAttendance = (cls) => {
-  selectedClass.value = cls
-  showAttendanceModal.value = true
+const viewStudents = (classItem) => {
+  selectedClass.value = classItem
+  activeTab.value = 'students'
 }
 
-const addGrade = (cls) => {
-  selectedClass.value = cls
-  showGradeModal.value = true
+const viewStudentProfile = (student) => {
+  selectedStudent.value = student
 }
 
-const viewReports = (cls) => {
-  // TODO: Navigate to class reports
-  console.log('View reports for class:', cls)
-}
-
-const manageClass = (cls) => {
-  // TODO: Navigate to class management
-  console.log('Manage class:', cls)
-}
-
-const saveAttendance = () => {
-  // TODO: Implement attendance saving
-  console.log('Save attendance for:', selectedClass.value)
-  showAttendanceModal.value = false
-}
-
-const saveGrade = () => {
-  // TODO: Implement grade saving
-  console.log('Save grade for:', selectedClass.value)
-  showGradeModal.value = false
-}
-
-const loadClasses = async () => {
-  try {
-    loading.value = true
-    error.value = null
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    classes.value = mockClasses
-  } catch (err) {
-    error.value = err.message || 'Failed to load classes'
-  } finally {
-    loading.value = false
+const addNote = () => {
+  if (newNote.value.trim()) {
+    classNotes.value.unshift({
+      id: Date.now(),
+      content: newNote.value,
+      date: new Date().toISOString().split('T')[0]
+    })
+    newNote.value = ''
   }
 }
-
-onMounted(() => {
-  loadClasses()
-})
 </script>
