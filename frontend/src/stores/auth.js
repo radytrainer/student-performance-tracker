@@ -12,7 +12,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   const initialize = async () => {
     try {
+<<<<<<< HEAD
+=======
       isLoading.value = true
+>>>>>>> main
       // Check if we have a token in localStorage
       const token = localStorage.getItem('auth_token')
       if (!token) {
@@ -89,6 +92,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = async () => {
     try {
+<<<<<<< HEAD
+      await authAPI.logout()
+    } catch (err) {
+      console.error('Logout failed:', err)
+    } finally {
+      // Always clear local state regardless of API call success
+      user.value = null
+      isAuthenticated.value = false
+      localStorage.removeItem('auth_token')
+=======
       // Clear local state immediately for speed
       user.value = null
       isAuthenticated.value = false
@@ -104,6 +117,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       console.error('Logout failed:', err)
       // Ensure redirect happens even on error
+>>>>>>> main
       router.push('/login')
     }
   }
@@ -112,6 +126,8 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = { ...user.value, ...userData }
   }
 
+<<<<<<< HEAD
+=======
   const setAuthData = (token, userData) => {
     // Store token in localStorage
     localStorage.setItem('auth_token', token)
@@ -123,6 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
     console.log('Social login successful:', userData)
   }
 
+>>>>>>> main
   return {
     user,
     isAuthenticated,
@@ -133,7 +150,10 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     updateUser,
+<<<<<<< HEAD
+=======
     setAuthData,
+>>>>>>> main
     getRedirectPath
   }
 })
