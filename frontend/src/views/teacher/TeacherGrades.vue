@@ -1,276 +1,272 @@
 <template>
-  <div v-if="hasPermission('teacher.manage_grades')" class="p-6">
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Grade Management</h1>
-      <p class="text-gray-600 mt-1">Manage student grades and assessments</p>
+  <div class="p-6">
+    <h1 class="text-2xl font-bold mb-4 text-gray-800">Manage Grades</h1>
+
+    <!-- Filters -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Class</label>
+        <select v-model="filters.class_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">All</option>
+          <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Subject</label>
+        <select v-model="filters.subject_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">All</option>
+          <option v-for="sub in subjects" :key="sub.id" :value="sub.id">{{ sub.subject_name }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Term</label>
+        <select v-model="filters.term_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">All</option>
+          <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Assessment Type</label>
+        <select v-model="filters.assessment_type" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">All</option>
+          <option v-for="type in assessmentTypes" :key="type">{{ type }}</option>
+        </select>
+      </div>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
-
-    <!-- Main Content -->
-    <div v-else class="space-y-6">
-      <!-- Filters and Controls -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Class</label>
-            <select
-              v-model="selectedClass"
-              @change="loadGrades"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select a class</option>
-              <option v-for="cls in classes" :key="cls.id" :value="cls.id">
-                {{ cls.subject }} - {{ cls.section }}
-              </option>
-            </select>
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <!-- Grade Distribution Pie Chart -->
+      <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Grade Distribution</h2>
+        <div class="w-full h-64">
+          <canvas ref="gradeChart" @click="handleGradeChartClick"></canvas>
+        </div>
+        <div v-if="selectedGradeGroup" class="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
+          <h3 class="font-medium text-gray-800">Details for {{ selectedGradeGroup.grade }} grades</h3>
+          <p class="text-gray-600">Count: {{ selectedGradeGroup.count }}</p>
+          <p class="text-gray-600">Average Score: {{ selectedGradeGroup.avgScore.toFixed(1) }}</p>
+          <div class="mt-2">
+            <h4 class="font-medium text-sm mb-1 text-gray-700">Students:</h4>
+            <ul class="text-sm max-h-40 overflow-y-auto">
+              <li v-for="grade in selectedGradeGroup.grades" :key="grade.id" class="py-1 border-b border-gray-100">
+                {{ grade.student?.user?.first_name }} {{ grade.student?.user?.last_name }} - {{ grade.score_obtained }}
+              </li>
+            </ul>
           </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Assessment Type</label>
-            <select
-              v-model="assessmentFilter"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Assessments</option>
-              <option value="exam">Exams</option>
-              <option value="quiz">Quizzes</option>
-              <option value="assignment">Assignments</option>
-              <option value="project">Projects</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Grading Period</label>
-            <select
-              v-model="gradingPeriod"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="current">Current Quarter</option>
-              <option value="q1">Quarter 1</option>
-              <option value="q2">Quarter 2</option>
-              <option value="q3">Quarter 3</option>
-              <option value="q4">Quarter 4</option>
-              <option value="semester1">Semester 1</option>
-              <option value="semester2">Semester 2</option>
-            </select>
-          </div>
-
-          <div class="flex items-end">
-            <button
-              @click="showAddAssessmentModal = true"
-              :disabled="!selectedClass"
-              class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              <i class="fas fa-plus mr-2"></i>
-              Add Assessment
-            </button>
-          </div>
+          <button @click="selectedGradeGroup = null" class="text-blue-600 text-sm mt-2 hover:underline">Close</button>
         </div>
       </div>
 
-      <!-- Assessments List -->
-      <div v-if="selectedClass" class="space-y-4">
-        <div v-for="assessment in filteredAssessments" :key="assessment.id" 
-             class="bg-white rounded-lg shadow-sm border border-gray-200">
-          
-          <!-- Assessment Header -->
-          <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-4">
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900">{{ assessment.title }}</h3>
-                  <div class="flex items-center space-x-4 mt-1">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                          :class="getAssessmentTypeClass(assessment.type)">
-                      {{ capitalizeFirst(assessment.type) }}
-                    </span>
-                    <span class="text-sm text-gray-500">
-                      <i class="fas fa-calendar mr-1"></i>
-                      {{ formatDate(assessment.date) }}
-                    </span>
-                    <span class="text-sm text-gray-500">
-                      <i class="fas fa-star mr-1"></i>
-                      {{ assessment.maxPoints }} points
+      <!-- Student Scores Chart -->
+      <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Student Scores</h2>
+        <div class="w-full h-64">
+          <canvas ref="scoresChart" @click="handleScoresChartClick"></canvas>
+        </div>
+        <div v-if="selectedStudentGrade" class="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
+          <h3 class="font-medium text-gray-800">Details for {{ selectedStudentGrade.studentName }}</h3>
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <div>
+              <p class="text-sm text-gray-600">Score:</p>
+              <p>{{ selectedStudentGrade.score }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Grade:</p>
+              <p>{{ selectedStudentGrade.grade }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Assessment:</p>
+              <p>{{ selectedStudentGrade.assessmentType }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Class:</p>
+              <p>{{ selectedStudentGrade.className }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Subject:</p>
+              <p>{{ selectedStudentGrade.subjectName }}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Term:</p>
+              <p>{{ selectedStudentGrade.termName }}</p>
+            </div>
+          </div>
+          <div class="mt-3">
+            <button @click="openEditModal(selectedStudentGrade.fullData)" 
+                    class="text-blue-600 text-sm mr-3 hover:underline">
+              Edit Grade
+            </button>
+            <button @click="selectedStudentGrade = null" class="text-blue-600 text-sm">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grade Table -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">Teacher Grades</h2>
+        <button @click="openAddModal" class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+          </svg>
+          Add New Grade
+        </button>
+      </div>
+
+      <div v-if="loading" class="flex justify-center items-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+      <div v-else-if="error" class="text-red-500 p-4 bg-red-50 rounded-md">{{ error }}</div>
+      <div v-else-if="grades.length === 0" class="text-gray-500 p-4 text-center">No grades available.</div>
+
+      <div v-else class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Term</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assessment</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="grade in grades" :key="grade.id" class="hover:bg-gray-50 transition-colors">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 font-medium">
+                      {{ getInitials(grade.student?.user?.first_name, grade.student?.user?.last_name) }}
                     </span>
                   </div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-2">
-                <button
-                  @click="editAssessment(assessment)"
-                  class="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  Edit
-                </button>
-                <button
-                  @click="exportGrades(assessment)"
-                  class="text-green-600 hover:text-green-800 text-sm font-medium"
-                >
-                  Export
-                </button>
-                <button
-                  @click="deleteAssessment(assessment)"
-                  class="text-red-600 hover:text-red-800 text-sm font-medium"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Grades Table -->
-          <div class="overflow-x-auto">
-            <table class="min-w-full">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Letter Grade</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comments</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="grade in assessment.grades" :key="grade.studentId" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                      <div class="flex-shrink-0 h-8 w-8">
-                        <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span class="text-blue-600 text-sm font-medium">{{ grade.student.name.charAt(0) }}</span>
-                        </div>
-                      </div>
-                      <div class="ml-3">
-                        <div class="text-sm font-medium text-gray-900">{{ grade.student.name }}</div>
-                        <div class="text-sm text-gray-500">{{ grade.student.id }}</div>
-                      </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">
+                      {{ grade.student?.user?.first_name }} {{ grade.student?.user?.last_name }}
                     </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <input
-                      v-model="grade.points"
-                      @change="updateGrade(assessment.id, grade)"
-                      type="number"
-                      :max="assessment.maxPoints"
-                      min="0"
-                      step="0.5"
-                      class="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <span class="text-sm text-gray-500 ml-1">/ {{ assessment.maxPoints }}</span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="text-sm font-medium" :class="getPercentageClass(grade.percentage)">
-                      {{ grade.percentage }}%
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                          :class="getLetterGradeClass(grade.letterGrade)">
-                      {{ grade.letterGrade }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <input
-                      v-model="grade.comments"
-                      @change="updateGrade(assessment.id, grade)"
-                      type="text"
-                      placeholder="Add comments..."
-                      class="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      @click="viewStudentDetails(grade.student)"
-                      class="text-blue-600 hover:text-blue-900"
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    <div class="text-sm text-gray-500">ID: {{ grade.student_id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ grade.class_subject?.class?.class_name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ grade.class_subject?.subject?.subject_name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ grade.term?.term_name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                      :class="getAssessmentBadgeClass(grade.assessment_type)">
+                  {{ grade.assessment_type }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" 
+                  :class="getScoreTextClass(grade.score_obtained)">
+                {{ grade.score_obtained }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
+                      :class="getGradeBadgeClass(grade.grade_letter)">
+                  {{ grade.grade_letter || 'N/A' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button @click="openEditModal(grade)" class="text-blue-500 hover:text-blue-700 mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+                <button @click="deleteGrade(grade.id)" class="text-red-500 hover:text-red-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-          <!-- Assessment Statistics -->
-          <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
-              <div>
-                <div class="text-lg font-semibold text-gray-900">{{ assessment.stats.average }}%</div>
-                <div class="text-sm text-gray-600">Class Average</div>
-              </div>
-              <div>
-                <div class="text-lg font-semibold text-gray-900">{{ assessment.stats.highest }}%</div>
-                <div class="text-sm text-gray-600">Highest</div>
-              </div>
-              <div>
-                <div class="text-lg font-semibold text-gray-900">{{ assessment.stats.lowest }}%</div>
-                <div class="text-sm text-gray-600">Lowest</div>
-              </div>
-              <div>
-                <div class="text-lg font-semibold text-gray-900">{{ assessment.stats.submitted }}</div>
-                <div class="text-sm text-gray-600">Submitted</div>
-              </div>
-              <div>
-                <div class="text-lg font-semibold text-gray-900">{{ assessment.stats.pending }}</div>
-                <div class="text-sm text-gray-600">Pending</div>
-              </div>
+    <!-- Add/Edit Grade Modal -->
+    <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white w-full max-w-lg rounded-lg shadow-xl max-h-[90vh] flex flex-col">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-xl font-bold text-gray-800">{{ isEditMode ? 'Edit Grade' : 'Add New Grade' }}</h3>
+        </div>
+        <div class="overflow-y-auto p-6 flex-1">
+          <form @submit.prevent="submitNewGrade">
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Student</label>
+              <select v-model="newGrade.student_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option disabled value="">Select student</option>
+                <option v-for="student in students" :key="student.id" :value="student.user_id">
+                  {{ student.user?.first_name }} {{ student.user?.last_name }}
+                </option>
+              </select>
             </div>
+
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Class-Subject</label>
+              <select v-model="newGrade.class_subject_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option v-for="cs in classSubjects" :key="cs.id" :value="cs.id">
+                  {{ cs.class.class_name }} - {{ cs.subject.subject_name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Term</label>
+              <select v-model="newGrade.term_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Assessment Type</label>
+              <select v-model="newGrade.assessment_type" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option v-for="type in assessmentTypes" :key="type" :value="type">{{ type }}</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Score</label>
+              <input 
+                v-model="newGrade.score_obtained" 
+                type="number" 
+                min="0" 
+                max="100" 
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
+                required
+                @input="calculateGradeLetter"
+              />
+            </div>
+
+            <div class="mb-6">
+              <label class="block font-medium mb-1 text-gray-700">Grade Letter</label>
+              <select v-model="newGrade.grade_letter" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Auto-calculate</option>
+                <option v-for="letter in gradeLetters" :key="letter" :value="letter">{{ letter }}</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+          <div class="flex justify-end gap-3">
+            <button type="button" @click="showAddModal = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" @click="submitNewGrade" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+              {{ isEditMode ? 'Update' : 'Submit' }}
+            </button>
           </div>
-        </div>
-
-        <!-- Empty State -->
-        <div v-if="filteredAssessments.length === 0" class="text-center py-12">
-          <i class="fas fa-clipboard-list text-gray-400 text-4xl mb-4"></i>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No assessments found</h3>
-          <p class="text-gray-500">Create your first assessment to start grading students.</p>
-        </div>
-      </div>
-
-      <!-- No Class Selected -->
-      <div v-else class="text-center py-12">
-        <i class="fas fa-chalkboard text-gray-400 text-4xl mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Select a class to view grades</h3>
-        <p class="text-gray-500">Choose a class from the dropdown above to manage grades.</p>
-      </div>
-    </div>
-
-    <!-- Add Assessment Modal -->
-    <div v-if="showAddAssessmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-medium mb-4">Add New Assessment</h3>
-        <p class="text-gray-600 mb-4">Assessment creation form will be implemented here.</p>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="showAddAssessmentModal = false"
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            @click="showAddAssessmentModal = false"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Create Assessment
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Unauthorized Access -->
-  <div v-else class="p-6">
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <i class="fas fa-exclamation-triangle text-red-400"></i>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Access Denied</h3>
-          <p class="text-sm text-red-700 mt-1">You don't have permission to manage grades.</p>
         </div>
       </div>
     </div>
@@ -278,166 +274,560 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useAuth } from '@/composables/useAuth'
+import { ref, onMounted, watch, nextTick } from 'vue'
+import axios from 'axios'
+import Chart from 'chart.js/auto'
 
-const { hasPermission } = useAuth()
-
-// State
-const loading = ref(true)
-const classes = ref([])
-const assessments = ref([])
-const selectedClass = ref('')
-const assessmentFilter = ref('')
-const gradingPeriod = ref('current')
-const showAddAssessmentModal = ref(false)
-
-// Mock data
-const mockClasses = [
-  { id: 1, subject: 'Mathematics', section: 'Section A', grade: '11' },
-  { id: 2, subject: 'Physics', section: 'Section B', grade: '12' },
-  { id: 3, subject: 'Chemistry', section: 'Section A', grade: '12' }
-]
-
-const mockAssessments = [
-  {
-    id: 1,
-    classId: 1,
-    title: 'Chapter 5 Quiz',
-    type: 'quiz',
-    date: new Date('2024-01-15'),
-    maxPoints: 20,
-    stats: { average: 85, highest: 98, lowest: 65, submitted: 26, pending: 2 },
-    grades: [
-      {
-        studentId: 1,
-        student: { id: 'ST001', name: 'Alice Johnson' },
-        points: 18,
-        percentage: 90,
-        letterGrade: 'A',
-        comments: 'Excellent work'
-      },
-      {
-        studentId: 2,
-        student: { id: 'ST002', name: 'Bob Smith' },
-        points: 16,
-        percentage: 80,
-        letterGrade: 'B',
-        comments: ''
-      }
-    ]
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
   }
-]
-
-// Computed
-const filteredAssessments = computed(() => {
-  let filtered = assessments.value
-
-  if (assessmentFilter.value) {
-    filtered = filtered.filter(assessment => assessment.type === assessmentFilter.value)
-  }
-
-  return filtered
 })
 
-// Methods
-const loadGrades = async () => {
-  if (!selectedClass.value) return
-  
+apiClient.interceptors.request.use(config => {
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+const loading = ref(false)
+const error = ref(null)
+const grades = ref([])
+const classes = ref([])
+const subjects = ref([])
+const terms = ref([])
+const students = ref([])
+const classSubjects = ref([])
+const gradeChart = ref(null)
+const scoresChart = ref(null)
+const gradeChartInstance = ref(null)
+const scoresChartInstance = ref(null)
+const selectedGradeGroup = ref(null)
+const selectedStudentGrade = ref(null)
+
+const filters = ref({ 
+  class_id: '', 
+  subject_id: '', 
+  term_id: '', 
+  assessment_type: '' 
+})
+
+const assessmentTypes = ref(['quiz', 'exam', 'project', 'assignment'])
+const gradeLetters = ['A', 'B', 'C', 'D', 'E', 'F']
+
+const newGrade = ref({
+  student_id: '',
+  class_subject_id: '',
+  term_id: '',
+  assessment_type: '',
+  score_obtained: '',
+  grade_letter: ''
+})
+
+const showAddModal = ref(false)
+const isEditMode = ref(false)
+const selectedGrade = ref(null)
+
+const fetchAll = async () => {
+  loading.value = true
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500))
-    assessments.value = mockAssessments.filter(a => a.classId == selectedClass.value)
-  } catch (error) {
-    console.error('Error loading grades:', error)
+    const [cls, sub, term, stu, cs] = await Promise.all([
+      apiClient.get('/classes'),
+      apiClient.get('/subjects'),
+      apiClient.get('/terms'),
+      apiClient.get('/students'),
+      apiClient.get('/my-class-subjects')
+    ])
+    classes.value = cls.data.data
+    subjects.value = sub.data.data
+    terms.value = term.data.data
+    students.value = stu.data.data
+    classSubjects.value = cs.data.data
+    await fetchGrades()
+  } catch (err) {
+    error.value = 'Failed to load data: ' + (err.response?.data?.message || err.message)
+  } finally {
+    loading.value = false
   }
 }
 
-const updateGrade = (assessmentId, grade) => {
-  // Calculate percentage and letter grade
-  const assessment = assessments.value.find(a => a.id === assessmentId)
-  if (assessment) {
-    grade.percentage = Math.round((grade.points / assessment.maxPoints) * 100)
-    grade.letterGrade = getLetterGradeFromPercentage(grade.percentage)
+const fetchGrades = async () => {
+  loading.value = true
+  try {
+    const res = await apiClient.get('/grades', { params: filters.value })
+    grades.value = res.data.data
+    updateCharts()
+  } catch (err) {
+    error.value = 'Failed to load grades: ' + (err.response?.data?.message || err.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+const calculateGradeLetter = () => {
+  if (newGrade.value.score_obtained === '' || newGrade.value.score_obtained === null) {
+    newGrade.value.grade_letter = ''
+    return
+  }
+
+  const score = parseFloat(newGrade.value.score_obtained)
+  
+  if (score >= 90) newGrade.value.grade_letter = 'A'
+  else if (score >= 80) newGrade.value.grade_letter = 'B'
+  else if (score >= 70) newGrade.value.grade_letter = 'C'
+  else if (score >= 60) newGrade.value.grade_letter = 'D'
+  else if (score >= 50) newGrade.value.grade_letter = 'E'
+  else newGrade.value.grade_letter = 'F'
+}
+
+const updateCharts = () => {
+  updateGradeDistributionChart()
+  updateStudentScoresChart()
+}
+
+const updateGradeDistributionChart = () => {
+  if (!grades.value.length) {
+    if (gradeChartInstance.value) {
+      gradeChartInstance.value.destroy()
+      gradeChartInstance.value = null
+    }
+    return
   }
   
-  // TODO: Save to API
-  console.log('Update grade:', { assessmentId, grade })
+  // Group grades by their grade letters with additional stats
+  const gradeGroups = {}
+  grades.value.forEach(grade => {
+    const letter = grade.grade_letter || 'Ungraded'
+    if (!gradeGroups[letter]) {
+      gradeGroups[letter] = {
+        count: 0,
+        totalScore: 0,
+        grades: []
+      }
+    }
+    gradeGroups[letter].count++
+    gradeGroups[letter].totalScore += grade.score_obtained
+    gradeGroups[letter].grades.push(grade)
+  })
+  
+  const labels = Object.keys(gradeGroups)
+  const data = Object.values(gradeGroups).map(g => g.count)
+  
+  const backgroundColors = [
+    'rgba(75, 192, 192, 0.7)',  // A - Green
+    'rgba(54, 162, 235, 0.7)',  // B - Blue
+    'rgba(255, 205, 86, 0.7)',   // C - Yellow
+    'rgba(255, 159, 64, 0.7)',   // D - Orange
+    'rgba(255, 99, 132, 0.7)',   // E - Red
+    'rgba(201, 203, 207, 0.7)'   // F - Gray
+  ]
+
+  const chartData = {
+    labels: labels,
+    datasets: [{
+      label: 'Grade Distribution',
+      data: data,
+      backgroundColor: labels.map((letter, i) => 
+        backgroundColors[i] || 'rgba(201, 203, 207, 0.7)'
+      ),
+      borderColor: 'rgba(255, 255, 255, 0.8)',
+      borderWidth: 1,
+      hoverOffset: 10
+    }]
+  }
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = context.label || ''
+            const value = context.raw || 0
+            const total = context.dataset.data.reduce((a, b) => a + b, 0)
+            const percentage = Math.round((value / total) * 100)
+            return `${label}: ${value} (${percentage}%)`
+          }
+        }
+      }
+    },
+    cutout: '60%',
+    animation: {
+      animateScale: true,
+      animateRotate: true
+    }
+  }
+
+  nextTick(() => {
+    if (gradeChartInstance.value) {
+      gradeChartInstance.value.data = chartData
+      gradeChartInstance.value.options = chartOptions
+      gradeChartInstance.value.update()
+    } else if (gradeChart.value) {
+      gradeChartInstance.value = new Chart(gradeChart.value, {
+        type: 'pie',
+        data: chartData,
+        options: chartOptions
+      })
+    }
+  })
 }
 
-const getLetterGradeFromPercentage = (percentage) => {
-  if (percentage >= 90) return 'A'
-  if (percentage >= 80) return 'B'
-  if (percentage >= 70) return 'C'
-  if (percentage >= 60) return 'D'
-  return 'F'
+const updateStudentScoresChart = () => {
+  if (!grades.value.length) {
+    if (scoresChartInstance.value) {
+      scoresChartInstance.value.destroy()
+      scoresChartInstance.value = null
+    }
+    return
+  }
+
+  // Sort grades by student name for better readability
+  const sortedGrades = [...grades.value].sort((a, b) => {
+    const nameA = `${a.student?.user?.first_name} ${a.student?.user?.last_name}`.toLowerCase()
+    const nameB = `${b.student?.user?.first_name} ${b.student?.user?.last_name}`.toLowerCase()
+    return nameA.localeCompare(nameB)
+  })
+
+  const labels = sortedGrades.map(grade => 
+    `${grade.student?.user?.first_name} ${grade.student?.user?.last_name}`
+  )
+  const scores = sortedGrades.map(grade => grade.score_obtained)
+  const gradeLetters = sortedGrades.map(grade => grade.grade_letter || 'N/A')
+
+  // Generate colors based on grade letters
+  const gradeColors = {
+    'A': 'rgba(75, 192, 192, 0.7)',  // Green
+    'B': 'rgba(54, 162, 235, 0.7)',  // Blue
+    'C': 'rgba(255, 205, 86, 0.7)',   // Yellow
+    'D': 'rgba(255, 159, 64, 0.7)',   // Orange
+    'E': 'rgba(255, 99, 132, 0.7)',   // Red
+    'F': 'rgba(255, 99, 132, 0.7)',   // Red
+    'N/A': 'rgba(201, 203, 207, 0.7)' // Gray
+  }
+
+  const backgroundColors = gradeLetters.map(letter => 
+    gradeColors[letter] || gradeColors['N/A']
+  )
+
+  const chartData = {
+    labels: labels,
+    datasets: [{
+      label: 'Scores',
+      data: scores,
+      backgroundColor: backgroundColors,
+      borderColor: backgroundColors.map(c => c.replace('0.7', '1')),
+      borderWidth: 1,
+      barPercentage: 0.8
+    }]
+  }
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return `Score: ${context.raw} (Grade: ${gradeLetters[context.dataIndex]})`
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        title: {
+          display: true,
+          text: 'Score'
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Students'
+        },
+        ticks: {
+          autoSkip: false,
+          maxRotation: 45,
+          minRotation: 45
+        }
+      }
+    }
+  }
+
+  nextTick(() => {
+    if (scoresChartInstance.value) {
+      scoresChartInstance.value.data = chartData
+      scoresChartInstance.value.options = chartOptions
+      scoresChartInstance.value.update()
+    } else if (scoresChart.value) {
+      scoresChartInstance.value = new Chart(scoresChart.value, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+      })
+    }
+  })
 }
 
-const getAssessmentTypeClass = (type) => {
+const handleGradeChartClick = (event) => {
+  if (gradeChartInstance.value) {
+    const elements = gradeChartInstance.value.getElementsAtEventForMode(
+      event,
+      'nearest',
+      { intersect: true },
+      false
+    )
+    if (elements.length) {
+      const index = elements[0].index
+      const gradeLetter = gradeChartInstance.value.data.labels[index]
+      const gradeData = grades.value.filter(g => (g.grade_letter || 'Ungraded') === gradeLetter)
+      
+      selectedGradeGroup.value = {
+        grade: gradeLetter,
+        count: gradeData.length,
+        avgScore: gradeData.reduce((sum, g) => sum + g.score_obtained, 0) / gradeData.length,
+        grades: gradeData
+      }
+    }
+  }
+}
+
+const handleScoresChartClick = (event) => {
+  if (scoresChartInstance.value) {
+    const elements = scoresChartInstance.value.getElementsAtEventForMode(
+      event,
+      'nearest',
+      { intersect: true },
+      false
+    )
+    if (elements.length) {
+      const index = elements[0].index
+      const grade = grades.value[index]
+      
+      selectedStudentGrade.value = {
+        studentName: `${grade.student?.user?.first_name} ${grade.student?.user?.last_name}`,
+        score: grade.score_obtained,
+        grade: grade.grade_letter || 'N/A',
+        assessmentType: grade.assessment_type,
+        className: grade.class_subject?.class?.class_name || 'N/A',
+        subjectName: grade.class_subject?.subject?.subject_name || 'N/A',
+        termName: grade.term?.term_name || 'N/A',
+        fullData: grade
+      }
+    }
+  }
+}
+
+const openAddModal = () => {
+  isEditMode.value = false
+  selectedGrade.value = null
+  resetGradeForm()
+  showAddModal.value = true
+}
+
+const openEditModal = (grade) => {
+  isEditMode.value = true
+  selectedGrade.value = grade
+  newGrade.value = {
+    student_id: grade.student_id,
+    class_subject_id: grade.class_subject_id,
+    term_id: grade.term_id,
+    assessment_type: grade.assessment_type,
+    score_obtained: grade.score_obtained,
+    grade_letter: grade.grade_letter || ''
+  }
+  // Calculate grade if not set
+  if (!grade.grade_letter && grade.score_obtained) {
+    calculateGradeLetter()
+  }
+  showAddModal.value = true
+  selectedStudentGrade.value = null
+  selectedGradeGroup.value = null
+}
+
+const resetGradeForm = () => {
+  newGrade.value = {
+    student_id: '',
+    class_subject_id: '',
+    term_id: '',
+    assessment_type: '',
+    score_obtained: '',
+    grade_letter: ''
+  }
+}
+
+const submitNewGrade = async () => {
+  // Calculate grade if not manually set
+  if (!newGrade.value.grade_letter && newGrade.value.score_obtained) {
+    calculateGradeLetter()
+  }
+
+  const payload = { 
+    ...newGrade.value, 
+    max_score: 100, 
+    weightage: 1 
+  }
+
+  try {
+    if (isEditMode.value && selectedGrade.value) {
+      const res = await apiClient.put(`/grades/${selectedGrade.value.id}`, payload)
+      const idx = grades.value.findIndex(g => g.id === selectedGrade.value.id)
+      if (idx !== -1) grades.value[idx] = res.data.data
+    } else {
+      const res = await apiClient.post('/grades', payload)
+      grades.value.unshift(res.data.data)
+    }
+    showAddModal.value = false
+    resetGradeForm()
+    updateCharts()
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to save grade')
+  }
+}
+
+const deleteGrade = async (id) => {
+  if (!confirm('Are you sure you want to delete this grade?')) return
+  try {
+    await apiClient.delete(`/grades/${id}`)
+    grades.value = grades.value.filter(g => g.id !== id)
+    updateCharts()
+    selectedStudentGrade.value = null
+    selectedGradeGroup.value = null
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to delete grade')
+  }
+}
+
+const getInitials = (firstName, lastName) => {
+  if (!firstName || !lastName) return '??'
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+}
+
+const getAssessmentBadgeClass = (type) => {
   const classes = {
-    exam: 'bg-red-100 text-red-800',
-    quiz: 'bg-blue-100 text-blue-800',
-    assignment: 'bg-green-100 text-green-800',
-    project: 'bg-purple-100 text-purple-800'
+    'quiz': 'bg-purple-100 text-purple-800',
+    'exam': 'bg-red-100 text-red-800',
+    'project': 'bg-green-100 text-green-800',
+    'assignment': 'bg-yellow-100 text-yellow-800'
   }
   return classes[type] || 'bg-gray-100 text-gray-800'
 }
 
-const getPercentageClass = (percentage) => {
-  if (percentage >= 90) return 'text-green-600'
-  if (percentage >= 80) return 'text-blue-600'
-  if (percentage >= 70) return 'text-yellow-600'
-  if (percentage >= 60) return 'text-orange-600'
-  return 'text-red-600'
-}
-
-const getLetterGradeClass = (grade) => {
+const getGradeBadgeClass = (grade) => {
   const classes = {
-    A: 'bg-green-100 text-green-800',
-    B: 'bg-blue-100 text-blue-800',
-    C: 'bg-yellow-100 text-yellow-800',
-    D: 'bg-orange-100 text-orange-800',
-    F: 'bg-red-100 text-red-800'
+    'A': 'bg-green-100 text-green-800',
+    'B': 'bg-blue-100 text-blue-800',
+    'C': 'bg-yellow-100 text-yellow-800',
+    'D': 'bg-orange-100 text-orange-800',
+    'E': 'bg-red-100 text-red-800',
+    'F': 'bg-red-100 text-red-800'
   }
   return classes[grade] || 'bg-gray-100 text-gray-800'
 }
 
-const capitalizeFirst = (str) => {
-  return str.charAt(0).toUpperCase() + str.slice(1)
+const getScoreTextClass = (score) => {
+  if (score >= 90) return 'text-green-600'
+  if (score >= 80) return 'text-blue-600'
+  if (score >= 70) return 'text-yellow-600'
+  if (score >= 60) return 'text-orange-600'
+  if (score >= 50) return 'text-red-500'
+  return 'text-red-600'
 }
 
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString()
-}
+watch(grades, updateCharts, { deep: true })
 
-const editAssessment = (assessment) => {
-  console.log('Edit assessment:', assessment)
-}
-
-const exportGrades = (assessment) => {
-  console.log('Export grades for:', assessment)
-}
-
-const deleteAssessment = (assessment) => {
-  if (confirm('Are you sure you want to delete this assessment?')) {
-    console.log('Delete assessment:', assessment)
-  }
-}
-
-const viewStudentDetails = (student) => {
-  console.log('View student details:', student)
-}
-
-onMounted(async () => {
-  try {
-    loading.value = true
-    // Load classes
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    classes.value = mockClasses
-  } catch (error) {
-    console.error('Error loading data:', error)
-  } finally {
-    loading.value = false
-  }
+onMounted(() => {
+  fetchAll()
 })
 </script>
+
+<style scoped>
+/* Custom scrollbar for the table container */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Modal scrollable content */
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for modal */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Smooth transitions for hover effects */
+tr {
+  transition: background-color 0.2s ease;
+}
+
+/* Focus styles for form inputs */
+select:focus, input:focus {
+  outline: none;
+
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Modal transition */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+</style>

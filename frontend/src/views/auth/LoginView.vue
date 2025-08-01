@@ -85,6 +85,10 @@
                   :auth-error="authStore.error"
                   @submit="handleSignIn"
                   @update:data="updateSignInData"
+<<<<<<< HEAD
+=======
+                  @social-login="handleSocialLogin"
+>>>>>>> main
                 />
 
                 <!-- Register Form -->
@@ -277,9 +281,13 @@ const handleRegister = async (formData) => {
 };
 
 // Social login handler
-const handleSocialLogin = (provider) => {
-  console.log(`Social login with ${provider}`);
-  // Add your social login logic here
+const handleSocialLogin = async (provider) => {
+  try {
+    // Instead of popup, redirect to the social login URL directly
+    window.location.href = `http://localhost:8000/api/auth/social/${provider}`;
+  } catch (error) {
+    console.error('Social login error:', error);
+  }
 };
 
 // Helper to get error message
@@ -294,6 +302,29 @@ const hasError = (errors, field) => {
 
 // Check if user is already authenticated when component mounts
 onMounted(() => {
+  // Check for social login callback with token
+  if (route.query.token && route.query.user) {
+    try {
+      const token = route.query.token;
+      const user = JSON.parse(decodeURIComponent(route.query.user));
+      
+      // Store token and user in auth store
+      authStore.setAuthData(token, user);
+      
+      // Redirect to appropriate dashboard
+      const redirectPath = authStore.getRedirectPath(user.role);
+      router.replace(redirectPath);
+      return;
+    } catch (error) {
+      console.error('Error processing social login callback:', error);
+    }
+  }
+
+  // Check for social login errors
+  if (route.query.error) {
+    console.error('Social login error:', route.query.error, route.query.message);
+  }
+
   if (authStore.isAuthenticated) {
     // Redirect to appropriate dashboard based on user role
     const redirectPath =

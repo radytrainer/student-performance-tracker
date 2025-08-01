@@ -12,6 +12,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   const initialize = async () => {
     try {
+<<<<<<< HEAD
+=======
+      isLoading.value = true
+>>>>>>> main
       // Check if we have a token in localStorage
       const token = localStorage.getItem('auth_token')
       if (!token) {
@@ -27,6 +31,8 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('auth_token')
       isAuthenticated.value = false
       user.value = null
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -86,6 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = async () => {
     try {
+<<<<<<< HEAD
       await authAPI.logout()
     } catch (err) {
       console.error('Logout failed:', err)
@@ -94,6 +101,23 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       isAuthenticated.value = false
       localStorage.removeItem('auth_token')
+=======
+      // Clear local state immediately for speed
+      user.value = null
+      isAuthenticated.value = false
+      localStorage.removeItem('auth_token')
+      
+      // Redirect immediately, don't wait for API call
+      router.push('/login')
+      
+      // Call API logout in background (for server-side cleanup)
+      authAPI.logout().catch(err => {
+        console.warn('Background logout API call failed:', err)
+      })
+    } catch (err) {
+      console.error('Logout failed:', err)
+      // Ensure redirect happens even on error
+>>>>>>> main
       router.push('/login')
     }
   }
@@ -102,6 +126,20 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = { ...user.value, ...userData }
   }
 
+<<<<<<< HEAD
+=======
+  const setAuthData = (token, userData) => {
+    // Store token in localStorage
+    localStorage.setItem('auth_token', token)
+    
+    // Set user data
+    user.value = userData
+    isAuthenticated.value = true
+    
+    console.log('Social login successful:', userData)
+  }
+
+>>>>>>> main
   return {
     user,
     isAuthenticated,
@@ -112,6 +150,10 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     updateUser,
+<<<<<<< HEAD
+=======
+    setAuthData,
+>>>>>>> main
     getRedirectPath
   }
 })
