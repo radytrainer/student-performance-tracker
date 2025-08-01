@@ -14,16 +14,9 @@ const apiClient = axios.create({
 // Function to get CSRF token
 const getCsrfToken = async () => {
   try {
-<<<<<<< HEAD
     await axios.get('http://localhost:8000/sanctum/csrf-cookie', {
       withCredentials: true
     })
-=======
-    await axios.create({
-      baseURL: 'http://localhost:8000',
-      withCredentials: true
-    }).get('/sanctum/csrf-cookie')
->>>>>>> main
   } catch (error) {
     console.warn('Failed to get CSRF token:', error)
   }
