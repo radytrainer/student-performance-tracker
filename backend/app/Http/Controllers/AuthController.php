@@ -348,9 +348,19 @@ class AuthController extends Controller
                     'profile_picture' => $socialUser->getAvatar()
                 ]);
             } else {
+                // Generate unique username if needed
+                $baseUsername = $socialUser->getNickname() ?? explode('@', $socialUser->getEmail())[0];
+                $username = $baseUsername;
+                $counter = 1;
+                
+                while (User::where('username', $username)->exists()) {
+                    $username = $baseUsername . '_' . $counter;
+                    $counter++;
+                }
+
                 // Create new user
                 $user = User::create([
-                    'username' => $socialUser->getNickname() ?? explode('@', $socialUser->getEmail())[0],
+                    'username' => $username,
                     'email' => $socialUser->getEmail(),
                     'password_hash' => Hash::make(bin2hex(random_bytes(16))), // Random password
                     'first_name' => $socialUser->getName() ?? '',
