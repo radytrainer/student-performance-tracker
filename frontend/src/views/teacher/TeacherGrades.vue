@@ -107,12 +107,32 @@
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-gray-800">Teacher Grades</h2>
-        <button @click="openAddModal" class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-          </svg>
-          Add New Grade
-        </button>
+            <div class="flex gap-2">
+          <button 
+            @click="exportToExcel" 
+            class="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+            Export to Excel
+          </button>
+          <button 
+            @click="exportToCSV" 
+            class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+            Export to CSV
+          </button>
+          <button @click="openAddModal" class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Add New Grade
+          </button>
+        </div>
       </div>
 
       <div v-if="loading" class="flex justify-center items-center py-8">
@@ -277,6 +297,7 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import axios from 'axios'
 import Chart from 'chart.js/auto'
+import * as XLSX from 'xlsx'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
@@ -753,6 +774,88 @@ watch(grades, updateCharts, { deep: true })
 onMounted(() => {
   fetchAll()
 })
+
+// Add this method to your component
+const exportToExcel = () => {
+  if (grades.value.length === 0) {
+    alert('No data to export')
+    return
+  }
+
+  // Prepare the data for export
+  const data = grades.value.map(grade => ({
+    'Student Name': `${grade.student?.user?.first_name} ${grade.student?.user?.last_name}`,
+    'Student ID': grade.student_id,
+    'Class': grade.class_subject?.class?.class_name || 'N/A',
+    'Subject': grade.class_subject?.subject?.subject_name || 'N/A',
+    'Term': grade.term?.term_name || 'N/A',
+    'Assessment Type': grade.assessment_type,
+    'Score': grade.score_obtained,
+    'Grade': grade.grade_letter || 'N/A',
+    'Max Score': 100
+  }))
+
+  // Create a worksheet
+  const ws = XLSX.utils.json_to_sheet(data)
+  
+  // Create a workbook
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Grades')
+  
+  // Generate current date for filename
+  const today = new Date()
+  const dateStr = today.toISOString().split('T')[0]
+  
+  // Export the file
+  XLSX.writeFile(wb, `Grades_${dateStr}.xlsx`)
+}
+const exportToCSV = () => {
+  if (grades.value.length === 0) {
+    alert('No data to export')
+    return
+  }
+
+  // Prepare the data for export
+  const data = grades.value.map(grade => ({
+    'Student Name': `${grade.student?.user?.first_name} ${grade.student?.user?.last_name}`,
+    'Student ID': grade.student_id,
+    'Class': grade.class_subject?.class?.class_name || 'N/A',
+    'Subject': grade.class_subject?.subject?.subject_name || 'N/A',
+    'Term': grade.term?.term_name || 'N/A',
+    'Assessment Type': grade.assessment_type,
+    'Score': grade.score_obtained,
+    'Grade': grade.grade_letter || 'N/A',
+    'Max Score': 100
+  }))
+
+  // Convert to CSV
+  const headers = Object.keys(data[0])
+  const csvRows = [
+    headers.join(','), // header row first
+    ...data.map(row => 
+      headers.map(fieldName => 
+        `"${String(row[fieldName]).replace(/"/g, '""')}"`
+      ).join(',')
+    )
+  ]
+  
+  const csvString = csvRows.join('\n')
+  
+  // Create download link
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.setAttribute('href', url)
+  
+  // Generate current date for filename
+  const today = new Date()
+  const dateStr = today.toISOString().split('T')[0]
+  link.setAttribute('download', `Grades_${dateStr}.csv`)
+  
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 </script>
 
 <style scoped>
@@ -776,6 +879,8 @@ onMounted(() => {
 }
 
 /* Modal scrollable content */
+
+
 .overflow-y-auto {
   overflow-y: auto;
 }
@@ -807,7 +912,6 @@ tr {
 /* Focus styles for form inputs */
 select:focus, input:focus {
   outline: none;
-
 }
 
 /* Animation for loading spinner */
