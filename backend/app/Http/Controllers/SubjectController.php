@@ -1,20 +1,20 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Subject;
-use Illuminate\Http\JsonResponse;
 
 class SubjectController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
-        $subjects = Subject::select('id', 'subject_name')->get();
-
+        $subjects = Subject::all();
         return response()->json([
             'success' => true,
+            'message' => 'Subjects retrieved successfully',
             'data' => $subjects
         ]);
     }
 }
+

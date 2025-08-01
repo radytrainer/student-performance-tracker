@@ -10,6 +10,59 @@
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
 
+    <!-- Toast Notification -->
+    <div 
+      v-if="successMessage" 
+      class="fixed top-24 right-6 z-50 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ease-in-out"
+      :class="successMessage ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'"
+    >
+      <div class="flex items-center p-4">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-check text-green-600 text-sm"></i>
+          </div>
+        </div>
+        <div class="ml-3 flex-1">
+          <p class="text-sm text-gray-800">{{ successMessage }}</p>
+        </div>
+        <div class="ml-3 flex-shrink-0">
+          <button 
+            @click="successMessage = ''" 
+            class="text-gray-400 hover:text-gray-600 focus:outline-none transition ease-in-out duration-150"
+          >
+            <i class="fas fa-times text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Toast Notification -->
+    <div 
+      v-if="error" 
+      class="fixed right-6 z-50 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ease-in-out"
+      :class="error ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'"
+      :style="{ top: successMessage ? '100px' : '96px' }"
+    >
+      <div class="flex items-center p-4">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-red-600 text-sm"></i>
+          </div>
+        </div>
+        <div class="ml-3 flex-1">
+          <p class="text-sm text-gray-800">{{ error }}</p>
+        </div>
+        <div class="ml-3 flex-shrink-0">
+          <button 
+            @click="error = ''" 
+            class="text-gray-400 hover:text-gray-600 focus:outline-none transition ease-in-out duration-150"
+          >
+            <i class="fas fa-times text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <div v-else class="space-y-6">
       <!-- Report Generation -->
@@ -49,8 +102,8 @@
               v-model="reportConfig.format"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="pdf">PDF</option>
-              <option value="excel">Excel</option>
+              <option value="pdf">PDF (Coming Soon)</option>
+              <option value="excel">Excel (.xlsx)</option>
             </select>
           </div>
 
@@ -231,9 +284,16 @@
           <h3 class="text-lg font-medium text-gray-900 mb-2">No reports generated yet</h3>
           <p class="text-gray-500">Generate your first report using the options above.</p>
         </div>
-      </div>
+        </div>
 
-      <!-- Academic Progress Summary -->
+        <!-- Report Details Modal -->
+    <ReportDetailsModal 
+      :is-open="showReportModal"
+      :report-id="selectedReportId"
+      @close="closeReportModal"
+    />
+
+    <!-- Academic Progress Summary -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <div class="px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-semibold text-gray-800">Academic Progress Summary</h2>
@@ -295,165 +355,200 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { reportsAPI } from '@/api/reports'
+import ReportDetailsModal from '@/components/student/ReportDetailsModal.vue'
 
 const { hasPermission } = useAuth()
 
 // State
 const loading = ref(true)
 const generating = ref(false)
+const error = ref(null)
+const successMessage = ref('')
+
+// Modal state
+const showReportModal = ref(false)
+const selectedReportId = ref(null)
 
 const reportConfig = reactive({
   type: 'academic_summary',
   period: 'current_quarter',
-  format: 'pdf'
+  format: 'excel'
 })
 
-// Mock data
+// Data
 const studentStats = ref({
-  gpa: '3.8',
-  attendance: '92',
-  rank: '15/120',
-  credits: '24'
+  gpa: '0.0',
+  attendance: '0',
+  rank: '0/0',
+  credits: '0'
 })
 
-const availableReports = ref([
-  {
-    id: 1,
-    name: 'Academic Summary',
-    description: 'Overall academic performance overview',
-    icon: 'fas fa-chart-bar',
-    color: '#3B82F6',
-    updateFrequency: 'Updated weekly'
-  },
-  {
-    id: 2,
-    name: 'Grade Report',
-    description: 'Detailed grades by subject and assignment',
-    icon: 'fas fa-clipboard-list',
-    color: '#10B981',
-    updateFrequency: 'Updated daily'
-  },
-  {
-    id: 3,
-    name: 'Attendance Report',
-    description: 'Attendance records and patterns',
-    icon: 'fas fa-calendar-check',
-    color: '#F59E0B',
-    updateFrequency: 'Updated daily'
-  },
-  {
-    id: 4,
-    name: 'Progress Report',
-    description: 'Academic progress and trends',
-    icon: 'fas fa-chart-line',
-    color: '#8B5CF6',
-    updateFrequency: 'Updated monthly'
-  },
-  {
-    id: 5,
-    name: 'Transcript',
-    description: 'Official academic transcript',
-    icon: 'fas fa-scroll',
-    color: '#EF4444',
-    updateFrequency: 'Updated at term end'
-  },
-  {
-    id: 6,
-    name: 'Parent Report',
-    description: 'Summary for parent/guardian review',
-    icon: 'fas fa-users',
-    color: '#06B6D4',
-    updateFrequency: 'Updated weekly'
-  }
-])
+const availableReports = ref([])
+const recentReports = ref([])
+const gpaHistory = ref([])
+const achievements = ref([])
 
-const recentReports = ref([
-  {
-    id: 1,
-    name: 'Academic Summary - Q1 2024',
-    type: 'academic_summary',
-    period: 'q1_2024',
-    generatedAt: new Date('2024-01-15T10:30:00'),
-    status: 'completed'
-  },
-  {
-    id: 2,
-    name: 'Grade Report - Current Quarter',
-    type: 'grade_report',
-    period: 'current_quarter',
-    generatedAt: new Date('2024-01-14T14:22:00'),
-    status: 'completed'
-  },
-  {
-    id: 3,
-    name: 'Attendance Report - December',
-    type: 'attendance_report',
-    period: 'december_2023',
-    generatedAt: new Date('2024-01-10T09:15:00'),
-    status: 'processing'
+// Load dashboard data
+const loadDashboardData = async () => {
+  try {
+    loading.value = true
+    error.value = null
+    
+    const data = await reportsAPI.getReportsDashboard()
+    
+    studentStats.value = data.student_stats
+    availableReports.value = data.available_reports
+    recentReports.value = data.recent_reports
+    gpaHistory.value = data.gpa_history
+    achievements.value = data.achievements
+  } catch (err) {
+    console.error('Error loading dashboard data:', err)
+    showErrorMessage('Failed to load reports data. Please try again.')
+  } finally {
+    loading.value = false
   }
-])
+}
 
-const gpaHistory = ref([
-  { name: 'Current Quarter', gpa: '3.8' },
-  { name: 'Quarter 1', gpa: '3.7' },
-  { name: 'Quarter 2', gpa: '3.6' },
-  { name: 'Quarter 3', gpa: '3.9' }
-])
-
-const achievements = ref([
-  {
-    id: 1,
-    title: 'Honor Roll',
-    description: 'Made honor roll for Q1 2024'
-  },
-  {
-    id: 2,
-    title: 'Perfect Attendance',
-    description: 'Perfect attendance in December'
-  },
-  {
-    id: 3,
-    title: 'Math Achievement',
-    description: 'Top 10% in Mathematics'
+// Load only recent reports (for after generating a new report)
+const loadRecentReports = async () => {
+  try {
+    const data = await reportsAPI.getReportsDashboard()
+    recentReports.value = data.recent_reports
+  } catch (err) {
+    console.error('Error loading recent reports:', err)
   }
-])
+}
+
+// Show success message
+const showSuccessMessage = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 4000) // Clear after 4 seconds
+}
+
+// Show error message
+const showErrorMessage = (message) => {
+  error.value = message
+  setTimeout(() => {
+    error.value = ''
+  }, 6000) // Clear after 6 seconds (errors might need more time to read)
+}
 
 // Methods
 const generateReport = async () => {
   try {
     generating.value = true
+    error.value = null
     
-    console.log('Generating report:', reportConfig)
+    const response = await reportsAPI.generateReport(reportConfig)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    alert('Report generation started! You will be notified when it\'s ready.')
-  } catch (error) {
-    console.error('Error generating report:', error)
-    alert('Failed to generate report. Please try again.')
+    if (reportConfig.format === 'pdf') {
+      // Check if response is a blob (actual PDF) or JSON (temporary response)
+      if (response.data instanceof Blob) {
+        // Handle PDF download
+        const blob = new Blob([response.data], { type: 'application/pdf' })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${reportConfig.type}_${new Date().toISOString().split('T')[0]}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        // Show success message without refreshing
+        showSuccessMessage('PDF report downloaded successfully!')
+      } else {
+        // Handle JSON response (temporary until PDF generation is fully set up)
+        showSuccessMessage('Report generated successfully!')
+        console.log('Report data:', response.data.data)
+      }
+      
+      // Only reload recent reports section, not the entire dashboard
+      await loadRecentReports()
+    } else if (reportConfig.format === 'excel') {
+      // Handle Excel download
+      if (response.data instanceof Blob) {
+        const blob = new Blob([response.data], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${reportConfig.type}_${new Date().toISOString().split('T')[0]}.xlsx`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        showSuccessMessage('Excel report downloaded successfully!')
+      } else {
+        showSuccessMessage('Excel report ready for download!')
+        console.log('Report data:', response.data)
+      }
+      
+      // Only reload recent reports section, not the entire dashboard
+      await loadRecentReports()
+    } else {
+      // Handle other formats
+      showSuccessMessage('Report generated successfully!')
+    }
+  } catch (err) {
+    console.error('Error generating report:', err)
+    showErrorMessage('Failed to generate report. Please try again.')
   } finally {
     generating.value = false
   }
 }
 
 const requestReport = (report) => {
-  reportConfig.type = report.id === 1 ? 'academic_summary' : 
-                     report.id === 2 ? 'grade_report' :
-                     report.id === 3 ? 'attendance_report' :
-                     report.id === 4 ? 'progress_report' :
-                     'transcript'
+  const typeMap = {
+    1: 'academic_summary',
+    2: 'grade_report', 
+    3: 'attendance_report',
+    4: 'progress_report',
+    5: 'transcript'
+  }
+  
+  reportConfig.type = typeMap[report.id] || 'academic_summary'
   generateReport()
 }
 
-const downloadReport = (report) => {
-  console.log('Downloading report:', report)
-  alert(`Downloading ${report.name}...`)
+const downloadReport = async (report) => {
+  try {
+    const response = await reportsAPI.downloadReport(report.id)
+    
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${report.name}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    showSuccessMessage('Report downloaded successfully!')
+  } catch (err) {
+    console.error('Error downloading report:', err)
+    showErrorMessage('Failed to download report. Please try again.')
+  }
 }
 
 const viewReport = (report) => {
-  console.log('Viewing report:', report)
+  if (report.status === 'completed') {
+    selectedReportId.value = report.id
+    showReportModal.value = true
+  } else {
+    showErrorMessage('Report is still being processed. Please try again later.')
+  }
+}
+
+const closeReportModal = () => {
+  showReportModal.value = false
+  selectedReportId.value = null
 }
 
 const getReportTypeClass = (type) => {
@@ -505,14 +600,6 @@ const formatDate = (date) => {
 }
 
 onMounted(async () => {
-  try {
-    loading.value = true
-    // Simulate loading delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-  } catch (error) {
-    console.error('Error loading reports:', error)
-  } finally {
-    loading.value = false
-  }
+  await loadDashboardData()
 })
 </script>

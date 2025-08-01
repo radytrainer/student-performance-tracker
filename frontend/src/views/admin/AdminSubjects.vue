@@ -1,5 +1,10 @@
 <template>
-  <div v-if="hasPermission('admin.manage_subjects')" class="p-6">
+  <div class="p-6">
+    <div v-if="!hasPermission('admin.manage_subjects')" class="text-center py-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+      <p class="text-gray-600">You don't have permission to manage subjects.</p>
+    </div>
+    <div v-else>
     <div class="mb-6">
       <h1 class="text-3xl font-bold text-gray-800">Subject Management</h1>
       <p class="text-gray-600 mt-1">Manage subjects, curriculum, and academic structure</p>
@@ -157,20 +162,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Unauthorized Access -->
-  <div v-else class="p-6">
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <i class="fas fa-exclamation-triangle text-red-400"></i>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Access Denied</h3>
-          <p class="text-sm text-red-700 mt-1">You don't have permission to manage subjects.</p>
-        </div>
-      </div>
     </div>
   </div>
 </template>
