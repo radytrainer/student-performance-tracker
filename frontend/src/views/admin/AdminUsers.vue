@@ -1,5 +1,10 @@
 <template>
-  <div v-if="hasPermission('admin.manage_users')" class="p-6">
+  <div class="p-6">
+    <div v-if="!hasPermission('admin.manage_users')" class="text-center py-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+      <p class="text-gray-600">You don't have permission to manage users.</p>
+    </div>
+    <div v-else>
     <div class="mb-6">
       <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
       <p class="text-gray-600 mt-1">Manage system users and their roles</p>
@@ -86,7 +91,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-gray-50">
+            <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
@@ -141,7 +146,11 @@
       </div>
 
       <!-- Empty State -->
+<<<<<<< HEAD
       <div v-if="filteredUsers.length === 0 && !loading" class="text-center py-12">
+=======
+      <div v-if="paginatedUsers.length === 0 && !loading" class="text-center py-12">
+>>>>>>> main
         <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
         <h3 class="text-lg font-medium text-gray-900 mb-2">No users found</h3>
         <p class="text-gray-500">
@@ -150,14 +159,22 @@
       </div>
 
       <!-- Pagination -->
+<<<<<<< HEAD
       <div v-if="pagination && pagination.last_page > 1" class="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
         <div class="flex items-center">
           <p class="text-sm text-gray-700">
             Showing {{ pagination.from }} to {{ pagination.to }} of {{ pagination.total }} results
+=======
+      <div v-if="paginationInfo.totalPages > 1" class="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
+        <div class="flex items-center">
+          <p class="text-sm text-gray-700">
+            Showing {{ paginationInfo.startItem }} to {{ paginationInfo.endItem }} of {{ paginationInfo.totalItems }} results
+>>>>>>> main
           </p>
         </div>
         <div class="flex items-center space-x-2">
           <button
+<<<<<<< HEAD
             @click="changePage(pagination.current_page - 1)"
             :disabled="pagination.current_page === 1"
             class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -171,6 +188,45 @@
             @click="changePage(pagination.current_page + 1)"
             :disabled="pagination.current_page === pagination.last_page"
             class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+=======
+            @click="goToPage(currentPage - 1)"
+            :disabled="!paginationInfo.hasPrevPage"
+            class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          >
+            Previous
+          </button>
+          
+          <!-- Page Numbers -->
+          <div class="flex items-center space-x-1">
+            <template v-for="(page, index) in getVisiblePages()">
+              <span
+                v-if="page === '...'"
+                :key="`ellipsis-${index}`"
+                class="px-3 py-2 text-sm text-gray-400"
+              >
+                ...
+              </span>
+              <button
+                v-else
+                :key="`page-${page}`"
+                @click="goToPage(page)"
+                :class="[
+                  'px-3 py-2 text-sm rounded-lg transition-colors',
+                  page === currentPage 
+                    ? 'bg-blue-600 text-white' 
+                    : 'border border-gray-300 hover:bg-gray-50'
+                ]"
+              >
+                {{ page }}
+              </button>
+            </template>
+          </div>
+          
+          <button
+            @click="goToPage(currentPage + 1)"
+            :disabled="!paginationInfo.hasNextPage"
+            class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+>>>>>>> main
           >
             Next
           </button>
@@ -224,26 +280,16 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Unauthorized Access -->
-  <div v-else class="p-6">
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <i class="fas fa-exclamation-triangle text-red-400"></i>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Access Denied</h3>
-          <p class="text-sm text-red-700 mt-1">You don't have permission to manage users.</p>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
+<<<<<<< HEAD
 import { ref, computed, onMounted, nextTick } from 'vue'
+=======
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+>>>>>>> main
 import { useAuth } from '@/composables/useAuth'
 import UserModal from '@/components/modals/UserModal.vue'
 import { usersAPI } from '@/api/users'
@@ -261,6 +307,10 @@ const pagination = ref(null)
 const searchQuery = ref('')
 const roleFilter = ref('')
 const currentPage = ref(1)
+<<<<<<< HEAD
+=======
+const itemsPerPage = ref(10)
+>>>>>>> main
 
 // Modal states
 const showUserModal = ref(false)
@@ -301,6 +351,34 @@ const filteredUsers = computed(() => {
   return filtered
 })
 
+<<<<<<< HEAD
+=======
+// Computed paginated users
+const paginatedUsers = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage.value
+  const endIndex = startIndex + itemsPerPage.value
+  return filteredUsers.value.slice(startIndex, endIndex)
+})
+
+// Computed pagination info
+const paginationInfo = computed(() => {
+  const totalItems = filteredUsers.value.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage.value)
+  const startItem = totalItems === 0 ? 0 : (currentPage.value - 1) * itemsPerPage.value + 1
+  const endItem = Math.min(currentPage.value * itemsPerPage.value, totalItems)
+  
+  return {
+    totalItems,
+    totalPages,
+    startItem,
+    endItem,
+    currentPage: currentPage.value,
+    hasNextPage: currentPage.value < totalPages,
+    hasPrevPage: currentPage.value > 1
+  }
+})
+
+>>>>>>> main
 // Debounced search for API calls (only when needed)
 let searchTimeout = null
 const debouncedApiSearch = () => {
@@ -408,6 +486,61 @@ const changePage = (page) => {
   }
 }
 
+<<<<<<< HEAD
+=======
+// New pagination functions for client-side pagination
+const goToPage = (page) => {
+  if (page >= 1 && page <= paginationInfo.value.totalPages) {
+    currentPage.value = page
+  }
+}
+
+const getVisiblePages = () => {
+  const totalPages = paginationInfo.value.totalPages
+  const current = currentPage.value
+  const pages = []
+  
+  if (totalPages <= 7) {
+    // Show all pages if 7 or fewer
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i)
+    }
+  } else {
+    // Show smart pagination
+    if (current <= 4) {
+      // Show first 5 pages + ... + last page
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i)
+      }
+      if (totalPages > 6) {
+        pages.push('...')
+        pages.push(totalPages)
+      }
+    } else if (current >= totalPages - 3) {
+      // Show first page + ... + last 5 pages
+      pages.push(1)
+      if (totalPages > 6) {
+        pages.push('...')
+      }
+      for (let i = totalPages - 4; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      // Show first + ... + current-1, current, current+1 + ... + last
+      pages.push(1)
+      pages.push('...')
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+      pages.push(totalPages)
+    }
+  }
+  
+  return pages
+}
+
+>>>>>>> main
 // Modal functions
 const openCreateModal = () => {
   selectedUser.value = null
@@ -491,6 +624,14 @@ const toggleUserStatus = async (user) => {
   }
 }
 
+<<<<<<< HEAD
+=======
+// Watch for search/filter changes to reset pagination
+watch([searchQuery, roleFilter], () => {
+  currentPage.value = 1
+})
+
+>>>>>>> main
 onMounted(() => {
   loadUsers()
 })
