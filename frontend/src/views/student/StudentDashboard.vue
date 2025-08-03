@@ -1,60 +1,233 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-    <DashboardHeader :student="student" />
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
+    <div class="max-w-6xl mx-auto space-y-6">
+      <!-- Header -->
+      <div class="text-center md:text-left mb-8">
+        <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
+          My Performance Dashboard
+        </h1>
+        <p class="text-gray-600 text-lg">Track Your Academic Progress</p>
+      </div>
 
-    <div class="max-w-7xl mx-auto px-6 py-8">
-      <SummaryStats :stats="summaryStats" />
+      <!-- Student Info Header -->
+      <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
+        <div class="flex items-center gap-4 mb-6">
+          <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <User class="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h2 class="text-3xl font-bold text-gray-900">{{ studentData.name }}</h2>
+            <p class="text-gray-600 text-lg">{{ studentData.course }} • {{ studentData.term }}</p>
+          </div>
+        </div>
+      </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
-        <!-- Main Content Area -->
-        <div class="xl:col-span-3 space-y-8">
-          <ClassSchedule 
-            :current-week-schedule="weeklySchedule" 
-            :next-week-schedule="nextWeekSchedule" 
-          />
-          <AcademicProgress 
-            :progress="academicProgress" 
-            :current-g-p-a="summaryStats.currentGPA" 
-          />
-          <UpcomingItems :items="upcomingItems" />
-          
-          <!-- Feedback & Evaluation -->
-          <div class="bg-white/70 backdrop-blur-xl rounded-3xl border border-gray-100 overflow-hidden">
-            <div class="p-8 border-b border-gray-100">
-              <h2 class="text-2xl font-bold text-gray-900">Feedback & Evaluation</h2>
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div
+          v-for="(kpi, index) in kpiData"
+          :key="index"
+          class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-white/20"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <div :class="`p-3 rounded-xl bg-gradient-to-br ${kpi.gradient} shadow-lg`">
+              <component :is="kpi.icon" class="w-6 h-6 text-white" />
             </div>
-            <div class="p-8">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                  <h3 class="text-lg font-bold text-gray-900">Recent Feedback</h3>
-                  <div v-for="feedback in recentFeedback" :key="feedback.id" class="p-4 bg-gray-50 rounded-2xl">
-                    <h4 class="font-semibold text-gray-900">{{ feedback.subject }}</h4>
-                    <p class="text-sm text-gray-600 mt-1">{{ feedback.comment }}</p>
-                    <p class="text-xs text-gray-500 mt-2">- {{ feedback.teacher }}</p>
-                  </div>
-                </div>
-                <div class="space-y-4">
-                  <h3 class="text-lg font-bold text-gray-900">Evaluation Options</h3>
-                  <button class="w-full p-4 bg-blue-50 text-blue-700 rounded-2xl hover:bg-blue-100 transition-colors">
-                    <StarIcon class="w-5 h-5 inline mr-2" />
-                    Evaluate Teachers
-                  </button>
-                  <button class="w-full p-4 bg-gray-50 text-gray-700 rounded-2xl hover:bg-gray-100 transition-colors">
-                    <EyeIcon class="w-5 h-5 inline mr-2" />
-                    View Past Evaluations
-                  </button>
-                </div>
+            <div :class="`px-3 py-1 rounded-full text-xs font-medium ${kpi.badgeColor}`">
+              {{ kpi.change }}
+            </div>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-1">{{ kpi.title }}</p>
+            <p :class="`text-3xl font-bold ${kpi.textColor}`">{{ kpi.value }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Insights -->
+      <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg">
+            <TrendingUp class="w-5 h-5 text-white" />
+          </div>
+          <h3 class="text-xl font-bold text-gray-900">Performance Insights</h3>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+              <h4 class="font-semibold text-green-800">Strengths</h4>
+            </div>
+            <p class="text-sm text-green-700">{{ topSubject.name }} ({{ topSubject.grade }}%)</p>
+            <p class="text-xs text-green-600 mt-1">Keep up the excellent work!</p>
+          </div>
+          
+          <div class="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h4 class="font-semibold text-blue-800">Overall Trend</h4>
+            </div>
+            <p class="text-sm text-blue-700">{{ trendDirection }} {{ Math.abs(trendValue) }}%</p>
+            <p class="text-xs text-blue-600 mt-1">{{ trendMessage }}</p>
+          </div>
+          
+          <div class="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <h4 class="font-semibold text-orange-800">Focus Area</h4>
+            </div>
+            <p class="text-sm text-orange-700">{{ weakestSubject.name }} ({{ weakestSubject.grade }}%)</p>
+            <p class="text-xs text-orange-600 mt-1">Consider extra study time</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Goals & Targets -->
+      <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+            <Target class="w-5 h-5 text-white" />
+          </div>
+          <h3 class="text-xl font-bold text-gray-900">Academic Goals</h3>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-700">Overall Grade Target</span>
+                <span class="text-sm font-bold text-blue-600">85%</span>
               </div>
+              <div class="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                  :style="`width: ${Math.min((studentData.averageGrade / 85) * 100, 100)}%`"
+                ></div>
+              </div>
+              <p class="text-xs text-gray-600 mt-1">Current: {{ studentData.averageGrade }}%</p>
+            </div>
+            
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-700">Attendance Target</span>
+                <span class="text-sm font-bold text-green-600">95%</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  class="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500"
+                  :style="`width: ${Math.min((studentData.attendanceRate / 95) * 100, 100)}%`"
+                ></div>
+              </div>
+              <p class="text-xs text-gray-600 mt-1">Current: {{ studentData.attendanceRate }}%</p>
+            </div>
+          </div>
+          
+          <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4">
+            <h4 class="font-semibold text-indigo-800 mb-3">Quick Actions</h4>
+            <div class="space-y-2">
+              <button class="w-full text-left px-3 py-2 bg-white/70 rounded-lg hover:bg-white transition-colors text-sm">
+                📚 Review study materials
+              </button>
+              <button class="w-full text-left px-3 py-2 bg-white/70 rounded-lg hover:bg-white transition-colors text-sm">
+                📅 Schedule study sessions
+              </button>
+              <button class="w-full text-left px-3 py-2 bg-white/70 rounded-lg hover:bg-white transition-colors text-sm">
+                👥 Join study groups
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Sidebar -->
-        <div class="space-y-8">
-          <NotificationPanel :notifications="notifications" :unread-count="unreadNotifications" />
-          <AttendanceRecord :record="attendanceRecord" />
-          <ResourcesMaterials :resources="resources" />
-          <SupportContact />
+      <!-- Charts Grid -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <!-- Monthly Progress Chart -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
+              <TrendingUp class="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">Monthly Progress</h3>
+              <p class="text-sm text-gray-600">Your grade trends over time</p>
+            </div>
+          </div>
+          <div class="h-80">
+            <canvas ref="lineChart" class="w-full h-full"></canvas>
+          </div>
+        </div>
+
+        <!-- Subject Performance Chart -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg">
+              <BarChart3 class="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">Subject Performance</h3>
+              <p class="text-sm text-gray-600">Your grades by subject</p>
+            </div>
+          </div>
+          <div class="h-80">
+            <canvas ref="barChart" class="w-full h-full"></canvas>
+          </div>
+        </div>
+
+        <!-- Grade Distribution Chart -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+              <PieChart class="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">Grade Distribution</h3>
+              <p class="text-sm text-gray-600">Your performance breakdown</p>
+            </div>
+          </div>
+          <div class="h-80">
+            <canvas ref="pieChart" class="w-full h-full"></canvas>
+          </div>
+        </div>
+
+        <!-- Performance Radar Chart -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="p-2 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg">
+              <Activity class="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">Skills Assessment</h3>
+              <p class="text-sm text-gray-600">Multi-dimensional analysis</p>
+            </div>
+          </div>
+          <div class="h-80">
+            <canvas ref="radarChart" class="w-full h-full"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg">
+            <Calendar class="w-5 h-5 text-white" />
+          </div>
+          <h3 class="text-xl font-bold text-gray-900">Recent Activity</h3>
+        </div>
+        
+        <div class="space-y-3">
+          <div v-for="activity in recentActivities" :key="activity.id" 
+               class="flex items-center gap-4 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+            <div :class="`p-2 rounded-lg ${activity.color}`">
+              <component :is="activity.icon" class="w-4 h-4 text-white" />
+            </div>
+            <div class="flex-1">
+              <p class="font-medium text-gray-900">{{ activity.title }}</p>
+              <p class="text-sm text-gray-600">{{ activity.description }}</p>
+            </div>
+            <span class="text-xs text-gray-500">{{ activity.time }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -62,303 +235,407 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import DashboardHeader from '@/components/Dashboard/DashboardHeader.vue'
-import SummaryStats from '@/components/Dashboard/SummaryStats.vue'
-import ClassSchedule from '@/components/Dashboard/ClassSchedule.vue'
-import AcademicProgress from '@/components/Dashboard/AcademicProgress.vue'
-import UpcomingItems from '@/components/Dashboard/UpcommingItems.vue'
-import NotificationPanel from '@/components/Dashboard/NotificationPanel.vue'
-import AttendanceRecord from '@/components/Dashboard/attendanceRecord.vue'
-import ResourcesMaterials from '@/components/Dashboard/ResourcesMaterials.vue'
-import SupportContact from '@/components/Dashboard/SupportContact.vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { 
+  Users, TrendingUp, Calendar, AlertTriangle, Filter, Search, X,
+  BarChart3, PieChart, User, Activity, Target, BookOpen, Award, Clock
+} from 'lucide-vue-next'
 
-// Icon components for inline use
-const StarIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>' }
-const EyeIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>' }
-
-// State management
-const unreadNotifications = ref(5)
-
-// Student data
-const student = ref({
-  name: 'Sarah Johnson',
-  course: 'Computer Science - Year 3',
-  studentId: 'CS2024001',
-  lastLogin: 'Today 9:30 AM'
-})
-
-// Summary statistics
-const summaryStats = ref({
-  totalCourses: 6,
-  assignmentsSubmitted: 12,
-  totalAssignments: 15,
+// Student data (this would typically come from an API based on the logged-in student)
+const studentData = ref({
+  id: 1,
+  name: "Sarah Johnson",
+  course: "Computer Science",
+  term: "Fall 2024",
+  averageGrade: 88,
   attendanceRate: 94,
-  currentGPA: 3.7,
-  lastLogin: 'Today'
+  subjects: [
+    { name: "Mathematics", grade: 92 },
+    { name: "Programming", grade: 89 },
+    { name: "Physics", grade: 85 },
+    { name: "English", grade: 87 },
+    { name: "Database", grade: 90 }
+  ],
+  monthlyGrades: [
+    { month: "Sep", grade: 85 },
+    { month: "Oct", grade: 87 },
+    { month: "Nov", grade: 89 },
+    { month: "Dec", grade: 88 }
+  ]
 })
 
-// Weekly schedule
-const weeklySchedule = ref([
+// Recent activities
+const recentActivities = ref([
   {
     id: 1,
-    day: 'Monday',
-    time: '09:00',
-    subject: 'Data Structures & Algorithms',
-    teacher: 'Dr. Smith',
-    room: 'Room 301',
-    status: 'Upcoming',
-    isOnline: false
+    title: "Assignment Submitted",
+    description: "Database Design Project submitted",
+    time: "2 hours ago",
+    icon: BookOpen,
+    color: "bg-blue-500"
   },
   {
     id: 2,
-    day: 'Monday',
-    time: '11:00',
-    subject: 'Web Development',
-    teacher: 'Prof. Johnson',
-    room: 'Online',
-    status: 'In Progress',
-    isOnline: true
+    title: "Quiz Completed",
+    description: "Mathematics Quiz - Score: 92%",
+    time: "1 day ago",
+    icon: Award,
+    color: "bg-green-500"
   },
   {
     id: 3,
-    day: 'Tuesday',
-    time: '14:00',
-    subject: 'Database Systems',
-    teacher: 'Dr. Brown',
-    room: 'Room 205',
-    status: 'Upcoming',
-    isOnline: false
-  },
-  {
-    id: 4,
-    day: 'Wednesday',
-    time: '10:00',
-    subject: 'Software Engineering',
-    teacher: 'Prof. Davis',
-    room: 'Online',
-    status: 'Upcoming',
-    isOnline: true
+    title: "Class Attended",
+    description: "Programming Fundamentals",
+    time: "2 days ago",
+    icon: Clock,
+    color: "bg-purple-500"
   }
 ])
 
-// Next week's schedule
-const nextWeekSchedule = ref([
-  {
-    id: 5,
-    day: 'Monday',
-    time: '10:00',
-    subject: 'Advanced Algorithms',
-    teacher: 'Dr. Martinez',
-    room: 'Room 402',
-    status: 'Upcoming',
-    isOnline: false
-  },
-  {
-    id: 6,
-    day: 'Tuesday',
-    time: '13:00',
-    subject: 'Machine Learning',
-    teacher: 'Prof. Chen',
-    room: 'Online',
-    status: 'Upcoming',
-    isOnline: true
-  },
-  {
-    id: 7,
-    day: 'Wednesday',
-    time: '09:00',
-    subject: 'Software Architecture',
-    teacher: 'Dr. Wilson',
-    room: 'Room 301',
-    status: 'Upcoming',
-    isOnline: false
-  },
-  {
-    id: 8,
-    day: 'Thursday',
-    time: '15:00',
-    subject: 'Project Management',
-    teacher: 'Prof. Taylor',
-    room: 'Room 205',
-    status: 'Upcoming',
-    isOnline: false
-  }
-])
+// Chart refs
+const lineChart = ref(null)
+const barChart = ref(null)
+const pieChart = ref(null)
+const radarChart = ref(null)
 
-// Academic progress
-const academicProgress = ref([
-  { id: 1, name: 'Mathematics', grade: 'A-', progress: 85, recentScore: '92%' },
-  { id: 2, name: 'Programming', grade: 'A', progress: 92, recentScore: '95%' },
-  { id: 3, name: 'Physics', grade: 'B+', progress: 78, recentScore: '88%' },
-  { id: 4, name: 'English', grade: 'A-', progress: 88, recentScore: '90%' }
-])
+// Chart instances
+let lineChartInstance = null
+let barChartInstance = null
+let pieChartInstance = null
+let radarChartInstance = null
 
-// Upcoming items
-const upcomingItems = ref([
-  {
-    id: 1,
-    title: 'Final Project Submission',
-    subject: 'Web Development',
-    dueDate: 'Dec 15, 2024',
-    type: 'assignment',
-    priority: 'High',
-    timeLeft: '3 days left',
-    submissionStatus: 'Not Submitted'
-  },
-  {
-    id: 2,
-    title: 'Midterm Exam',
-    subject: 'Data Structures',
-    dueDate: 'Dec 18, 2024',
-    type: 'exam',
-    priority: 'High',
-    timeLeft: '6 days left',
-    submissionStatus: 'Scheduled'
-  },
-  {
-    id: 3,
-    title: 'Research Paper',
-    subject: 'Database Systems',
-    dueDate: 'Dec 22, 2024',
-    type: 'assignment',
-    priority: 'Medium',
-    timeLeft: '10 days left',
-    submissionStatus: 'Draft Saved'
-  }
-])
-
-// Notifications
-const notifications = ref([
-  {
-    id: 1,
-    type: 'assignment',
-    title: 'New Assignment Posted',
-    message: 'Web Development - Final Project guidelines are now available',
-    time: '2 hours ago'
-  },
-  {
-    id: 2,
-    type: 'grade',
-    title: 'Grade Updated',
-    message: 'Your Mathematics quiz grade has been posted',
-    time: '1 day ago'
-  },
-  {
-    id: 3,
-    type: 'announcement',
-    title: 'System Maintenance',
-    message: 'Scheduled maintenance on Dec 20, 2024 from 2-4 AM',
-    time: '2 days ago'
-  },
-  {
-    id: 4,
-    type: 'deadline',
-    title: 'Assignment Due Soon',
-    message: 'Programming assignment due in 2 days',
-    time: '3 hours ago'
-  }
-])
-
-// Attendance record
-const attendanceRecord = ref({
-  thisMonth: 94,
-  totalAbsences: 3,
-  lateCheckins: 2,
-  weeklyAverage: 96
+// Computed properties
+const kpiData = computed(() => {
+  const totalSubjects = studentData.value.subjects.length
+  const bestGrade = Math.max(...studentData.value.subjects.map(s => s.grade))
+  
+  return [
+    {
+      title: 'Overall Grade',
+      value: `${studentData.value.averageGrade}%`,
+      icon: TrendingUp,
+      gradient: 'from-blue-500 to-blue-600',
+      textColor: 'text-blue-600',
+      badgeColor: 'bg-blue-100 text-blue-700',
+      change: '+3.2%'
+    },
+    {
+      title: 'Attendance Rate',
+      value: `${studentData.value.attendanceRate}%`,
+      icon: Calendar,
+      gradient: 'from-green-500 to-green-600',
+      textColor: 'text-green-600',
+      badgeColor: 'bg-green-100 text-green-700',
+      change: '+1.5%'
+    },
+    {
+      title: 'Best Subject',
+      value: `${bestGrade}%`,
+      icon: Award,
+      gradient: 'from-purple-500 to-purple-600',
+      textColor: 'text-purple-600',
+      badgeColor: 'bg-purple-100 text-purple-700',
+      change: '+2.1%'
+    },
+    {
+      title: 'Total Subjects',
+      value: totalSubjects,
+      icon: BookOpen,
+      gradient: 'from-orange-500 to-orange-600',
+      textColor: 'text-orange-600',
+      badgeColor: 'bg-orange-100 text-orange-700',
+      change: 'Active'
+    }
+  ]
 })
 
-// Recent feedback
-const recentFeedback = ref([
-  {
-    id: 1,
-    subject: 'Web Development',
-    comment: 'Excellent work on the React project. Great attention to detail.',
-    teacher: 'Prof. Johnson'
-  },
-  {
-    id: 2,
-    subject: 'Mathematics',
-    comment: 'Good improvement in problem-solving approach.',
-    teacher: 'Dr. Smith'
-  }
-])
+const topSubject = computed(() => {
+  return studentData.value.subjects.reduce((prev, current) => 
+    (prev.grade > current.grade) ? prev : current
+  )
+})
 
-// Resources
-const resources = ref([
-  {
-    id: 1,
-    title: 'Lecture Notes - Week 12',
-    subject: 'Data Structures',
-    type: 'document'
-  },
-  {
-    id: 2,
-    title: 'Tutorial Video - React Hooks',
-    subject: 'Web Development',
-    type: 'video'
-  },
-  {
-    id: 3,
-    title: 'Reading List - Database Design',
-    subject: 'Database Systems',
-    type: 'link'
-  },
-  {
-    id: 4,
-    title: 'Assignment Template',
-    subject: 'Software Engineering',
-    type: 'document'
+const weakestSubject = computed(() => {
+  return studentData.value.subjects.reduce((prev, current) => 
+    (prev.grade < current.grade) ? prev : current
+  )
+})
+
+const trendDirection = computed(() => {
+  const grades = studentData.value.monthlyGrades
+  const lastGrade = grades[grades.length - 1].grade
+  const previousGrade = grades[grades.length - 2].grade
+  return lastGrade > previousGrade ? 'Improving by' : 'Declining by'
+})
+
+const trendValue = computed(() => {
+  const grades = studentData.value.monthlyGrades
+  const lastGrade = grades[grades.length - 1].grade
+  const previousGrade = grades[grades.length - 2].grade
+  return Math.round(((lastGrade - previousGrade) / previousGrade) * 100)
+})
+
+const trendMessage = computed(() => {
+  return trendDirection.value.includes('Improving') ? 
+    'Great progress this month!' : 'Focus on improvement areas'
+})
+
+// Chart creation functions
+const createLineChart = async () => {
+  if (!lineChart.value) return
+  
+  const { Chart, registerables } = await import('chart.js')
+  Chart.register(...registerables)
+  
+  if (lineChartInstance) {
+    lineChartInstance.destroy()
   }
-])
+  
+  const ctx = lineChart.value.getContext('2d')
+  lineChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: studentData.value.monthlyGrades.map(item => item.month),
+      datasets: [{
+        label: 'Your Grade Progress',
+        data: studentData.value.monthlyGrades.map(item => item.grade),
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderWidth: 4,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: 'rgb(59, 130, 246)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 3,
+        pointRadius: 8,
+        pointHoverRadius: 12
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            font: {
+              size: 12,
+              weight: '500'
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              size: 12,
+              weight: '500'
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+const createBarChart = async () => {
+  if (!barChart.value) return
+  
+  const { Chart, registerables } = await import('chart.js')
+  Chart.register(...registerables)
+  
+  if (barChartInstance) {
+    barChartInstance.destroy()
+  }
+  
+  const ctx = barChart.value.getContext('2d')
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+  
+  barChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: studentData.value.subjects.map(subject => subject.name),
+      datasets: [{
+        label: 'Your Grades',
+        data: studentData.value.subjects.map(subject => subject.grade),
+        backgroundColor: colors.map(color => color + '20'),
+        borderColor: colors,
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            font: {
+              size: 12,
+              weight: '500'
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              size: 11,
+              weight: '500'
+            },
+            maxRotation: 45
+          }
+        }
+      }
+    }
+  })
+}
+
+const createPieChart = async () => {
+  if (!pieChart.value) return
+  
+  const { Chart, registerables } = await import('chart.js')
+  Chart.register(...registerables)
+  
+  if (pieChartInstance) {
+    pieChartInstance.destroy()
+  }
+  
+  const ctx = pieChart.value.getContext('2d')
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+  
+  pieChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: studentData.value.subjects.map(subject => subject.name),
+      datasets: [{
+        data: studentData.value.subjects.map(subject => subject.grade),
+        backgroundColor: colors,
+        borderColor: '#fff',
+        borderWidth: 4,
+        hoverBorderWidth: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            usePointStyle: true,
+            font: {
+              size: 12,
+              weight: '500'
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+const createRadarChart = async () => {
+  if (!radarChart.value) return
+  
+  const { Chart, registerables } = await import('chart.js')
+  Chart.register(...registerables)
+  
+  if (radarChartInstance) {
+    radarChartInstance.destroy()
+  }
+  
+  const ctx = radarChart.value.getContext('2d')
+  
+  radarChartInstance = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: studentData.value.subjects.map(subject => subject.name),
+      datasets: [{
+        label: 'Your Performance',
+        data: studentData.value.subjects.map(subject => subject.grade),
+        borderColor: 'rgb(139, 92, 246)',
+        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+        borderWidth: 3,
+        pointBackgroundColor: 'rgb(139, 92, 246)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.1)'
+          },
+          angleLines: {
+            color: 'rgba(0, 0, 0, 0.1)'
+          },
+          pointLabels: {
+            font: {
+              size: 11,
+              weight: '500'
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+const updateCharts = async () => {
+  await nextTick()
+  createLineChart()
+  createBarChart()
+  createPieChart()
+  createRadarChart()
+}
+
+// Lifecycle
+onMounted(() => {
+  updateCharts()
+})
 </script>
 
 <style scoped>
-/* Modern animations and transitions */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.group:hover .group-hover\:scale-105 {
-  transform: scale(1.05);
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Custom backdrop blur */
-.backdrop-blur-xl {
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-}
-
-/* Gradient text effect */
 .bg-clip-text {
-  background-clip: text;
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Enhanced focus states */
-button:focus,
-a:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Smooth transitions for all interactive elements */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
+  background-clip: text;
 }
 </style>
