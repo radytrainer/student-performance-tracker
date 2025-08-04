@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-6 text-gray-800">Manage Attendance</h1>
-
+    
     <!-- 🔹 1. Attendance Dashboard / Class Selection Filters -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-end">
       <div class="w-full">
@@ -32,31 +32,92 @@
 
     <!-- 🔹 2. Take Attendance Interface Modal -->
     <div v-if="showAttendanceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white w-full max-w-lg rounded-lg shadow-xl max-h-[90vh] flex flex-col">
+      <div class="bg-white w-full max-w-2xl rounded-lg shadow-xl max-h-[90vh] flex flex-col">
         <div class="p-6 border-b border-gray-200">
           <h3 class="text-xl font-bold text-gray-800">Take Attendance</h3>
         </div>
         <div class="overflow-y-auto p-6 flex-1">
           <form @submit.prevent="submitAttendance">
+            <!-- Class Selection -->
+            <div class="mb-4">
+              <label class="block font-medium mb-1 text-gray-700">Class</label>
+              <select v-model="newAttendance.class_id" @change="onClassChange" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option value="">Select Class</option>
+                <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
+              </select>
+            </div>
+
+            <!-- Date Selection -->
             <div class="mb-4">
               <label class="block font-medium mb-1 text-gray-700">Date</label>
               <input type="date" v-model="newAttendance.date" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required />
             </div>
-            <button type="button" @click="markAllPresent" class="mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">Mark All Present</button>
-            <div v-for="student in filteredStudents" :key="student.id" class="mb-4 border-b pb-2">
-              <label class="block font-medium mb-1 text-gray-700">
-                {{ student.user?.first_name }} {{ student.user?.last_name }} (ID: {{ student.user_id }})
-              </label>
-              <select v-model="studentAttendance[student.user_id]" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
-                <option v-for="status in attendanceStatuses" :key="status" :value="status">{{ status }}</option>
-              </select>
-              <input v-model="studentAttendanceNotes[student.user_id]" type="text" placeholder="Notes (e.g., sick leave)" class="mt-2 w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" />
+
+            <!-- Mark All Present Button -->
+            <div class="mb-4">
+              <button type="button" @click="markAllPresent" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors">
+                Mark All Present
+              </button>
             </div>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">Save Attendance</button>
+
+            <!-- Students List -->
+            <div v-if="modalFilteredStudents.length > 0" class="space-y-4 max-h-96 overflow-y-auto">
+              <div v-for="student in modalFilteredStudents" :key="student.user_id" class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <label class="block font-medium mb-2 text-gray-700">
+                  {{ student.user?.first_name }} {{ student.user?.last_name }} 
+                  <span class="text-sm text-gray-500">(ID: {{ student.user_id }})</span>
+                </label>
+                
+                <!-- Attendance Status -->
+                <div class="mb-2">
+                  <select 
+                    v-model="studentAttendance[student.user_id]" 
+                    class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
+                    required
+                  >
+                    <option value="">Select Status</option>
+                    <option v-for="status in attendanceStatuses" :key="status" :value="status">{{ status }}</option>
+                  </select>
+                </div>
+                
+                <!-- Notes -->
+                <input 
+                  v-model="studentAttendanceNotes[student.user_id]" 
+                  type="text" 
+                  placeholder="Notes (e.g., sick leave)" 
+                  class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
+                />
+              </div>
+            </div>
+
+            <!-- No Students Message -->
+            <div v-else-if="newAttendance.class_id" class="text-center py-8 text-gray-500">
+              <p>No students found for the selected class.</p>
+            </div>
+
+            <!-- Select Class Message -->
+            <div v-else class="text-center py-8 text-gray-500">
+              <p>Please select a class to view students.</p>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="mt-6 flex gap-3">
+              <button 
+                type="submit" 
+                :disabled="!canSubmit"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors"
+              >
+                Save Attendance
+              </button>
+              <button 
+                type="button" 
+                @click="closeModal"
+                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
-        </div>
-        <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
-          <button type="button" @click="showAttendanceModal = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">Cancel</button>
         </div>
       </div>
     </div>
@@ -83,7 +144,7 @@
         </div>
         <div>
           <label class="block mb-1 font-medium text-gray-700">Date Range</label>
-          <input type="date" v-model="viewFilters.start_date" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" />
+          <input type="date" v-model="viewFilters.start_date" @change="fetchAttendance" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" />
         </div>
         <div>
           <label class="block mb-1 font-medium text-gray-700">Status</label>
@@ -126,6 +187,7 @@
           </tbody>
         </table>
       </div>
+
       <!-- 📅 Calendar View -->
       <div class="mt-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Calendar View</h3>
@@ -133,6 +195,7 @@
           <FullCalendar :options="calendarOptions" />
         </div>
       </div>
+
       <!-- 📈 Attendance Summary per Student -->
       <div v-for="student in uniqueStudents" :key="student.user_id" class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h3 class="text-lg font-semibold text-gray-800">{{ student.user?.first_name }} {{ student.user?.last_name }}</h3>
@@ -151,41 +214,43 @@
     </div>
 
     <!-- Analytics Charts -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-          <div class="p-4 rounded-xl shadow-md min-h-[300px] flex flex-col bg-gray-50 border border-gray-200" aria-label="Attendance Rate Chart">
-            <h3 class="font-semibold text-lg mb-4">Attendance Rate (Monthly)</h3>
-            <div class="flex-1">
-              <BarChart v-if="!loadingCharts" :chart-data="barChartData" :chart-options="barChartOptions" />
-              <div v-else class="flex items-center justify-center h-full">
-                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            </div>
-          </div>
-<div class="p-4 rounded-xl shadow-md min-h-[300px] flex flex-col bg-gray-50 border border-gray-200" aria-label="Late Arrival Trends Chart">
-            <h3 class="font-semibold text-lg mb-4">Late Arrival Trends</h3>
-            <div class="flex-1">
-              <LineChart v-if="!loadingCharts" :chart-data="lineChartData" :chart-options="lineChartOptions" />
-              <div v-else-if="errorCharts" class="flex items-center justify-center h-full text-red-500">
-                Failed to load chart data
-              </div>
-              <div v-else class="flex items-center justify-center h-full">
-                <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            </div>
-          </div>
-          <div class="p-4 rounded-xl shadow-md min-h-[300px] flex flex-col bg-gray-50 border border-gray-200" aria-label="Status Breakdown Chart">
-            <h3 class="font-semibold text-lg mb-4">Status Breakdown</h3>
-            <div class="flex-1">
-              <PieChart v-if="!loadingCharts" :chart-data="pieChartData" :chart-options="pieChartOptions" />
-              <div v-else class="flex items-center justify-center h-full">
-                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+      <div class="p-4 rounded-xl shadow-md min-h-[300px] flex flex-col bg-gray-50 border border-gray-200" aria-label="Attendance Rate Chart">
+        <h3 class="font-semibold text-lg mb-4">Attendance Rate (Monthly)</h3>
+        <div class="flex-1">
+          <BarChart v-if="!loadingCharts" :chart-data="barChartData" :chart-options="barChartOptions" />
+          <div v-else class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         </div>
+      </div>
+
+      <div class="p-4 rounded-xl shadow-md min-h-[300px] flex flex-col bg-gray-50 border border-gray-200" aria-label="Late Arrival Trends Chart">
+        <h3 class="font-semibold text-lg mb-4">Late Arrival Trends</h3>
+        <div class="flex-1">
+          <LineChart v-if="!loadingCharts" :chart-data="lineChartData" :chart-options="lineChartOptions" />
+          <div v-else-if="errorCharts" class="flex items-center justify-center h-full text-red-500">
+            Failed to load chart data
+          </div>
+          <div v-else class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-xl shadow-md min-h-[300px] flex flex-col bg-gray-50 border border-gray-200" aria-label="Status Breakdown Chart">
+        <h3 class="font-semibold text-lg mb-4">Status Breakdown</h3>
+        <div class="flex-1">
+          <PieChart v-if="!loadingCharts" :chart-data="pieChartData" :chart-options="pieChartOptions" />
+          <div v-else class="flex items-center justify-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 🔹 4. Export / Reporting Features -->
-    <div class="bg-white rounded-lg shadow-md p-4">
+    <div class="bg-white rounded-lg shadow-md p-4 mt-6">
       <h2 class="text-xl font-semibold text-gray-800 mb-4">Export / Reports</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button @click="exportCSV" class="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors">
@@ -210,7 +275,7 @@ import LineChart from '@/components/charts/LineChart.vue'
 import PieChart from '@/components/charts/PieChart.vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
-import { PlusIcon } from 'lucide-vue-next' // Import PlusIcon
+import { PlusIcon } from 'lucide-vue-next'
 
 // Example: attendance events for calendar
 const calendarOptions = ref({
@@ -224,7 +289,7 @@ const calendarOptions = ref({
   ],
 })
 
-const barChartData = {
+const barChartData = ref({
   labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
   datasets: [
     {
@@ -233,8 +298,9 @@ const barChartData = {
       backgroundColor: '#3b82f6'
     }
   ]
-}
-const lineChartData = {
+})
+
+const lineChartData = ref({
   labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
   datasets: [
     {
@@ -244,8 +310,9 @@ const lineChartData = {
       tension: 0.3
     }
   ]
-}
-const pieChartData = {
+})
+
+const pieChartData = ref({
   labels: ['Present', 'Absent', 'Late', 'Excused'],
   datasets: [
     {
@@ -254,11 +321,22 @@ const pieChartData = {
       backgroundColor: ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6']
     }
   ]
-}
-const chartOptions = {
+})
+
+const barChartOptions = ref({
   responsive: true,
   maintainAspectRatio: false
-}
+})
+
+const lineChartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false
+})
+
+const pieChartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false
+})
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api",
@@ -280,6 +358,8 @@ apiClient.interceptors.request.use((config) => {
 });
 
 const loading = ref(false);
+const loadingCharts = ref(false);
+const errorCharts = ref(false);
 const error = ref(null);
 const attendanceRecords = ref([]);
 const classes = ref([]);
@@ -290,7 +370,7 @@ const attendanceStatuses = ref(["Present", "Absent", "Late", "Excused"]);
 
 const filters = ref({
   class_id: "",
-  date: new Date("2025-08-01T13:31:00+07:00").toISOString().split("T")[0],
+  date: new Date().toISOString().split("T")[0],
   subject_id: "",
 });
 
@@ -304,15 +384,86 @@ const viewFilters = ref({
 
 const newAttendance = ref({
   class_id: "",
-  date: new Date("2025-08-01T13:31:00+07:00").toISOString().split("T")[0],
+  date: new Date().toISOString().split("T")[0],
 });
 
 const studentAttendance = ref({});
 const studentAttendanceNotes = ref({});
 
+// Mock data for development
+const initializeMockData = () => {
+  classes.value = [
+    { id: "1", class_name: "Grade 10A" },
+    { id: "2", class_name: "Grade 10B" },
+    { id: "3", class_name: "Grade 11A" },
+  ];
+
+  subjects.value = [
+    { id: "1", subject_name: "Mathematics" },
+    { id: "2", subject_name: "English" },
+    { id: "3", subject_name: "Science" },
+  ];
+
+  students.value = [
+    { id: "1", user_id: "1", class_id: "1", user: { id: "1", first_name: "John", last_name: "Doe" } },
+    { id: "2", user_id: "2", class_id: "1", user: { id: "2", first_name: "Jane", last_name: "Smith" } },
+    { id: "3", user_id: "3", class_id: "2", user: { id: "3", first_name: "Bob", last_name: "Johnson" } },
+    { id: "4", user_id: "4", class_id: "2", user: { id: "4", first_name: "Alice", last_name: "Brown" } },
+    { id: "5", user_id: "5", class_id: "3", user: { id: "5", first_name: "Charlie", last_name: "Wilson" } },
+  ];
+
+  attendanceRecords.value = [
+    {
+      id: "1",
+      student_id: "1",
+      class_id: "1",
+      date: "2025-01-15",
+      status: "Present",
+      notes: "",
+      student: students.value[0],
+      class: classes.value[0],
+    },
+    {
+      id: "2",
+      student_id: "2",
+      class_id: "1",
+      date: "2025-01-15",
+      status: "Absent",
+      notes: "Sick leave",
+      student: students.value[1],
+      class: classes.value[0],
+    },
+    {
+      id: "3",
+      student_id: "3",
+      class_id: "2",
+      date: "2025-01-15",
+      status: "Late",
+      notes: "Traffic jam",
+      student: students.value[2],
+      class: classes.value[1],
+    },
+    {
+      id: "4",
+      student_id: "4",
+      class_id: "2",
+      date: "2025-01-15",
+      status: "Present",
+      notes: "",
+      student: students.value[3],
+      class: classes.value[1],
+    },
+  ];
+};
+
 const fetchAll = async () => {
   loading.value = true;
   try {
+    // For development, use mock data
+    // In production, uncomment the API calls below
+    initializeMockData();
+    
+    
     const [cls, sub, stu] = await Promise.all([
       apiClient.get("/classes"),
       apiClient.get("/subjects"),
@@ -321,6 +472,8 @@ const fetchAll = async () => {
     classes.value = cls.data.data;
     subjects.value = sub.data.data;
     students.value = stu.data.data;
+    
+    
     await fetchAttendance();
   } catch (err) {
     error.value = "Failed to load data: " + (err.response?.data?.message || err.message);
@@ -333,9 +486,15 @@ const fetchAll = async () => {
 const fetchAttendance = async () => {
   loading.value = true;
   try {
+    // For development, skip API call
+    // In production, uncomment the API call below
+    
+    /*
     const params = { ...filters.value, ...viewFilters.value };
     const res = await apiClient.get("/attendance", { params });
     attendanceRecords.value = res.data.data;
+    */
+    
     error.value = null;
   } catch (err) {
     error.value = "Failed to load attendance records: " + (err.response?.data?.message || err.message);
@@ -345,8 +504,37 @@ const fetchAttendance = async () => {
   }
 };
 
+// Computed property for students filtered by selected class in modal
+const modalFilteredStudents = computed(() => {
+  if (!newAttendance.value.class_id) return [];
+  return students.value.filter((student) => student.class_id === newAttendance.value.class_id);
+});
+
+// Computed property for students filtered by main filters
+const filteredStudents = computed(() => {
+  if (!filters.value.class_id) return students.value;
+  return students.value.filter((student) => student.class_id === filters.value.class_id);
+});
+
+// Computed property to check if form can be submitted
+const canSubmit = computed(() => {
+  if (!newAttendance.value.class_id || !newAttendance.value.date) return false;
+  if (modalFilteredStudents.value.length === 0) return false;
+  
+  // Check if all students have attendance status selected
+  return modalFilteredStudents.value.every(student => 
+    studentAttendance.value[student.user_id] && 
+    studentAttendance.value[student.user_id] !== ""
+  );
+});
+
 const openTakeAttendanceModal = () => {
   showAttendanceModal.value = true;
+  resetAttendanceForm();
+};
+
+const closeModal = () => {
+  showAttendanceModal.value = false;
   resetAttendanceForm();
 };
 
@@ -355,27 +543,44 @@ const resetAttendanceForm = () => {
   newAttendance.value.date = filters.value.date;
   studentAttendance.value = {};
   studentAttendanceNotes.value = {};
-  filteredStudents.value.forEach((student) => {
+  
+  // Initialize attendance for current students
+  if (newAttendance.value.class_id) {
+    const currentStudents = students.value.filter(student => student.class_id === newAttendance.value.class_id);
+    currentStudents.forEach((student) => {
+      studentAttendance.value[student.user_id] = "Present";
+      studentAttendanceNotes.value[student.user_id] = "";
+    });
+  }
+};
+
+const onClassChange = () => {
+  // Reset attendance data when class changes
+  studentAttendance.value = {};
+  studentAttendanceNotes.value = {};
+  
+  // Initialize attendance for new class students
+  modalFilteredStudents.value.forEach((student) => {
     studentAttendance.value[student.user_id] = "Present";
     studentAttendanceNotes.value[student.user_id] = "";
   });
 };
 
-const filteredStudents = computed(() => {
-  if (!filters.value.class_id) return students.value;
-  return students.value.filter((student) => student.class_id === filters.value.class_id);
-});
-
 const markAllPresent = () => {
-  filteredStudents.value.forEach((student) => {
+  modalFilteredStudents.value.forEach((student) => {
     studentAttendance.value[student.user_id] = "Present";
     studentAttendanceNotes.value[student.user_id] = "";
   });
 };
 
 const submitAttendance = async () => {
+  if (!canSubmit.value) {
+    alert("Please fill in all required fields and select attendance status for all students.");
+    return;
+  }
+
   try {
-    const payloads = filteredStudents.value.map((student) => ({
+    const payloads = modalFilteredStudents.value.map((student) => ({
       student_id: student.user_id,
       class_id: newAttendance.value.class_id,
       date: newAttendance.value.date,
@@ -384,7 +589,33 @@ const submitAttendance = async () => {
       recorded_by: localStorage.getItem("user_id") || null,
       recorded_at: new Date().toISOString(),
     }));
+
+    // For development, just log the data and simulate success
+    console.log("Attendance data to be submitted:", payloads);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Add the new records to our mock data
+    const newRecords = payloads.map((payload, index) => ({
+      id: `new_${Date.now()}_${index}`,
+      student_id: payload.student_id,
+      class_id: payload.class_id,
+      date: payload.date,
+      status: payload.status,
+      notes: payload.notes,
+      student: students.value.find(s => s.user_id === payload.student_id),
+      class: classes.value.find(c => c.id === payload.class_id),
+    }));
+    
+    attendanceRecords.value.push(...newRecords);
+    
+    
+    // In production, use this API call:
     await apiClient.post("/attendance", payloads);
+    
+    
+    alert("Attendance saved successfully!");
     showAttendanceModal.value = false;
     await fetchAttendance();
   } catch (err) {
@@ -470,14 +701,17 @@ onMounted(() => {
 .overflow-x-auto::-webkit-scrollbar {
   height: 8px;
 }
+
 .overflow-x-auto::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
+
 .overflow-x-auto::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
 }
+
 .overflow-x-auto::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
@@ -491,14 +725,17 @@ onMounted(() => {
 .overflow-y-auto::-webkit-scrollbar {
   width: 6px;
 }
+
 .overflow-y-auto::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
+
 .overflow-y-auto::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
 }
+
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
@@ -520,6 +757,7 @@ input:focus {
     transform: rotate(360deg);
   }
 }
+
 .animate-spin {
   animation: spin 1s linear infinite;
 }
