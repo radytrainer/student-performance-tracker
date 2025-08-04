@@ -79,6 +79,39 @@ const routes = [
     }
   },
   {
+    path: '/admin/students',
+    name: 'AdminStudents',
+    component: () => import('@/views/admin/AdminStudents.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_users',
+      title: 'Manage Students'
+    }
+  },
+  {
+    path: '/admin/terms',
+    name: 'AdminTerms',
+    component: () => import('@/views/admin/AdminTerms.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_system',
+      title: 'Academic Terms'
+    }
+  },
+  {
+    path: '/admin/import',
+    name: 'AdminImport',
+    component: () => import('@/views/admin/AdminImport.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_users',
+      title: 'Data Import'
+    }
+  },
+  {
     path: '/admin/reports',
     name: 'AdminReports',
     component: () => import('@/views/admin/AdminReports.vue'),
