@@ -133,6 +133,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/users/bulk-status', [App\Http\Controllers\Admin\UserController::class, 'bulkUpdateStatus']);
         Route::get('admin/users/{user}/access-logs', [App\Http\Controllers\Admin\UserController::class, 'getAccessLogs']);
 
+        // Admin Academic Data Management
+        // Student Management
+        Route::apiResource('admin/students', App\Http\Controllers\Admin\StudentController::class);
+        Route::post('admin/students/bulk-action', [App\Http\Controllers\Admin\StudentController::class, 'bulkAction']);
+        Route::get('admin/classes/{classId}/students', [App\Http\Controllers\Admin\StudentController::class, 'getByClass']);
+
+        // Class Management  
+        Route::apiResource('admin/classes', App\Http\Controllers\Admin\ClassController::class);
+        Route::post('admin/classes/{class}/assign-teacher', [App\Http\Controllers\Admin\ClassController::class, 'assignTeacher']);
+        Route::get('admin/teachers/available', [App\Http\Controllers\Admin\ClassController::class, 'getAvailableTeachers']);
+        Route::get('admin/classes-stats', [App\Http\Controllers\Admin\ClassController::class, 'getClassStats']);
+
+        // Subject Management
+        Route::apiResource('admin/subjects', App\Http\Controllers\Admin\SubjectController::class);
+        Route::post('admin/subjects/bulk-action', [App\Http\Controllers\Admin\SubjectController::class, 'bulkAction']);
+        Route::get('admin/subjects/departments', [App\Http\Controllers\Admin\SubjectController::class, 'getDepartments']);
+        Route::get('admin/subjects-stats', [App\Http\Controllers\Admin\SubjectController::class, 'getSubjectStats']);
+
         // Future Admin routes (controllers need to be created)
         // Route::get('admin/settings', 'Admin\SettingsController@index');
         // Route::put('admin/settings', 'Admin\SettingsController@update');
