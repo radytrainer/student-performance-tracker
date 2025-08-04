@@ -13,13 +13,11 @@
         <div
           :class="[
             'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border-2',
-            currentStep >= 1
-              ? 'bg-blue-500 border-blue-500'
-              : 'bg-transparent border-white/30',
+            getStep1ValidationState(),
           ]"
         >
           <svg
-            v-if="currentStep > 1"
+            v-if="isStep1Completed && currentStep > 1"
             class="w-4 h-4 text-white"
             fill="none"
             stroke="currentColor"
@@ -39,7 +37,9 @@
         <div
           :class="[
             'w-12 h-0.5 transition-all duration-300',
-            currentStep === 2 ? 'bg-blue-500' : 'bg-white/30',
+            isStep1Completed && currentStep === 2
+              ? 'bg-blue-500'
+              : 'bg-white/30',
           ]"
         ></div>
 
@@ -47,7 +47,7 @@
         <div
           :class="[
             'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border-2',
-            currentStep === 2
+            currentStep === 2 && isStep1Completed
               ? 'bg-blue-500 border-blue-500'
               : 'bg-transparent border-white/30',
           ]"
@@ -237,6 +237,33 @@
             </p>
           </div>
 
+          <!-- Step 1 Validation Error Message -->
+          <div
+            v-if="attemptedNextStep && !validateStep1()"
+            class="p-3 bg-red-500/20 border border-red-500/50 rounded-lg flex items-start space-x-2"
+          >
+            <svg
+              class="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <div>
+              <h4 class="text-red-400 font-medium text-sm">
+                Please complete all required fields
+              </h4>
+              <p class="text-red-300 text-sm mt-1">
+                Fill in all the required information before proceeding to the
+                next step.
+              </p>
+            </div>
+          </div>
+
           <!-- Navigation Buttons for Step 1 -->
           <div class="flex justify-end pt-4">
             <button
@@ -302,11 +329,13 @@
                 hasError('school')
                   ? 'border-red-400 ring-2 ring-red-400/50'
                   : 'hover:border-white/30',
-                isLoadingSchools ? 'opacity-50 cursor-not-allowed' : ''
+                isLoadingSchools ? 'opacity-50 cursor-not-allowed' : '',
               ]"
             >
               <option value="" disabled class="bg-gray-800 text-gray-300">
-                {{ isLoadingSchools ? 'Loading schools...' : 'Select your school' }}
+                {{
+                  isLoadingSchools ? "Loading schools..." : "Select your school"
+                }}
               </option>
               <option
                 v-for="school in availableSchools"
@@ -419,6 +448,10 @@ import { reactive, watch, ref, computed, onMounted } from "vue";
 // Current step for pagination
 const currentStep = ref(1);
 
+// Step validation states
+const stepValidationErrors = ref({});
+const attemptedNextStep = ref(false);
+
 const props = defineProps({
   errors: {
     type: Object,
@@ -483,7 +516,7 @@ const fetchSchools = async () => {
   isLoadingSchools.value = true;
   try {
     // Replace with your actual API endpoint
-    const response = await fetch('/api/schools');
+    const response = await fetch("/api/schools");
     if (response.ok) {
       const schools = await response.json();
       availableSchools.value = schools;
@@ -501,7 +534,7 @@ const fetchSchools = async () => {
       ];
     }
   } catch (error) {
-    console.error('Failed to fetch schools:', error);
+    console.error("Failed to fetch schools:", error);
     // Fallback to static data on error
     availableSchools.value = [
       { id: "1", name: "Passerelles Numeriques Cambodia (PNC)" },
@@ -532,16 +565,78 @@ watch(
   { deep: true }
 );
 
+// Step validation functions
+const validateStep1 = () => {
+  const errors = {};
+
+  if (!formData.first_name.trim()) {
+    errors.first_name = "First name is required";
+  }
+
+  if (!formData.last_name.trim()) {
+    errors.last_name = "Last name is required";
+  }
+
+  if (!formData.username.trim()) {
+    errors.username = "Username is required";
+  }
+
+  if (!formData.email.trim()) {
+    errors.email = "Email is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    errors.email = "Please enter a valid email address";
+  }
+
+  if (!formData.gender) {
+    errors.gender = "Please select your gender";
+  }
+
+  if (!formData.date_of_birth) {
+    errors.date_of_birth = "Date of birth is required";
+  }
+
+  stepValidationErrors.value = errors;
+  return Object.keys(errors).length === 0;
+};
+
+const isStep1Completed = computed(() => {
+  return validateStep1();
+});
+
+const getStep1ValidationState = () => {
+  if (attemptedNextStep.value && !validateStep1()) {
+    return "bg-red-500 border-red-500"; // Red for validation errors
+  }
+  if (currentStep.value >= 1) {
+    if (isStep1Completed.value && currentStep.value > 1) {
+      return "bg-green-500 border-green-500"; // Green for completed
+    }
+    return "bg-blue-500 border-blue-500"; // Blue for current/active
+  }
+  return "bg-transparent border-white/30"; // Default inactive
+};
+
 // Navigation functions
 const nextStep = () => {
+  attemptedNextStep.value = true;
+
+  if (currentStep.value === 1) {
+    if (!validateStep1()) {
+      // Validation failed, show error message
+      return;
+    }
+  }
+
   if (currentStep.value < 2) {
     currentStep.value++;
+    attemptedNextStep.value = false; // Reset for next step
   }
 };
 
 const previousStep = () => {
   if (currentStep.value > 1) {
     currentStep.value--;
+    attemptedNextStep.value = false; // Reset validation attempt
   }
 };
 
@@ -550,11 +645,11 @@ const handleSubmit = () => {
 };
 
 const hasError = (field) => {
-  return !!props.errors[field];
+  return !!props.errors[field] || !!stepValidationErrors.value[field];
 };
 
 const getErrorMessage = (field) => {
-  const error = props.errors[field];
+  const error = props.errors[field] || stepValidationErrors.value[field];
   if (!error) return "";
 
   // Define user-friendly error messages
