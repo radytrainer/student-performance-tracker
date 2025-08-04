@@ -126,10 +126,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('admin/users/{id}', [UserController::class, 'update']);
         Route::patch('admin/users/{id}/status', [UserController::class, 'toggleStatus']);
 
-        // Legacy User Management routes (commented out - controllers don't exist)
-        // Route::apiResource('admin/users', 'Admin\UserController');
-        // Route::post('admin/users/{user}/reset-password', 'Admin\UserController@resetPassword');
-        // Route::put('admin/users/{user}/role', 'Admin\UserController@updateRole');
+        // Admin User Management routes with Admin\UserController
+        Route::post('admin/users/{user}/reset-password', [App\Http\Controllers\Admin\UserController::class, 'resetPassword']);
+        Route::put('admin/users/{user}/role', [App\Http\Controllers\Admin\UserController::class, 'updateRole']);
+        Route::patch('admin/users/{user}/toggle-status', [App\Http\Controllers\Admin\UserController::class, 'toggleStatus']);
+        Route::post('admin/users/bulk-status', [App\Http\Controllers\Admin\UserController::class, 'bulkUpdateStatus']);
+        Route::get('admin/users/{user}/access-logs', [App\Http\Controllers\Admin\UserController::class, 'getAccessLogs']);
 
         // Future Admin routes (controllers need to be created)
         // Route::get('admin/settings', 'Admin\SettingsController@index');
