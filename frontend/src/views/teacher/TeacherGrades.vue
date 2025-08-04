@@ -2,41 +2,138 @@
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-4 text-gray-800">Manage Grades</h1>
 
-    <!-- Filters -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <!-- Role-Based Header -->
+    <div v-if="user.role === 'student'" class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+      <p class="text-blue-800">You are viewing your grades in read-only mode.</p>
+    </div>
+
+    <!-- Filters & Import/Export Row -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <!-- Class Filter -->
       <div>
         <label class="block mb-1 font-medium text-gray-700">Class</label>
-        <select v-model="filters.class_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+        <select 
+          v-model="filters.class_id" 
+          @change="fetchGrades" 
+          class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+        >
           <option value="">All</option>
           <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
         </select>
       </div>
+
+      <!-- Subject Filter -->
       <div>
         <label class="block mb-1 font-medium text-gray-700">Subject</label>
-        <select v-model="filters.subject_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+        <select 
+          v-model="filters.subject_id" 
+          @change="fetchGrades" 
+          class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+        >
           <option value="">All</option>
           <option v-for="sub in subjects" :key="sub.id" :value="sub.id">{{ sub.subject_name }}</option>
         </select>
       </div>
+
+      <!-- Term Filter -->
       <div>
         <label class="block mb-1 font-medium text-gray-700">Term</label>
-        <select v-model="filters.term_id" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+        <select 
+          v-model="filters.term_id" 
+          @change="fetchGrades" 
+          class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+        >
           <option value="">All</option>
           <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
         </select>
       </div>
+
+      <!-- Assessment Type Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Assessment Type</label>
-        <select v-model="filters.assessment_type" @change="fetchGrades" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+        <label class="block mb-1 font-medium text-gray-700">Assessment</label>
+        <select 
+          v-model="filters.assessment_type" 
+          @change="fetchGrades" 
+          class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+        >
           <option value="">All</option>
           <option v-for="type in assessmentTypes" :key="type">{{ type }}</option>
         </select>
       </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <!-- Grade Distribution Pie Chart -->
+    <!-- Import/Export Buttons -->
+    <div class="flex flex-wrap gap-3 mb-6">
+      <!-- CSV/Excel Import -->
+      <div class="relative">
+        <input 
+          type="file" 
+          id="file-upload" 
+          @change="handleFileUpload" 
+          accept=".csv,.xlsx,.xls" 
+          class="hidden"
+        >
+        <label 
+          for="file-upload" 
+          class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md cursor-pointer transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+          Import Grades
+        </label>
+        <span v-if="uploadProgress > 0" class="absolute bottom-0 left-0 h-1 bg-indigo-300" :style="`width: ${uploadProgress}%`"></span>
+      </div>
+
+      <!-- Google Sheets Import -->
+      <button 
+        @click="importFromGoogleSheets" 
+        class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
+        :disabled="googleLoading"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        {{ googleLoading ? 'Connecting...' : 'Import from Google Sheets' }}
+      </button>
+
+      <!-- Export Buttons -->
+      <button 
+        @click="exportToExcel" 
+        class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        Export to Excel
+      </button>
+
+      <button 
+        @click="exportToPDF" 
+        class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5 4v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1V4a4 4 0 00-8 0z" clip-rule="evenodd" />
+        </svg>
+        Export to PDF
+      </button>
+
+      <!-- Add Grade Button (Teacher Only) -->
+      <button 
+        v-if="user.role === 'teacher'"
+        @click="openAddModal" 
+        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors ml-auto"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
+        Add New Grade
+      </button>
+    </div>
+
+    <!-- Analytics Dashboard -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- Grade Distribution -->
       <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
         <h2 class="text-xl font-semibold mb-4 text-gray-800">Grade Distribution</h2>
         <div class="w-full h-64">
@@ -51,6 +148,7 @@
             <ul class="text-sm max-h-40 overflow-y-auto">
               <li v-for="grade in selectedGradeGroup.grades" :key="grade.id" class="py-1 border-b border-gray-100">
                 {{ grade.student?.user?.first_name }} {{ grade.student?.user?.last_name }} - {{ grade.score_obtained }}
+                <span v-if="grade.score_obtained < 50" class="text-red-500 ml-2">⚠️ Low</span>
               </li>
             </ul>
           </div>
@@ -58,7 +156,7 @@
         </div>
       </div>
 
-      <!-- Student Scores Chart -->
+      <!-- Student Scores -->
       <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
         <h2 class="text-xl font-semibold mb-4 text-gray-800">Student Scores</h2>
         <div class="w-full h-64">
@@ -69,7 +167,10 @@
           <div class="grid grid-cols-2 gap-2 mt-2">
             <div>
               <p class="text-sm text-gray-600">Score:</p>
-              <p>{{ selectedStudentGrade.score }}</p>
+              <p :class="{'text-red-500': selectedStudentGrade.score < 50}">
+                {{ selectedStudentGrade.score }}
+                <span v-if="selectedStudentGrade.score < 50" class="ml-1">⚠️</span>
+              </p>
             </div>
             <div>
               <p class="text-sm text-gray-600">Grade:</p>
@@ -93,8 +194,11 @@
             </div>
           </div>
           <div class="mt-3">
-            <button @click="openEditModal(selectedStudentGrade.fullData)" 
-                    class="text-blue-600 text-sm mr-3 hover:underline">
+            <button 
+              v-if="user.role === 'teacher'"
+              @click="openEditModal(selectedStudentGrade.fullData)" 
+              class="text-blue-600 text-sm mr-3 hover:underline"
+            >
               Edit Grade
             </button>
             <button @click="selectedStudentGrade = null" class="text-blue-600 text-sm">Close</button>
@@ -106,31 +210,21 @@
     <!-- Grade Table -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-800">Teacher Grades</h2>
-            <div class="flex gap-2">
+        <h2 class="text-xl font-semibold text-gray-800">Grades</h2>
+        <div class="flex items-center gap-2">
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Search students..." 
+            class="border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+          >
           <button 
-            @click="exportToExcel" 
-            class="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
+            @click="toggleSortOrder" 
+            class="p-2 rounded-md hover:bg-gray-100"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+              <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
-            Export to Excel
-          </button>
-          <button 
-            @click="exportToCSV" 
-            class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-            Export to CSV
-          </button>
-          <button @click="openAddModal" class="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Add New Grade
           </button>
         </div>
       </div>
@@ -139,9 +233,9 @@
         <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
       </div>
       <div v-else-if="error" class="text-red-500 p-4 bg-red-50 rounded-md">{{ error }}</div>
-      <div v-else-if="grades.length === 0" class="text-gray-500 p-4 text-center">No grades available.</div>
+      <div v-else-if="filteredGrades.length === 0" class="text-gray-500 p-4 text-center">No grades found.</div>
 
-      <div v-else class="overflow-x-auto">
+      <div v-else class="overflow-x-auto" id="grades-table">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
@@ -152,11 +246,11 @@
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assessment</th>
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th v-if="user.role === 'teacher'" scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="grade in grades" :key="grade.id" class="hover:bg-gray-50 transition-colors">
+            <tr v-for="grade in filteredGrades" :key="grade.id" class="hover:bg-gray-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -190,6 +284,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" 
                   :class="getScoreTextClass(grade.score_obtained)">
                 {{ grade.score_obtained }}
+                <span v-if="grade.score_obtained < 50" class="ml-1">⚠️</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
@@ -197,7 +292,7 @@
                   {{ grade.grade_letter || 'N/A' }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <td v-if="user.role === 'teacher'" class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button @click="openEditModal(grade)" class="text-blue-500 hover:text-blue-700 mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -213,6 +308,37 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Pagination -->
+      <div v-if="filteredGrades.length > 0" class="flex items-center justify-between mt-4">
+        <div class="text-sm text-gray-500">
+          Showing {{ pagination.from }} to {{ pagination.to }} of {{ pagination.total }} entries
+        </div>
+        <div class="flex gap-1">
+          <button 
+            @click="prevPage" 
+            :disabled="pagination.currentPage === 1"
+            class="px-3 py-1 rounded-md border border-gray-300 disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <button 
+            v-for="page in pagination.lastPage" 
+            @click="goToPage(page)"
+            :class="{'bg-blue-600 text-white': pagination.currentPage === page}"
+            class="w-8 h-8 rounded-md border border-gray-300"
+          >
+            {{ page }}
+          </button>
+          <button 
+            @click="nextPage" 
+            :disabled="pagination.currentPage === pagination.lastPage"
+            class="px-3 py-1 rounded-md border border-gray-300 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Add/Edit Grade Modal -->
@@ -225,7 +351,11 @@
           <form @submit.prevent="submitNewGrade">
             <div class="mb-4">
               <label class="block font-medium mb-1 text-gray-700">Student</label>
-              <select v-model="newGrade.student_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+              <select 
+                v-model="newGrade.student_id" 
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
+                required
+              >
                 <option disabled value="">Select student</option>
                 <option v-for="student in students" :key="student.id" :value="student.user_id">
                   {{ student.user?.first_name }} {{ student.user?.last_name }}
@@ -235,7 +365,11 @@
 
             <div class="mb-4">
               <label class="block font-medium mb-1 text-gray-700">Class-Subject</label>
-              <select v-model="newGrade.class_subject_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+              <select 
+                v-model="newGrade.class_subject_id" 
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
+                required
+              >
                 <option v-for="cs in classSubjects" :key="cs.id" :value="cs.id">
                   {{ cs.class.class_name }} - {{ cs.subject.subject_name }}
                 </option>
@@ -244,14 +378,22 @@
 
             <div class="mb-4">
               <label class="block font-medium mb-1 text-gray-700">Term</label>
-              <select v-model="newGrade.term_id" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+              <select 
+                v-model="newGrade.term_id" 
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
+                required
+              >
                 <option v-for="term in terms" :key="term.id" :value="term.id">{{ term.term_name }}</option>
               </select>
             </div>
 
             <div class="mb-4">
               <label class="block font-medium mb-1 text-gray-700">Assessment Type</label>
-              <select v-model="newGrade.assessment_type" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" required>
+              <select 
+                v-model="newGrade.assessment_type" 
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
+                required
+              >
                 <option v-for="type in assessmentTypes" :key="type" :value="type">{{ type }}</option>
               </select>
             </div>
@@ -271,7 +413,10 @@
 
             <div class="mb-6">
               <label class="block font-medium mb-1 text-gray-700">Grade Letter</label>
-              <select v-model="newGrade.grade_letter" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+              <select 
+                v-model="newGrade.grade_letter" 
+                class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+              >
                 <option value="">Auto-calculate</option>
                 <option v-for="letter in gradeLetters" :key="letter" :value="letter">{{ letter }}</option>
               </select>
@@ -280,25 +425,61 @@
         </div>
         <div class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
           <div class="flex justify-end gap-3">
-            <button type="button" @click="showAddModal = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+            <button 
+              type="button" 
+              @click="showAddModal = false" 
+              class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+            >
               Cancel
             </button>
-            <button type="submit" @click="submitNewGrade" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+            <button 
+              type="submit" 
+              @click="submitNewGrade" 
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+            >
               {{ isEditMode ? 'Update' : 'Submit' }}
             </button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Google Auth Modal -->
+    <div v-if="showGoogleAuthModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white w-full max-w-md rounded-lg shadow-xl p-6">
+        <h3 class="text-xl font-bold mb-4 text-gray-800">Connect Google Sheets</h3>
+        <p class="mb-4">Please authorize access to your Google Sheets account:</p>
+        <button 
+          @click="authenticateGoogle" 
+          class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Sign in with Google
+        </button>
+        <button 
+          @click="showGoogleAuthModal = false" 
+          class="mt-4 w-full px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import axios from 'axios'
 import Chart from 'chart.js/auto'
 import * as XLSX from 'xlsx'
+import html2pdf from 'html2pdf.js'
 
+// Initialize API client
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
   headers: {
@@ -307,6 +488,7 @@ const apiClient = axios.create({
   }
 })
 
+// Add auth token to requests
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('auth_token')
   if (token) {
@@ -315,6 +497,7 @@ apiClient.interceptors.request.use(config => {
   return config
 })
 
+// Reactive state
 const loading = ref(false)
 const error = ref(null)
 const grades = ref([])
@@ -323,13 +506,28 @@ const subjects = ref([])
 const terms = ref([])
 const students = ref([])
 const classSubjects = ref([])
+const user = ref({
+  role: 'teacher', // Default to teacher (would normally come from auth)
+  name: 'John Doe'
+})
+
+// Chart refs
 const gradeChart = ref(null)
 const scoresChart = ref(null)
 const gradeChartInstance = ref(null)
 const scoresChartInstance = ref(null)
+
+// UI state
 const selectedGradeGroup = ref(null)
 const selectedStudentGrade = ref(null)
+const showAddModal = ref(false)
+const isEditMode = ref(false)
+const selectedGrade = ref(null)
+const showGoogleAuthModal = ref(false)
+const googleLoading = ref(false)
+const uploadProgress = ref(0)
 
+// Filters and pagination
 const filters = ref({ 
   class_id: '', 
   subject_id: '', 
@@ -337,9 +535,22 @@ const filters = ref({
   assessment_type: '' 
 })
 
+const searchQuery = ref('')
+const sortOrder = ref('asc')
+const pagination = ref({
+  currentPage: 1,
+  perPage: 10,
+  total: 0,
+  lastPage: 1,
+  from: 1,
+  to: 10
+})
+
+// Constants
 const assessmentTypes = ref(['quiz', 'exam', 'project', 'assignment'])
 const gradeLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
+// Form data
 const newGrade = ref({
   student_id: '',
   class_subject_id: '',
@@ -349,10 +560,45 @@ const newGrade = ref({
   grade_letter: ''
 })
 
-const showAddModal = ref(false)
-const isEditMode = ref(false)
-const selectedGrade = ref(null)
+// Computed properties
+const filteredGrades = computed(() => {
+  let result = grades.value
 
+  // Apply search
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(grade => 
+      `${grade.student?.user?.first_name} ${grade.student?.user?.last_name}`.toLowerCase().includes(query) ||
+      grade.student_id.toString().includes(query)
+    )
+  }
+
+  // Apply sorting
+  result = [...result].sort((a, b) => {
+    if (sortOrder.value === 'asc') {
+      return a.score_obtained - b.score_obtained
+    } else {
+      return b.score_obtained - a.score_obtained
+    }
+  })
+
+  // Update pagination totals
+  pagination.value.total = result.length
+  pagination.value.lastPage = Math.ceil(result.length / pagination.value.perPage)
+
+  // Apply pagination
+  const start = (pagination.value.currentPage - 1) * pagination.value.perPage
+  const end = start + pagination.value.perPage
+  result = result.slice(start, end)
+
+  // Update pagination range
+  pagination.value.from = start + 1
+  pagination.value.to = Math.min(end, pagination.value.total)
+
+  return result
+})
+
+// Methods
 const fetchAll = async () => {
   loading.value = true
   try {
@@ -733,6 +979,145 @@ const deleteGrade = async (id) => {
   }
 }
 
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    uploadProgress.value = 0
+    const res = await apiClient.post('/grades/import', formData, {
+      onUploadProgress: progressEvent => {
+        uploadProgress.value = Math.round((progressEvent.loaded / progressEvent.total) * 100)
+      }
+    })
+    grades.value = res.data.data
+    updateCharts()
+  } catch (err) {
+    error.value = 'Failed to import file: ' + (err.response?.data?.message || err.message)
+  } finally {
+    uploadProgress.value = 0
+    event.target.value = '' // Reset file input
+  }
+}
+
+const importFromGoogleSheets = () => {
+  showGoogleAuthModal.value = true
+}
+
+const authenticateGoogle = async () => {
+  googleLoading.value = true
+  try {
+    // In a real app, you would implement OAuth flow here
+    // This is a mock implementation
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Mock response
+    const mockData = Array.from({ length: 10 }, (_, i) => ({
+      id: grades.value.length + i + 1,
+      student_id: 1000 + i,
+      student: {
+        user: {
+          first_name: `Student${i + 1}`,
+          last_name: 'Mock'
+        }
+      },
+      class_subject: {
+        class: { class_name: `Class ${i % 3 + 1}` },
+        subject: { subject_name: ['Math', 'Science', 'History'][i % 3] }
+      },
+      term: { term_name: ['Term 1', 'Term 2', 'Term 3'][i % 3] },
+      assessment_type: ['quiz', 'exam', 'project', 'assignment'][i % 4],
+      score_obtained: Math.floor(Math.random() * 50) + 50,
+      grade_letter: ['A', 'B', 'C', 'D', 'E', 'F'][Math.floor(Math.random() * 6)],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }))
+
+    grades.value = [...grades.value, ...mockData]
+    updateCharts()
+    showGoogleAuthModal.value = false
+  } catch (err) {
+    error.value = 'Failed to connect to Google Sheets: ' + err.message
+  } finally {
+    googleLoading.value = false
+  }
+}
+
+const exportToExcel = () => {
+  if (grades.value.length === 0) {
+    alert('No data to export')
+    return
+  }
+
+  // Prepare the data for export
+  const data = grades.value.map(grade => ({
+    'Student Name': `${grade.student?.user?.first_name} ${grade.student?.user?.last_name}`,
+    'Student ID': grade.student_id,
+    'Class': grade.class_subject?.class?.class_name || 'N/A',
+    'Subject': grade.class_subject?.subject?.subject_name || 'N/A',
+    'Term': grade.term?.term_name || 'N/A',
+    'Assessment Type': grade.assessment_type,
+    'Score': grade.score_obtained,
+    'Grade': grade.grade_letter || 'N/A',
+    'Max Score': 100
+  }))
+
+  // Create a worksheet
+  const ws = XLSX.utils.json_to_sheet(data)
+  
+  // Create a workbook
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Grades')
+  
+  // Generate current date for filename
+  const today = new Date()
+  const dateStr = today.toISOString().split('T')[0]
+  
+  // Export the file
+  XLSX.writeFile(wb, `Grades_${dateStr}.xlsx`)
+}
+
+const exportToPDF = () => {
+  if (grades.value.length === 0) {
+    alert('No data to export')
+    return
+  }
+
+  const element = document.getElementById('grades-table')
+  const opt = {
+    margin: 10,
+    filename: `grades_${new Date().toISOString().split('T')[0]}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+  }
+
+  html2pdf().from(element).set(opt).save()
+}
+
+const toggleSortOrder = () => {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+}
+
+const prevPage = () => {
+  if (pagination.value.currentPage > 1) {
+    pagination.value.currentPage--
+  }
+}
+
+const nextPage = () => {
+  if (pagination.value.currentPage < pagination.value.lastPage) {
+    pagination.value.currentPage++
+  }
+}
+
+const goToPage = (page) => {
+  pagination.value.currentPage = page
+}
+
 const getInitials = (firstName, lastName) => {
   if (!firstName || !lastName) return '??'
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
@@ -769,93 +1154,12 @@ const getScoreTextClass = (score) => {
   return 'text-red-600'
 }
 
-watch(grades, updateCharts, { deep: true })
-
+// Lifecycle hooks
 onMounted(() => {
   fetchAll()
 })
 
-// Add this method to your component
-const exportToExcel = () => {
-  if (grades.value.length === 0) {
-    alert('No data to export')
-    return
-  }
-
-  // Prepare the data for export
-  const data = grades.value.map(grade => ({
-    'Student Name': `${grade.student?.user?.first_name} ${grade.student?.user?.last_name}`,
-    'Student ID': grade.student_id,
-    'Class': grade.class_subject?.class?.class_name || 'N/A',
-    'Subject': grade.class_subject?.subject?.subject_name || 'N/A',
-    'Term': grade.term?.term_name || 'N/A',
-    'Assessment Type': grade.assessment_type,
-    'Score': grade.score_obtained,
-    'Grade': grade.grade_letter || 'N/A',
-    'Max Score': 100
-  }))
-
-  // Create a worksheet
-  const ws = XLSX.utils.json_to_sheet(data)
-  
-  // Create a workbook
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Grades')
-  
-  // Generate current date for filename
-  const today = new Date()
-  const dateStr = today.toISOString().split('T')[0]
-  
-  // Export the file
-  XLSX.writeFile(wb, `Grades_${dateStr}.xlsx`)
-}
-const exportToCSV = () => {
-  if (grades.value.length === 0) {
-    alert('No data to export')
-    return
-  }
-
-  // Prepare the data for export
-  const data = grades.value.map(grade => ({
-    'Student Name': `${grade.student?.user?.first_name} ${grade.student?.user?.last_name}`,
-    'Student ID': grade.student_id,
-    'Class': grade.class_subject?.class?.class_name || 'N/A',
-    'Subject': grade.class_subject?.subject?.subject_name || 'N/A',
-    'Term': grade.term?.term_name || 'N/A',
-    'Assessment Type': grade.assessment_type,
-    'Score': grade.score_obtained,
-    'Grade': grade.grade_letter || 'N/A',
-    'Max Score': 100
-  }))
-
-  // Convert to CSV
-  const headers = Object.keys(data[0])
-  const csvRows = [
-    headers.join(','), // header row first
-    ...data.map(row => 
-      headers.map(fieldName => 
-        `"${String(row[fieldName]).replace(/"/g, '""')}"`
-      ).join(',')
-    )
-  ]
-  
-  const csvString = csvRows.join('\n')
-  
-  // Create download link
-  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  
-  // Generate current date for filename
-  const today = new Date()
-  const dateStr = today.toISOString().split('T')[0]
-  link.setAttribute('download', `Grades_${dateStr}.csv`)
-  
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
+watch(grades, updateCharts, { deep: true })
 </script>
 
 <style scoped>
@@ -879,8 +1183,6 @@ const exportToCSV = () => {
 }
 
 /* Modal scrollable content */
-
-
 .overflow-y-auto {
   overflow-y: auto;
 }
@@ -912,6 +1214,7 @@ tr {
 /* Focus styles for form inputs */
 select:focus, input:focus {
   outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
 }
 
 /* Animation for loading spinner */
@@ -933,5 +1236,10 @@ select:focus, input:focus {
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+
+/* Progress bar for upload */
+.progress-bar {
+  transition: width 0.3s ease;
 }
 </style>
