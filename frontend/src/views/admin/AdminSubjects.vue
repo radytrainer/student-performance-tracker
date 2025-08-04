@@ -6,9 +6,21 @@
     </div>
     <div v-else>
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Subject Management</h1>
-      <p class="text-gray-600 mt-1">Manage subjects, curriculum, and academic structure</p>
+    <h1 class="text-3xl font-bold text-gray-800">Subject Management</h1>
+    <p class="text-gray-600 mt-1">Manage subjects, curriculum, and academic structure</p>
     </div>
+
+     <!-- Success Message -->
+     <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+       <div class="flex">
+         <div class="flex-shrink-0">
+           <i class="fas fa-check-circle text-green-400"></i>
+         </div>
+         <div class="ml-3">
+           <p class="text-sm text-green-700">{{ successMessage }}</p>
+         </div>
+       </div>
+     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
@@ -76,8 +88,8 @@
                     <i :class="subject.icon" :style="{ color: subject.color }"></i>
                   </div>
                   <div class="ml-3">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ subject.name }}</h3>
-                    <p class="text-sm text-gray-500">{{ subject.code }}</p>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ subject.subject_name }}</h3>
+                    <p class="text-sm text-gray-500">{{ subject.subject_code }}</p>
                   </div>
                 </div>
                 
@@ -88,7 +100,7 @@
                   </div>
                   <div class="flex items-center text-sm text-gray-600">
                     <i class="fas fa-clock mr-2"></i>
-                    {{ subject.credits }} credits
+                    {{ subject.credit_hours }} credits
                   </div>
                   <div class="flex items-center text-sm text-gray-600">
                     <i class="fas fa-graduation-cap mr-2"></i>
@@ -158,6 +170,38 @@
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Create Subject
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center mb-4">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-lg font-medium text-gray-900">Delete Subject</h3>
+          </div>
+        </div>
+        <p class="text-gray-600 mb-6">
+          Are you sure you want to delete <strong>{{ selectedSubject?.subject_name }}</strong>? 
+          This action cannot be undone and will affect all related class assignments.
+        </p>
+        <div class="flex justify-end space-x-3">
+          <button
+            @click="showDeleteModal = false"
+            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="deleteSubject"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Delete Subject
           </button>
         </div>
       </div>
