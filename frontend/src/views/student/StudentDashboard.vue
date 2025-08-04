@@ -241,6 +241,7 @@ import {
   BarChart3, PieChart, User, Activity, Target, BookOpen, Award, Clock
 } from 'lucide-vue-next'
 
+
 // Student data (this would typically come from an API based on the logged-in student)
 const studentData = ref({
   id: 1,
