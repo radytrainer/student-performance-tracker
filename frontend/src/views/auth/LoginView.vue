@@ -85,10 +85,7 @@
                   :auth-error="authStore.error"
                   @submit="handleSignIn"
                   @update:data="updateSignInData"
-<<<<<<< HEAD
-=======
                   @social-login="handleSocialLogin"
->>>>>>> main
                 />
 
                 <!-- Register Form -->
