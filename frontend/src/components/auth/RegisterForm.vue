@@ -289,6 +289,39 @@
             </p>
           </div>
 
+          <!-- School Selection -->
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-gray-200"
+              >School <span class="text-red-400">*</span></label
+            >
+            <select
+              v-model="formData.school"
+              :disabled="isLoadingSchools"
+              :class="[
+                'w-full px-3 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
+                hasError('school')
+                  ? 'border-red-400 ring-2 ring-red-400/50'
+                  : 'hover:border-white/30',
+                isLoadingSchools ? 'opacity-50 cursor-not-allowed' : ''
+              ]"
+            >
+              <option value="" disabled class="bg-gray-800 text-gray-300">
+                {{ isLoadingSchools ? 'Loading schools...' : 'Select your school' }}
+              </option>
+              <option
+                v-for="school in availableSchools"
+                :key="school.id"
+                :value="school.id"
+                class="bg-gray-800 text-white"
+              >
+                {{ school.name }}
+              </option>
+            </select>
+            <p v-if="hasError('school')" class="text-red-400 text-xs">
+              {{ getErrorMessage("school") }}
+            </p>
+          </div>
+
           <!-- Role Selection (Subscription) -->
           <div class="space-y-2">
             <label class="text-sm font-medium text-gray-200"
@@ -381,7 +414,7 @@
 </template>
 
 <script setup>
-import { reactive, watch, ref, computed } from "vue";
+import { reactive, watch, ref, computed, onMounted } from "vue";
 
 // Current step for pagination
 const currentStep = ref(1);
@@ -406,6 +439,7 @@ const props = defineProps({
       date_of_birth: "",
       city: "",
       country: "",
+      school: "",
       role: "student",
       password: "",
       confirmPassword: "",
@@ -428,6 +462,7 @@ const formData = reactive({
   date_of_birth: props.initialData.date_of_birth || "",
   city: props.initialData.city || "",
   country: props.initialData.country || "",
+  school: props.initialData.school || "",
   role: props.initialData.role || "student",
   password: props.initialData.password || "",
   confirmPassword: props.initialData.confirmPassword || "",
@@ -438,6 +473,55 @@ const availableRoles = [
   { value: "student", label: "Student" },
   { value: "teacher", label: "Teacher" },
 ];
+
+// Available schools for registration (will be loaded from API)
+const availableSchools = ref([]);
+const isLoadingSchools = ref(false);
+
+// Fetch schools from API
+const fetchSchools = async () => {
+  isLoadingSchools.value = true;
+  try {
+    // Replace with your actual API endpoint
+    const response = await fetch('/api/schools');
+    if (response.ok) {
+      const schools = await response.json();
+      availableSchools.value = schools;
+    } else {
+      // Fallback to static data if API fails
+      availableSchools.value = [
+        { id: "1", name: "Passerelles Numeriques Cambodia (PNC)" },
+        { id: "2", name: "Pour un Sourire d'Enfant (PSE)" },
+        { id: "3", name: "Royal University of Phnom Penh (RUPP)" },
+        { id: "4", name: "Institute of Technology of Cambodia (ITC)" },
+        { id: "5", name: "American University of Phnom Penh (AUPP)" },
+        { id: "6", name: "Western University (Cambodia)" },
+        { id: "7", name: "Asia Euro University" },
+        { id: "8", name: "Norton University" },
+      ];
+    }
+  } catch (error) {
+    console.error('Failed to fetch schools:', error);
+    // Fallback to static data on error
+    availableSchools.value = [
+      { id: "1", name: "Passerelles Numeriques Cambodia (PNC)" },
+      { id: "2", name: "Pour un Sourire d'Enfant (PSE)" },
+      { id: "3", name: "Royal University of Phnom Penh (RUPP)" },
+      { id: "4", name: "Institute of Technology of Cambodia (ITC)" },
+      { id: "5", name: "American University of Phnom Penh (AUPP)" },
+      { id: "6", name: "Western University (Cambodia)" },
+      { id: "7", name: "Asia Euro University" },
+      { id: "8", name: "Norton University" },
+    ];
+  } finally {
+    isLoadingSchools.value = false;
+  }
+};
+
+// Fetch schools when component mounts
+onMounted(() => {
+  fetchSchools();
+});
 
 // Watch for changes and emit to parent
 watch(
@@ -520,6 +604,10 @@ const getErrorMessage = (field) => {
     },
     country: {
       required: "Country is required",
+    },
+    school: {
+      required: "Please select your school",
+      invalid: "Please select a valid school from the list",
     },
     role: {
       required: "Please select your subscription type",
