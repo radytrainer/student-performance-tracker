@@ -240,14 +240,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Route::get('terms/{term}', 'TermController@show');
     // Route::get('terms/current', 'TermController@current');
 
-    // General notifications and alerts
-    Route::get('my-notifications', 'NotificationController@my');
-    Route::put('my-notifications/mark-all-read', 'NotificationController@markAllAsRead');
+    // General notifications and alerts (commented out - controller needs to be created)
+    // Route::get('my-notifications', 'NotificationController@my');
+    // Route::put('my-notifications/mark-all-read', 'NotificationController@markAllAsRead');
 
-    // Search endpoints
-    Route::get('search/students', 'SearchController@students')->middleware('permission:students.view');
-    Route::get('search/teachers', 'SearchController@teachers')->middleware('permission:teachers.view');
-    Route::get('search/classes', 'SearchController@classes');
+    // Search endpoints (commented out - controller needs to be created)
+    // Route::get('search/students', 'SearchController@students')->middleware('permission:students.view');
+    // Route::get('search/teachers', 'SearchController@teachers')->middleware('permission:teachers.view');
+    // Route::get('search/classes', 'SearchController@classes');
 });
 
 // Routes for testing role-based access
