@@ -13,32 +13,43 @@
         <div
           :class="[
             'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border-2',
-            currentStep >= 1 
-              ? 'bg-blue-500 border-blue-500' 
-              : 'bg-transparent border-white/30'
+            currentStep >= 1
+              ? 'bg-blue-500 border-blue-500'
+              : 'bg-transparent border-white/30',
           ]"
         >
-          <svg v-if="currentStep > 1" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          <svg
+            v-if="currentStep > 1"
+            class="w-4 h-4 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="3"
+              d="M5 13l4 4L19 7"
+            ></path>
           </svg>
           <span v-else class="text-white text-sm font-bold">1</span>
         </div>
-        
+
         <!-- Connecting line -->
-        <div 
+        <div
           :class="[
             'w-12 h-0.5 transition-all duration-300',
-            currentStep === 2 ? 'bg-blue-500' : 'bg-white/30'
+            currentStep === 2 ? 'bg-blue-500' : 'bg-white/30',
           ]"
         ></div>
-        
+
         <!-- Step 2 -->
         <div
           :class="[
             'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 border-2',
-            currentStep === 2 
-              ? 'bg-blue-500 border-blue-500' 
-              : 'bg-transparent border-white/30'
+            currentStep === 2
+              ? 'bg-blue-500 border-blue-500'
+              : 'bg-transparent border-white/30',
           ]"
         >
           <span class="text-white text-sm font-bold">2</span>
@@ -49,38 +60,25 @@
 
     <!-- Scrollable Form Content -->
     <div class="flex-1 overflow-y-auto scrollbar-hide px-1">
-      <!-- Alert Messages -->
-      <div v-if="authError || hasValidationErrors" class="mb-4 space-y-3">
-        <!-- Auth Error Display -->
-        <div
-          v-if="authError"
-          class="p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-start space-x-3"
+      <!-- Auth Error Display -->
+      <div
+        v-if="authError"
+        class="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-start space-x-3"
+      >
+        <svg
+          class="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0"
+          fill="currentColor"
+          viewBox="0 0 20 20"
         >
-          <svg class="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-          </svg>
-          <div>
-            <h4 class="text-red-400 font-medium text-sm">Authentication Error</h4>
-            <p class="text-red-300 text-sm mt-1">{{ authError }}</p>
-          </div>
-        </div>
-
-        <!-- Validation Errors Summary -->
-        <div
-          v-if="hasValidationErrors"
-          class="p-4 bg-orange-500/20 border border-orange-500/50 rounded-lg flex items-start space-x-3"
-        >
-          <svg class="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-          </svg>
-          <div>
-            <h4 class="text-orange-400 font-medium text-sm">Please fix the following errors:</h4>
-            <ul class="text-orange-300 text-sm mt-1 space-y-1">
-              <li v-for="error in validationErrorMessages" :key="error.field">
-                • {{ error.message }}
-              </li>
-            </ul>
-          </div>
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <div>
+          <h4 class="text-red-400 font-medium text-sm">Registration Error</h4>
+          <p class="text-red-300 text-sm mt-1">{{ authError }}</p>
         </div>
       </div>
 
@@ -472,34 +470,73 @@ const hasError = (field) => {
 };
 
 const getErrorMessage = (field) => {
-  return props.errors[field] || "";
-};
+  const error = props.errors[field];
+  if (!error) return "";
 
-// Computed properties for alert system
-const hasValidationErrors = computed(() => {
-  return Object.keys(props.errors).length > 0;
-});
-
-const validationErrorMessages = computed(() => {
-  const fieldNames = {
-    first_name: 'First Name',
-    last_name: 'Last Name',
-    username: 'Username',
-    email: 'Email',
-    gender: 'Gender',
-    date_of_birth: 'Date of Birth',
-    city: 'City',
-    country: 'Country',
-    role: 'Subscription',
-    password: 'Password',
-    confirmPassword: 'Confirm Password'
+  // Define user-friendly error messages
+  const friendlyMessages = {
+    // Email errors
+    email: {
+      required: "Email is required",
+      invalid: "Please enter a valid email address",
+      taken: "This email is already registered. Try logging in instead.",
+      not_found:
+        "This email is not registered yet. Please check your email or create a new account.",
+    },
+    // Password errors
+    password: {
+      required: "Password is required",
+      too_short: "Password must be at least 8 characters long",
+      weak: "Password must contain letters and numbers",
+      incorrect: "Incorrect password",
+    },
+    confirmPassword: {
+      required: "Please confirm your password",
+      no_match: "Passwords do not match",
+    },
+    // Other field errors
+    first_name: {
+      required: "First name is required",
+      invalid: "Please enter a valid first name",
+    },
+    last_name: {
+      required: "Last name is required",
+      invalid: "Please enter a valid last name",
+    },
+    username: {
+      required: "Username is required",
+      taken: "This username is already taken",
+      invalid: "Username can only contain letters, numbers, and underscores",
+    },
+    gender: {
+      required: "Please select your gender",
+    },
+    date_of_birth: {
+      required: "Date of birth is required",
+      invalid: "Please enter a valid date",
+    },
+    city: {
+      required: "City is required",
+    },
+    country: {
+      required: "Country is required",
+    },
+    role: {
+      required: "Please select your subscription type",
+    },
   };
 
-  return Object.entries(props.errors).map(([field, message]) => ({
-    field,
-    message: `${fieldNames[field] || field}: ${message}`
-  }));
-});
+  // Try to get a friendly message, otherwise use the original error
+  const fieldMessages = friendlyMessages[field];
+  if (
+    fieldMessages &&
+    fieldMessages[error.toLowerCase().replace(/\s+/g, "_")]
+  ) {
+    return fieldMessages[error.toLowerCase().replace(/\s+/g, "_")];
+  }
+
+  return error;
+};
 </script>
 
 <style scoped>
