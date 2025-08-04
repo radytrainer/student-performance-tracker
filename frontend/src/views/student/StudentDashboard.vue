@@ -16,7 +16,7 @@
             <User class="w-8 h-8 text-white" />
           </div>
           <div>
-            <h2 class="text-3xl font-bold text-gray-900">{{ studentData.name }}</h2>
+            <h2 class="text-3xl font-bold text-gray-900">{{ user?.first_name }} {{ user?.last_name }}</h2>
             <p class="text-gray-600 text-lg">{{ studentData.course }} • {{ studentData.term }}</p>
           </div>
         </div>
@@ -111,7 +111,7 @@
             <div>
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-medium text-gray-700">Attendance Target</span>
-                <span class="text-sm font-bold text-green-600">95%</span>
+                <span class="text-sm font-bold text-green-600">{{ attendancePercentage }}%</span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-3">
                 <div 
@@ -241,6 +241,10 @@ import {
   BarChart3, PieChart, User, Activity, Target, BookOpen, Award, Clock
 } from 'lucide-vue-next'
 
+import { useAuth } from '@/composables/useAuth'
+
+// Use composable to get current user
+const { user } = useAuth()
 
 // Student data (this would typically come from an API based on the logged-in student)
 const studentData = ref({
