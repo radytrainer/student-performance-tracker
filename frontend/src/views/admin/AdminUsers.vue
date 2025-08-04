@@ -278,57 +278,56 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- User Modal -->
-    <UserModal
-      :show="showUserModal"
-      :user="selectedUser"
-      :loading="modalLoading"
-      @close="closeModal"
-      @submit="handleUserSubmit"
-    />
+      <!-- User Modal -->
+      <UserModal
+        :show="showUserModal"
+        :user="selectedUser"
+        :loading="modalLoading"
+        @close="closeModal"
+        @submit="handleUserSubmit"
+      />
 
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <div class="flex items-center mb-4">
-          <div class="flex-shrink-0">
-            <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+      <!-- Delete Confirmation Modal -->
+      <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+          <div class="flex items-center mb-4">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-lg font-medium text-gray-900">Delete User</h3>
+            </div>
           </div>
-          <div class="ml-3">
-            <h3 class="text-lg font-medium text-gray-900">Delete User</h3>
+          <p class="text-gray-600 mb-6">
+            Are you sure you want to delete <strong>{{ getUserName(userToDelete) }}</strong>? 
+            This action cannot be undone.
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button
+              @click="showDeleteModal = false"
+              class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              :disabled="deleteLoading"
+            >
+              Cancel
+            </button>
+            <button
+              @click="deleteUser"
+              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              :disabled="deleteLoading"
+            >
+              <span v-if="deleteLoading" class="flex items-center">
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                Deleting...
+              </span>
+              <span v-else>Delete User</span>
+            </button>
           </div>
-        </div>
-        <p class="text-gray-600 mb-6">
-          Are you sure you want to delete <strong>{{ getUserName(userToDelete) }}</strong>? 
-          This action cannot be undone.
-        </p>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="showDeleteModal = false"
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            :disabled="deleteLoading"
-          >
-            Cancel
-          </button>
-          <button
-            @click="deleteUser"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-            :disabled="deleteLoading"
-          >
-            <span v-if="deleteLoading" class="flex items-center">
-              <i class="fas fa-spinner fa-spin mr-2"></i>
-              Deleting...
-            </span>
-            <span v-else>Delete User</span>
-          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Password Reset Modal -->
-    <div v-if="showPasswordResetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <!-- Password Reset Modal -->
+      <div v-if="showPasswordResetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <div class="flex items-center mb-4">
           <div class="flex-shrink-0">
@@ -493,7 +492,6 @@
           </button>
         </div>
       </div>
-    </div>
     </div>
   </div>
 </template>
