@@ -43,5 +43,100 @@ export const adminAPI = {
 
   getUserAccessLogs: async (userId) => {
     return await api.get(`/admin/users/${userId}/access-logs`)
+  },
+
+  // Student Management
+  getStudents: async (params = {}) => {
+    return await api.get('/admin/students', { params })
+  },
+
+  createStudent: async (studentData) => {
+    return await api.post('/admin/students', studentData)
+  },
+
+  updateStudent: async (studentId, studentData) => {
+    return await api.put(`/admin/students/${studentId}`, studentData)
+  },
+
+  deleteStudent: async (studentId) => {
+    return await api.delete(`/admin/students/${studentId}`)
+  },
+
+  getStudent: async (studentId) => {
+    return await api.get(`/admin/students/${studentId}`)
+  },
+
+  bulkStudentAction: async (actionData) => {
+    return await api.post('/admin/students/bulk-action', actionData)
+  },
+
+  getStudentsByClass: async (classId) => {
+    return await api.get(`/admin/classes/${classId}/students`)
+  },
+
+  // Class Management
+  getClasses: async (params = {}) => {
+    return await api.get('/admin/classes', { params })
+  },
+
+  createClass: async (classData) => {
+    return await api.post('/admin/classes', classData)
+  },
+
+  updateClass: async (classId, classData) => {
+    return await api.put(`/admin/classes/${classId}`, classData)
+  },
+
+  deleteClass: async (classId) => {
+    return await api.delete(`/admin/classes/${classId}`)
+  },
+
+  getClass: async (classId) => {
+    return await api.get(`/admin/classes/${classId}`)
+  },
+
+  assignTeacher: async (classId, assignmentData) => {
+    return await api.post(`/admin/classes/${classId}/assign-teacher`, assignmentData)
+  },
+
+  getAvailableTeachers: async () => {
+    return await api.get('/admin/teachers/available')
+  },
+
+  getClassStats: async () => {
+    return await api.get('/admin/classes-stats')
+  },
+
+  // Subject Management
+  getSubjects: async (params = {}) => {
+    return await api.get('/admin/subjects', { params })
+  },
+
+  createSubject: async (subjectData) => {
+    return await api.post('/admin/subjects', subjectData)
+  },
+
+  updateSubject: async (subjectId, subjectData) => {
+    return await api.put(`/admin/subjects/${subjectId}`, subjectData)
+  },
+
+  deleteSubject: async (subjectId) => {
+    return await api.delete(`/admin/subjects/${subjectId}`)
+  },
+
+  getSubject: async (subjectId) => {
+    return await api.get(`/admin/subjects/${subjectId}`)
+  },
+
+  bulkSubjectAction: async (actionData) => {
+    return await api.post('/admin/subjects/bulk-action', actionData)
+  },
+
+  getDepartments: async () => {
+    return await api.get('/admin/subjects/departments')
+  },
+
+  getSubjectStats: async () => {
+    return await api.get('/admin/subjects-stats')
   }
 }
