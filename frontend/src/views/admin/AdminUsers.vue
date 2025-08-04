@@ -1,269 +1,281 @@
 <template>
-  <div class="p-6">
+  <div class="h-screen flex flex-col bg-gray-50">
     <div v-if="!hasPermission('admin.manage_users')" class="text-center py-12">
       <h2 class="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
       <p class="text-gray-600">You don't have permission to manage users.</p>
     </div>
-    <div v-else>
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
-      <p class="text-gray-600 mt-1">Manage system users and their roles</p>
-    </div>
-
-    <!-- Success Message -->
-    <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <i class="fas fa-check-circle text-green-400"></i>
+    <div v-else class="h-full flex flex-col">
+      <!-- Sticky Header Section -->
+      <div class="bg-white shadow-sm border-b border-gray-200 p-6 sticky top-0 z-10">
+        <!-- Title Section -->
+        <div class="mb-6">
+          <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
+          <p class="text-gray-600 mt-1">Manage system users and their roles</p>
         </div>
-        <div class="ml-3">
-          <p class="text-sm text-green-700">{{ successMessage }}</p>
-        </div>
-      </div>
-    </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <i class="fas fa-exclamation-circle text-red-400"></i>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error loading users</h3>
-          <p class="text-sm text-red-700 mt-1">{{ error }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content -->
-    <div v-else class="space-y-6">
-      <!-- Header Actions -->
-      <div class="flex justify-between items-center">
-        <div class="flex items-center space-x-4">
-          <div class="relative">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search users..."
-              class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-              @input="debouncedApiSearch"
-            />
-            <i 
-              :class="searchLoading ? 'fas fa-spinner fa-spin' : 'fas fa-search'" 
-              class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            ></i>
+        <!-- Success Message -->
+        <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-check-circle text-green-400"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-green-700">{{ successMessage }}</p>
+            </div>
           </div>
-          <select
-            v-model="roleFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            @change="applyFilters"
-          >
-            <option value="">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="teacher">Teacher</option>
-            <option value="student">Student</option>
-          </select>
         </div>
-        <div class="flex items-center space-x-3">
-          <!-- Bulk Actions -->
-          <div v-if="selectedUsers.length > 0" class="flex items-center space-x-2">
-            <span class="text-sm text-gray-600">{{ selectedUsers.length }} selected</span>
-            <button
-              @click="bulkActivate"
-              class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm"
-            >
-              <i class="fas fa-check mr-1"></i>
-              Activate
-            </button>
-            <button
-              @click="bulkDeactivate"
-              class="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center text-sm"
-            >
-              <i class="fas fa-times mr-1"></i>
-              Deactivate
-            </button>
+
+        <!-- Error State -->
+        <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-circle text-red-400"></i>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-800">Error loading users</h3>
+              <p class="text-sm text-red-700 mt-1">{{ error }}</p>
+            </div>
           </div>
-          <button
-            @click="openCreateModal"
-            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <i class="fas fa-plus mr-2"></i>
-            Add User
-          </button>
         </div>
-      </div>
 
-      <!-- Users Table -->
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-3 py-3 text-left">
-                <input
-                  type="checkbox"
-                  :checked="isAllSelected"
-                  @change="toggleSelectAll"
-                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-gray-50">
-              <td class="px-3 py-4 whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  :value="user.id"
-                  v-model="selectedUsers"
-                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
-                    <div v-if="user.profile_picture" class="h-10 w-10 rounded-full overflow-hidden">
-                      <img :src="user.profile_picture" :alt="getUserName(user)" class="h-full w-full object-cover">
-                    </div>
-                    <div v-else class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <span class="text-blue-600 font-medium">{{ getUserInitial(user) }}</span>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">{{ getUserName(user) }}</div>
-                    <div class="text-sm text-gray-500">{{ user.email }}</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      :class="getRoleClass(user.role)">
-                  {{ capitalizeRole(user.role) }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <button
-                  @click="toggleUserStatus(user)"
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors"
-                  :class="user.is_active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'"
-                >
-                  {{ user.is_active ? 'Active' : 'Inactive' }}
-                </button>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatDate(user.last_login) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="flex items-center justify-end space-x-2">
-                  <button
-                    @click="editUser(user)"
-                    class="text-blue-600 hover:text-blue-900 transition-colors"
-                    title="Edit User"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
-                    @click="resetPassword(user)"
-                    class="text-green-600 hover:text-green-900 transition-colors"
-                    title="Reset Password"
-                  >
-                    <i class="fas fa-key"></i>
-                  </button>
-                  <button
-                    @click="changeRole(user)"
-                    class="text-purple-600 hover:text-purple-900 transition-colors"
-                    title="Change Role"
-                  >
-                    <i class="fas fa-user-tag"></i>
-                  </button>
-                  <button
-                    @click="viewAccessLogs(user)"
-                    class="text-gray-600 hover:text-gray-900 transition-colors"
-                    title="View Access Logs"
-                  >
-                    <i class="fas fa-history"></i>
-                  </button>
-                  <button
-                    @click="confirmDelete(user)"
-                    class="text-red-600 hover:text-red-900 transition-colors"
-                    title="Delete User"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Empty State -->
-      <div v-if="paginatedUsers.length === 0 && !loading" class="text-center py-12">
-        <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No users found</h3>
-        <p class="text-gray-500">
-          {{ searchQuery || roleFilter ? 'Try adjusting your search or filter criteria.' : 'Start by adding your first user.' }}
-        </p>
-      </div>
-
-      <!-- Pagination -->
-      <div v-if="paginationInfo.totalPages > 1" class="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
-        <div class="flex items-center">
-          <p class="text-sm text-gray-700">
-            Showing {{ paginationInfo.startItem }} to {{ paginationInfo.endItem }} of {{ paginationInfo.totalItems }} results
-          </p>
-        </div>
-        <div class="flex items-center space-x-2">
-          <button
-            @click="goToPage(currentPage - 1)"
-            :disabled="!paginationInfo.hasPrevPage"
-            class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-          >
-            Previous
-          </button>
-          
-          <!-- Page Numbers -->
-          <div class="flex items-center space-x-1">
-            <template v-for="(page, index) in getVisiblePages()">
-              <span
-                v-if="page === '...'"
-                :key="`ellipsis-${index}`"
-                class="px-3 py-2 text-sm text-gray-400"
-              >
-                ...
-              </span>
+        <!-- Header Actions -->
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center space-x-4">
+            <div class="relative">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search users..."
+                class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                @input="debouncedApiSearch"
+              />
+              <i 
+                :class="searchLoading ? 'fas fa-spinner fa-spin' : 'fas fa-search'" 
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              ></i>
+            </div>
+            <select
+              v-model="roleFilter"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              @change="applyFilters"
+            >
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="teacher">Teacher</option>
+              <option value="student">Student</option>
+            </select>
+          </div>
+          <div class="flex items-center space-x-3">
+            <!-- Bulk Actions -->
+            <div v-if="selectedUsers.length > 0" class="flex items-center space-x-2">
+              <span class="text-sm text-gray-600">{{ selectedUsers.length }} selected</span>
               <button
-                v-else
-                :key="`page-${page}`"
-                @click="goToPage(page)"
-                :class="[
-                  'px-3 py-2 text-sm rounded-lg transition-colors',
-                  page === currentPage 
-                    ? 'bg-blue-600 text-white' 
-                    : 'border border-gray-300 hover:bg-gray-50'
-                ]"
+                @click="bulkActivate"
+                class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm"
               >
-                {{ page }}
+                <i class="fas fa-check mr-1"></i>
+                Activate
               </button>
-            </template>
+              <button
+                @click="bulkDeactivate"
+                class="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center text-sm"
+              >
+                <i class="fas fa-times mr-1"></i>
+                Deactivate
+              </button>
+            </div>
+            <button
+              @click="openCreateModal"
+              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <i class="fas fa-plus mr-2"></i>
+              Add User
+            </button>
           </div>
-          
-          <button
-            @click="goToPage(currentPage + 1)"
-            :disabled="!paginationInfo.hasNextPage"
-            class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-          >
-            Next
-          </button>
+        </div>
+
+        <!-- Table Header -->
+        <div class="bg-gray-50 rounded-lg border border-gray-200">
+          <div class="grid grid-cols-12 gap-4 px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div class="col-span-1 flex items-center">
+              <input
+                type="checkbox"
+                :checked="isAllSelected"
+                @change="toggleSelectAll"
+                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+            </div>
+            <div class="col-span-3">User</div>
+            <div class="col-span-2">Role</div>
+            <div class="col-span-2">Status</div>
+            <div class="col-span-2">Last Login</div>
+            <div class="col-span-2 text-right">Actions</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scrollable Content Area -->
+      <div class="flex-1 overflow-y-auto">
+        <div class="p-6 pt-0">
+          <!-- Loading State -->
+          <div v-if="loading" class="flex justify-center items-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+
+          <!-- Users List -->
+          <div v-else-if="!error" class="space-y-1">
+            <!-- User Rows -->
+            <div 
+              v-for="user in paginatedUsers" 
+              :key="user.id" 
+              class="bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+                <div class="col-span-1">
+                  <input
+                    type="checkbox"
+                    :value="user.id"
+                    v-model="selectedUsers"
+                    class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                </div>
+                <div class="col-span-3">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10">
+                      <div v-if="user.profile_picture" class="h-10 w-10 rounded-full overflow-hidden">
+                        <img :src="user.profile_picture" :alt="getUserName(user)" class="h-full w-full object-cover">
+                      </div>
+                      <div v-else class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span class="text-blue-600 font-medium">{{ getUserInitial(user) }}</span>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <div class="text-sm font-medium text-gray-900">{{ getUserName(user) }}</div>
+                      <div class="text-sm text-gray-500">{{ user.email }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-span-2">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        :class="getRoleClass(user.role)">
+                    {{ capitalizeRole(user.role) }}
+                  </span>
+                </div>
+                <div class="col-span-2">
+                  <button
+                    @click="toggleUserStatus(user)"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors"
+                    :class="user.is_active ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'"
+                  >
+                    {{ user.is_active ? 'Active' : 'Inactive' }}
+                  </button>
+                </div>
+                <div class="col-span-2 text-sm text-gray-500">
+                  {{ formatDate(user.last_login) }}
+                </div>
+                <div class="col-span-2">
+                  <div class="flex items-center justify-end space-x-2">
+                    <button
+                      @click="editUser(user)"
+                      class="text-blue-600 hover:text-blue-900 transition-colors"
+                      title="Edit User"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      @click="resetPassword(user)"
+                      class="text-green-600 hover:text-green-900 transition-colors"
+                      title="Reset Password"
+                    >
+                      <i class="fas fa-key"></i>
+                    </button>
+                    <button
+                      @click="changeRole(user)"
+                      class="text-purple-600 hover:text-purple-900 transition-colors"
+                      title="Change Role"
+                    >
+                      <i class="fas fa-user-tag"></i>
+                    </button>
+                    <button
+                      @click="viewAccessLogs(user)"
+                      class="text-gray-600 hover:text-gray-900 transition-colors"
+                      title="View Access Logs"
+                    >
+                      <i class="fas fa-history"></i>
+                    </button>
+                    <button
+                      @click="confirmDelete(user)"
+                      class="text-red-600 hover:text-red-900 transition-colors"
+                      title="Delete User"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="paginatedUsers.length === 0 && !loading" class="text-center py-12">
+              <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+              <p class="text-gray-500">
+                {{ searchQuery || roleFilter ? 'Try adjusting your search or filter criteria.' : 'Start by adding your first user.' }}
+              </p>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="paginationInfo.totalPages > 1" class="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg mt-6">
+              <div class="flex items-center">
+                <p class="text-sm text-gray-700">
+                  Showing {{ paginationInfo.startItem }} to {{ paginationInfo.endItem }} of {{ paginationInfo.totalItems }} results
+                </p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button
+                  @click="goToPage(currentPage - 1)"
+                  :disabled="!paginationInfo.hasPrevPage"
+                  class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Previous
+                </button>
+                
+                <!-- Page Numbers -->
+                <div class="flex items-center space-x-1">
+                  <template v-for="(page, index) in getVisiblePages()">
+                    <span
+                      v-if="page === '...'"
+                      :key="`ellipsis-${index}`"
+                      class="px-3 py-2 text-sm text-gray-400"
+                    >
+                      ...
+                    </span>
+                    <button
+                      v-else
+                      :key="`page-${page}`"
+                      @click="goToPage(page)"
+                      :class="[
+                        'px-3 py-2 text-sm rounded-lg transition-colors',
+                        page === currentPage 
+                          ? 'bg-blue-600 text-white' 
+                          : 'border border-gray-300 hover:bg-gray-50'
+                      ]"
+                    >
+                      {{ page }}
+                    </button>
+                  </template>
+                </div>
+                
+                <button
+                  @click="goToPage(currentPage + 1)"
+                  :disabled="!paginationInfo.hasNextPage"
+                  class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
