@@ -328,168 +328,169 @@
 
       <!-- Password Reset Modal -->
       <div v-if="showPasswordResetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <div class="flex items-center mb-4">
-          <div class="flex-shrink-0">
-            <i class="fas fa-key text-green-400 text-2xl"></i>
-          </div>
-          <div class="ml-3">
-            <h3 class="text-lg font-medium text-gray-900">Reset Password</h3>
-            <p class="text-sm text-gray-500">Reset password for {{ getUserName(selectedUser) }}</p>
-          </div>
-        </div>
-        
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-            <input
-              v-model="passwordResetData.newPassword"
-              type="password"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter new password"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-            <input
-              v-model="passwordResetData.confirmPassword"
-              type="password"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Confirm new password"
-            />
-          </div>
-          <div class="flex items-center">
-            <input
-              v-model="passwordResetData.notifyUser"
-              type="checkbox"
-              class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label class="ml-2 text-sm text-gray-700">Notify user via email</label>
-          </div>
-        </div>
-        
-        <div class="flex justify-end space-x-3 mt-6">
-          <button
-            @click="showPasswordResetModal = false"
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            :disabled="modalLoading"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handlePasswordReset"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-            :disabled="modalLoading"
-          >
-            <span v-if="modalLoading" class="flex items-center">
-              <i class="fas fa-spinner fa-spin mr-2"></i>
-              Resetting...
-            </span>
-            <span v-else>Reset Password</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Role Change Modal -->
-    <div v-if="showRoleChangeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <div class="flex items-center mb-4">
-          <div class="flex-shrink-0">
-            <i class="fas fa-user-tag text-purple-400 text-2xl"></i>
-          </div>
-          <div class="ml-3">
-            <h3 class="text-lg font-medium text-gray-900">Change Role</h3>
-            <p class="text-sm text-gray-500">Change role for {{ getUserName(selectedUser) }}</p>
-          </div>
-        </div>
-        
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">New Role</label>
-            <select
-              v-model="roleChangeData.newRole"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="admin">Admin</option>
-              <option value="teacher">Teacher</option>
-              <option value="student">Student</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="flex justify-end space-x-3 mt-6">
-          <button
-            @click="showRoleChangeModal = false"
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            :disabled="modalLoading"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleRoleChange"
-            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
-            :disabled="modalLoading"
-          >
-            <span v-if="modalLoading" class="flex items-center">
-              <i class="fas fa-spinner fa-spin mr-2"></i>
-              Changing...
-            </span>
-            <span v-else>Change Role</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Access Logs Modal -->
-    <div v-if="showAccessLogsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+          <div class="flex items-center mb-4">
             <div class="flex-shrink-0">
-              <i class="fas fa-history text-gray-400 text-2xl"></i>
+              <i class="fas fa-key text-green-400 text-2xl"></i>
             </div>
             <div class="ml-3">
-              <h3 class="text-lg font-medium text-gray-900">Access Logs</h3>
-              <p class="text-sm text-gray-500">Access history for {{ getUserName(selectedUser) }}</p>
+              <h3 class="text-lg font-medium text-gray-900">Reset Password</h3>
+              <p class="text-sm text-gray-500">Reset password for {{ getUserName(selectedUser) }}</p>
             </div>
           </div>
-          <button
-            @click="showAccessLogsModal = false"
-            class="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
-        
-        <div class="space-y-2">
-          <div v-if="accessLogs.length === 0" class="text-center py-8 text-gray-500">
-            No access logs found
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+              <input
+                v-model="passwordResetData.newPassword"
+                type="password"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter new password"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+              <input
+                v-model="passwordResetData.confirmPassword"
+                type="password"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Confirm new password"
+              />
+            </div>
+            <div class="flex items-center">
+              <input
+                v-model="passwordResetData.notifyUser"
+                type="checkbox"
+                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label class="ml-2 text-sm text-gray-700">Notify user via email</label>
+            </div>
           </div>
-          <div
-            v-for="log in accessLogs"
-            :key="log.id"
-            class="bg-gray-50 rounded-lg p-3 text-sm"
-          >
-            <div class="flex items-center justify-between">
-              <div>
-                <span class="font-medium">{{ log.action }}</span>
-                <span class="text-gray-500 ml-2">{{ formatDate(log.timestamp) }}</span>
+          
+          <div class="flex justify-end space-x-3 mt-6">
+            <button
+              @click="showPasswordResetModal = false"
+              class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              :disabled="modalLoading"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handlePasswordReset"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              :disabled="modalLoading"
+            >
+              <span v-if="modalLoading" class="flex items-center">
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                Resetting...
+              </span>
+              <span v-else>Reset Password</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Role Change Modal -->
+      <div v-if="showRoleChangeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+          <div class="flex items-center mb-4">
+            <div class="flex-shrink-0">
+              <i class="fas fa-user-tag text-purple-400 text-2xl"></i>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-lg font-medium text-gray-900">Change Role</h3>
+              <p class="text-sm text-gray-500">Change role for {{ getUserName(selectedUser) }}</p>
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">New Role</label>
+              <select
+                v-model="roleChangeData.newRole"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="admin">Admin</option>
+                <option value="teacher">Teacher</option>
+                <option value="student">Student</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="flex justify-end space-x-3 mt-6">
+            <button
+              @click="showRoleChangeModal = false"
+              class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              :disabled="modalLoading"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleRoleChange"
+              class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+              :disabled="modalLoading"
+            >
+              <span v-if="modalLoading" class="flex items-center">
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                Changing...
+              </span>
+              <span v-else>Change Role</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Access Logs Modal -->
+      <div v-if="showAccessLogsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <i class="fas fa-history text-gray-400 text-2xl"></i>
               </div>
-              <div class="text-xs text-gray-400">
-                {{ log.ip_address }}
+              <div class="ml-3">
+                <h3 class="text-lg font-medium text-gray-900">Access Logs</h3>
+                <p class="text-sm text-gray-500">Access history for {{ getUserName(selectedUser) }}</p>
+              </div>
+            </div>
+            <button
+              @click="showAccessLogsModal = false"
+              class="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <i class="fas fa-times text-xl"></i>
+            </button>
+          </div>
+          
+          <div class="space-y-2">
+            <div v-if="accessLogs.length === 0" class="text-center py-8 text-gray-500">
+              No access logs found
+            </div>
+            <div
+              v-for="log in accessLogs"
+              :key="log.id"
+              class="bg-gray-50 rounded-lg p-3 text-sm"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="font-medium">{{ log.action }}</span>
+                  <span class="text-gray-500 ml-2">{{ formatDate(log.timestamp) }}</span>
+                </div>
+                <div class="text-xs text-gray-400">
+                  {{ log.ip_address }}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        <div class="flex justify-end mt-6">
-          <button
-            @click="showAccessLogsModal = false"
-            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Close
-          </button>
+          
+          <div class="flex justify-end mt-6">
+            <button
+              @click="showAccessLogsModal = false"
+              class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
