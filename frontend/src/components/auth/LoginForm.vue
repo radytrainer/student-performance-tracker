@@ -8,58 +8,25 @@
 
     <!-- Scrollable Form Content -->
     <div class="flex-1 overflow-y-auto scrollbar-hide px-1">
-      <!-- Alert Messages -->
-      <div v-if="authError || hasValidationErrors" class="mb-4 space-y-3">
-        <!-- Auth Error Display -->
-        <div
-          v-if="authError"
-          class="p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-start space-x-3"
+      <!-- Auth Error Display -->
+      <div
+        v-if="authError"
+        class="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg flex items-start space-x-3"
+      >
+        <svg
+          class="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0"
+          fill="currentColor"
+          viewBox="0 0 20 20"
         >
-          <svg
-            class="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <div>
-            <h4 class="text-red-400 font-medium text-sm">
-              Authentication Error
-            </h4>
-            <p class="text-red-300 text-sm mt-1">{{ authError }}</p>
-          </div>
-        </div>
-
-        <!-- Validation Errors Summary -->
-        <div
-          v-if="hasValidationErrors"
-          class="p-4 bg-orange-500/20 border border-orange-500/50 rounded-lg flex items-start space-x-3"
-        >
-          <svg
-            class="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <div>
-            <h4 class="text-orange-400 font-medium text-sm">
-              Please fix the following errors:
-            </h4>
-            <ul class="text-orange-300 text-sm mt-1 space-y-1">
-              <li v-for="error in validationErrorMessages" :key="error.field">
-                • {{ error.message }}
-              </li>
-            </ul>
-          </div>
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <div>
+          <h4 class="text-red-400 font-medium text-sm">Login Error</h4>
+          <p class="text-red-300 text-sm mt-1">{{ authError }}</p>
         </div>
       </div>
 
@@ -354,29 +321,41 @@ const hasError = (field) => {
 };
 
 const getErrorMessage = (field) => {
-  return props.errors[field] || "";
+  const error = props.errors[field];
+  if (!error) return "";
+
+  // Define user-friendly error messages for login
+  const friendlyMessages = {
+    email: {
+      required: "Email is required",
+      invalid: "Please enter a valid email address",
+      not_found:
+        "This email is not registered. Would you like to create an account instead?",
+      incorrect: "Incorrect email address",
+    },
+    password: {
+      required: "Password is required",
+      incorrect: "Incorrect password",
+      too_short: "Password is too short",
+      invalid: "Invalid password format",
+    },
+  };
+
+  // Try to get a friendly message, otherwise use the original error
+  const fieldMessages = friendlyMessages[field];
+  if (
+    fieldMessages &&
+    fieldMessages[error.toLowerCase().replace(/\s+/g, "_")]
+  ) {
+    return fieldMessages[error.toLowerCase().replace(/\s+/g, "_")];
+  }
+
+  return error;
 };
 
 const handleSocialLogin = (provider) => {
   emit("social-login", provider);
 };
-
-// Computed properties for alert system
-const hasValidationErrors = computed(() => {
-  return Object.keys(props.errors).length > 0;
-});
-
-const validationErrorMessages = computed(() => {
-  const fieldNames = {
-    email: "Email Address",
-    password: "Password",
-  };
-
-  return Object.entries(props.errors).map(([field, message]) => ({
-    field,
-    message: `${fieldNames[field] || field}: ${message}`,
-  }));
-});
 </script>
 
 <style scoped>
