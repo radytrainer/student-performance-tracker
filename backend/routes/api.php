@@ -151,6 +151,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('admin/subjects/departments', [App\Http\Controllers\Admin\SubjectController::class, 'getDepartments']);
         Route::get('admin/subjects-stats', [App\Http\Controllers\Admin\SubjectController::class, 'getSubjectStats']);
 
+        // Term Management
+        Route::apiResource('admin/terms', App\Http\Controllers\Admin\TermController::class);
+        Route::post('admin/terms/{term}/set-current', [App\Http\Controllers\Admin\TermController::class, 'setCurrent']);
+        Route::get('admin/terms/current', [App\Http\Controllers\Admin\TermController::class, 'getCurrent']);
+
+        // Data Import
+        Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
+        Route::get('admin/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
+        Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
+
         // Future Admin routes (controllers need to be created)
         // Route::get('admin/settings', 'Admin\SettingsController@index');
         // Route::put('admin/settings', 'Admin\SettingsController@update');
