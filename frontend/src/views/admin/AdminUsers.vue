@@ -69,13 +69,33 @@
             <option value="student">Student</option>
           </select>
         </div>
-        <button
-          @click="openCreateModal"
-          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <i class="fas fa-plus mr-2"></i>
-          Add User
-        </button>
+        <div class="flex items-center space-x-3">
+          <!-- Bulk Actions -->
+          <div v-if="selectedUsers.length > 0" class="flex items-center space-x-2">
+            <span class="text-sm text-gray-600">{{ selectedUsers.length }} selected</span>
+            <button
+              @click="bulkActivate"
+              class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm"
+            >
+              <i class="fas fa-check mr-1"></i>
+              Activate
+            </button>
+            <button
+              @click="bulkDeactivate"
+              class="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center text-sm"
+            >
+              <i class="fas fa-times mr-1"></i>
+              Deactivate
+            </button>
+          </div>
+          <button
+            @click="openCreateModal"
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          >
+            <i class="fas fa-plus mr-2"></i>
+            Add User
+          </button>
+        </div>
       </div>
 
       <!-- Users Table -->
@@ -83,6 +103,14 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
+              <th class="px-3 py-3 text-left">
+                <input
+                  type="checkbox"
+                  :checked="isAllSelected"
+                  @change="toggleSelectAll"
+                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+              </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -92,6 +120,14 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-gray-50">
+              <td class="px-3 py-4 whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  :value="user.id"
+                  v-model="selectedUsers"
+                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
@@ -127,18 +163,43 @@
                 {{ formatDate(user.last_login) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button
-                  @click="editUser(user)"
-                  class="text-blue-600 hover:text-blue-900 mr-3 transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  @click="confirmDelete(user)"
-                  class="text-red-600 hover:text-red-900 transition-colors"
-                >
-                  Delete
-                </button>
+                <div class="flex items-center justify-end space-x-2">
+                  <button
+                    @click="editUser(user)"
+                    class="text-blue-600 hover:text-blue-900 transition-colors"
+                    title="Edit User"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button
+                    @click="resetPassword(user)"
+                    class="text-green-600 hover:text-green-900 transition-colors"
+                    title="Reset Password"
+                  >
+                    <i class="fas fa-key"></i>
+                  </button>
+                  <button
+                    @click="changeRole(user)"
+                    class="text-purple-600 hover:text-purple-900 transition-colors"
+                    title="Change Role"
+                  >
+                    <i class="fas fa-user-tag"></i>
+                  </button>
+                  <button
+                    @click="viewAccessLogs(user)"
+                    class="text-gray-600 hover:text-gray-900 transition-colors"
+                    title="View Access Logs"
+                  >
+                    <i class="fas fa-history"></i>
+                  </button>
+                  <button
+                    @click="confirmDelete(user)"
+                    class="text-red-600 hover:text-red-900 transition-colors"
+                    title="Delete User"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -253,6 +314,174 @@
         </div>
       </div>
     </div>
+
+    <!-- Password Reset Modal -->
+    <div v-if="showPasswordResetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center mb-4">
+          <div class="flex-shrink-0">
+            <i class="fas fa-key text-green-400 text-2xl"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-lg font-medium text-gray-900">Reset Password</h3>
+            <p class="text-sm text-gray-500">Reset password for {{ getUserName(selectedUser) }}</p>
+          </div>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+            <input
+              v-model="passwordResetData.newPassword"
+              type="password"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter new password"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input
+              v-model="passwordResetData.confirmPassword"
+              type="password"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Confirm new password"
+            />
+          </div>
+          <div class="flex items-center">
+            <input
+              v-model="passwordResetData.notifyUser"
+              type="checkbox"
+              class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label class="ml-2 text-sm text-gray-700">Notify user via email</label>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 mt-6">
+          <button
+            @click="showPasswordResetModal = false"
+            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            :disabled="modalLoading"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handlePasswordReset"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+            :disabled="modalLoading"
+          >
+            <span v-if="modalLoading" class="flex items-center">
+              <i class="fas fa-spinner fa-spin mr-2"></i>
+              Resetting...
+            </span>
+            <span v-else>Reset Password</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role Change Modal -->
+    <div v-if="showRoleChangeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center mb-4">
+          <div class="flex-shrink-0">
+            <i class="fas fa-user-tag text-purple-400 text-2xl"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-lg font-medium text-gray-900">Change Role</h3>
+            <p class="text-sm text-gray-500">Change role for {{ getUserName(selectedUser) }}</p>
+          </div>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">New Role</label>
+            <select
+              v-model="roleChangeData.newRole"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="admin">Admin</option>
+              <option value="teacher">Teacher</option>
+              <option value="student">Student</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 mt-6">
+          <button
+            @click="showRoleChangeModal = false"
+            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            :disabled="modalLoading"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleRoleChange"
+            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+            :disabled="modalLoading"
+          >
+            <span v-if="modalLoading" class="flex items-center">
+              <i class="fas fa-spinner fa-spin mr-2"></i>
+              Changing...
+            </span>
+            <span v-else>Change Role</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Access Logs Modal -->
+    <div v-if="showAccessLogsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <i class="fas fa-history text-gray-400 text-2xl"></i>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-lg font-medium text-gray-900">Access Logs</h3>
+              <p class="text-sm text-gray-500">Access history for {{ getUserName(selectedUser) }}</p>
+            </div>
+          </div>
+          <button
+            @click="showAccessLogsModal = false"
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-2">
+          <div v-if="accessLogs.length === 0" class="text-center py-8 text-gray-500">
+            No access logs found
+          </div>
+          <div
+            v-for="log in accessLogs"
+            :key="log.id"
+            class="bg-gray-50 rounded-lg p-3 text-sm"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="font-medium">{{ log.action }}</span>
+                <span class="text-gray-500 ml-2">{{ formatDate(log.timestamp) }}</span>
+              </div>
+              <div class="text-xs text-gray-400">
+                {{ log.ip_address }}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex justify-end mt-6">
+          <button
+            @click="showAccessLogsModal = false"
+            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
     </div>
   </div>
 </template>
@@ -262,6 +491,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import UserModal from '@/components/modals/UserModal.vue'
 import { usersAPI } from '@/api/users'
+import { adminAPI } from '@/api/admin'
 
 const { hasPermission } = useAuth()
 
@@ -281,10 +511,27 @@ const itemsPerPage = ref(10)
 // Modal states
 const showUserModal = ref(false)
 const showDeleteModal = ref(false)
+const showPasswordResetModal = ref(false)
+const showRoleChangeModal = ref(false)
+const showAccessLogsModal = ref(false)
 const selectedUser = ref(null)
 const userToDelete = ref(null)
 const modalLoading = ref(false)
 const deleteLoading = ref(false)
+
+// Bulk selection
+const selectedUsers = ref([])
+
+// New modal data
+const passwordResetData = ref({
+  newPassword: '',
+  confirmPassword: '',
+  notifyUser: true
+})
+const roleChangeData = ref({
+  newRole: ''
+})
+const accessLogs = ref([])
 
 // Helper functions (defined early for use in computed)
 const getUserName = (user) => {
@@ -340,6 +587,11 @@ const paginationInfo = computed(() => {
     hasNextPage: currentPage.value < totalPages,
     hasPrevPage: currentPage.value > 1
   }
+})
+
+// Computed for bulk selection
+const isAllSelected = computed(() => {
+  return paginatedUsers.value.length > 0 && selectedUsers.value.length === paginatedUsers.value.length
 })
 
 // Debounced search for API calls (only when needed)
@@ -584,9 +836,135 @@ const toggleUserStatus = async (user) => {
   }
 }
 
+// New admin methods
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedUsers.value = []
+  } else {
+    selectedUsers.value = paginatedUsers.value.map(user => user.id)
+  }
+}
+
+const resetPassword = (user) => {
+  selectedUser.value = user
+  passwordResetData.value = {
+    newPassword: '',
+    confirmPassword: '',
+    notifyUser: true
+  }
+  showPasswordResetModal.value = true
+}
+
+const handlePasswordReset = async () => {
+  try {
+    modalLoading.value = true
+    
+    if (passwordResetData.value.newPassword !== passwordResetData.value.confirmPassword) {
+      error.value = 'Passwords do not match'
+      return
+    }
+
+    await adminAPI.resetUserPassword(selectedUser.value.id, {
+      new_password: passwordResetData.value.newPassword,
+      new_password_confirmation: passwordResetData.value.confirmPassword,
+      notify_user: passwordResetData.value.notifyUser
+    })
+
+    showSuccessMessage('Password reset successfully')
+    showPasswordResetModal.value = false
+    selectedUser.value = null
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to reset password'
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+const changeRole = (user) => {
+  selectedUser.value = user
+  roleChangeData.value = {
+    newRole: user.role
+  }
+  showRoleChangeModal.value = true
+}
+
+const handleRoleChange = async () => {
+  try {
+    modalLoading.value = true
+    
+    await adminAPI.updateUserRole(selectedUser.value.id, {
+      role: roleChangeData.value.newRole
+    })
+
+    // Update user in local data
+    const userIndex = allUsers.value.findIndex(u => u.id === selectedUser.value.id)
+    if (userIndex !== -1) {
+      allUsers.value[userIndex].role = roleChangeData.value.newRole
+    }
+
+    showSuccessMessage('User role updated successfully')
+    showRoleChangeModal.value = false
+    selectedUser.value = null
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to update role'
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+const viewAccessLogs = async (user) => {
+  try {
+    selectedUser.value = user
+    modalLoading.value = true
+    
+    const response = await adminAPI.getUserAccessLogs(user.id)
+    accessLogs.value = response.data.data
+    showAccessLogsModal.value = true
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to load access logs'
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+const bulkActivate = async () => {
+  try {
+    await adminAPI.bulkUpdateUserStatus(selectedUsers.value, true)
+    
+    // Update local data
+    selectedUsers.value.forEach(userId => {
+      const user = allUsers.value.find(u => u.id === userId)
+      if (user) user.is_active = true
+    })
+    
+    showSuccessMessage(`${selectedUsers.value.length} users activated successfully`)
+    selectedUsers.value = []
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to activate users'
+  }
+}
+
+const bulkDeactivate = async () => {
+  try {
+    await adminAPI.bulkUpdateUserStatus(selectedUsers.value, false)
+    
+    // Update local data
+    selectedUsers.value.forEach(userId => {
+      const user = allUsers.value.find(u => u.id === userId)
+      if (user) user.is_active = false
+    })
+    
+    showSuccessMessage(`${selectedUsers.value.length} users deactivated successfully`)
+    selectedUsers.value = []
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to deactivate users'
+  }
+}
+
 // Watch for search/filter changes to reset pagination
 watch([searchQuery, roleFilter], () => {
   currentPage.value = 1
+  selectedUsers.value = [] // Clear selection when filtering
 })
 
 onMounted(() => {
