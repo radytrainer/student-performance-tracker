@@ -138,5 +138,47 @@ export const adminAPI = {
 
   getSubjectStats: async () => {
     return await api.get('/admin/subjects-stats')
+  },
+
+  // Term Management
+  getTerms: async (params = {}) => {
+    return await api.get('/admin/terms', { params })
+  },
+
+  createTerm: async (termData) => {
+    return await api.post('/admin/terms', termData)
+  },
+
+  updateTerm: async (termId, termData) => {
+    return await api.put(`/admin/terms/${termId}`, termData)
+  },
+
+  deleteTerm: async (termId) => {
+    return await api.delete(`/admin/terms/${termId}`)
+  },
+
+  setCurrentTerm: async (termId) => {
+    return await api.post(`/admin/terms/${termId}/set-current`)
+  },
+
+  getCurrentTerm: async () => {
+    return await api.get('/admin/terms/current')
+  },
+
+  // Data Import
+  importStudents: async (formData) => {
+    return await api.post('/admin/import/students', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+
+  getImportTemplate: async (type = 'students') => {
+    return await api.get('/admin/import/template', { params: { type } })
+  },
+
+  getImportHistory: async () => {
+    return await api.get('/admin/import/history')
   }
 }
