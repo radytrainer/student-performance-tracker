@@ -2,18 +2,6 @@
   <div class="max-w-7xl mx-auto p-2">
     <h1 class="text-2xl font-bold mb-6">🎓 My Grade</h1>
 
-<<<<<<< HEAD
-
-    <!-- ✅ Wrap Exportable Content -->
-    <div id="grade-export-content">
-      <!-- Student Info -->
-      <div class="bg-white shadow-md rounded-lg p-4 mb-4 border">
-        <p class="text-gray-700"><span class="font-semibold">Name:</span> {{ student.name }}</p>
-        <p class="text-gray-700"><span class="font-semibold">Class:</span> {{ student.class }}</p>
-        <p class="text-gray-700"><span class="font-semibold">Term:</span> {{ currentTermName }}</p>
-      </div>
-
-=======
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
       <div class="text-center">
@@ -55,7 +43,6 @@
         <p class="text-gray-700"><span class="font-semibold">Term:</span> {{ currentTermName }}</p>
       </div>
 
->>>>>>> main
 
       <!-- Summary Card -->
       <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">📊 Performance Summary</h3>
@@ -184,17 +171,6 @@
 </template>
 
 <script setup>
-<<<<<<< HEAD
-import { ref, computed } from 'vue'
-// import html2pdf from 'html2pdf.js' // TODO: Install html2pdf.js for PDF export
-
-// Dummy student info
-const student = ref({
-  name: 'Aliya Developer',
-  class: 'WD2025-A',
-})
-
-=======
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from "@/stores/auth"
 import gradesAPI from "@/api/grades"
@@ -213,7 +189,6 @@ const student = ref({
   student_id: ''
 })
 
->>>>>>> main
 // Term info
 const termList = [
   { id: 1, name: 'Term 1' },
@@ -229,36 +204,10 @@ const currentTermName = computed(() => {
 // Subject filter
 const selectedSubject = ref('')
 
-<<<<<<< HEAD
-// Grade list (dummy data)
-const grades = ref([
-  {
-    id: 1, subject: 'Math', term_id: 2, assessment_type: 'Midterm',
-    max_score: 100, score_obtained: 78, weightage: 30, grade_letter: 'B',
-    remarks: 'Good effort', recorded_by: 'Teacher A', recorded_at: '2025-07-10',
-  },
-  {
-    id: 2, subject: 'Math', term_id: 2, assessment_type: 'Quiz',
-    max_score: 20, score_obtained: 18, weightage: 10, grade_letter: 'A',
-    remarks: 'Quick learner', recorded_by: 'Teacher A', recorded_at: '2025-07-15',
-  },
-  {
-    id: 3, subject: 'Science', term_id: 2, assessment_type: 'Project',
-    max_score: 50, score_obtained: 40, weightage: 40, grade_letter: 'B',
-    remarks: '', recorded_by: 'Teacher B', recorded_at: '2025-07-12',
-  },
-  {
-    id: 4, subject: 'English', term_id: 2, assessment_type: 'Final',
-    max_score: 100, score_obtained: 85, weightage: 20, grade_letter: 'A',
-    remarks: 'Great improvement', recorded_by: 'Teacher C', recorded_at: '2025-07-20',
-  },
-])
-=======
 // Grade list - loaded from API
 const grades = ref([])
 const gradeSummary = ref(null)
 const studentGPA = ref(0)
->>>>>>> main
 
 const subjectList = computed(() => {
   const filtered = selectedTermId.value
@@ -341,14 +290,11 @@ const exportToPDF = () => {
 
 //Cards
 const gpa = computed(() => {
-<<<<<<< HEAD
-=======
   // Use API GPA if available, otherwise calculate from filtered grades
   if (studentGPA.value && !selectedTermId.value && !selectedSubject.value) {
     return studentGPA.value
   }
   
->>>>>>> main
   if (!filteredGrades.value.length) return 0
 
   const totalPoints = filteredGrades.value.reduce((sum, g) => {
@@ -366,14 +312,11 @@ const gpa = computed(() => {
 })
 
 const bestSubject = computed(() => {
-<<<<<<< HEAD
-=======
   // Use API summary if available and no filters applied
   if (gradeSummary.value?.best_subject && !selectedTermId.value && !selectedSubject.value) {
     return gradeSummary.value.best_subject
   }
 
->>>>>>> main
   const subjects = {}
   filteredGrades.value.forEach(g => {
     if (!subjects[g.subject]) subjects[g.subject] = []
@@ -390,21 +333,6 @@ const bestSubject = computed(() => {
 })
 
 const weakestSubject = computed(() => {
-<<<<<<< HEAD
-  const subjects = {}
-  filteredGrades.value.forEach(g => {
-    if (!subjects[g.subject]) subjects[g.subject] = []
-    subjects[g.subject].push(g)
-  })
-
-  const averages = Object.entries(subjects).map(([subject, grades]) => {
-    const total = grades.reduce((s, g) => s + ((g.score_obtained / g.max_score) * 100), 0)
-    return { subject, avg: total / grades.length }
-  })
-
-  if (!averages.length) return null
-  return averages.sort((a, b) => a.avg - b.avg)[0].subject
-=======
   // Use API summary if available and no filters applied
   if (gradeSummary.value?.weakest_subject && !selectedTermId.value && !selectedSubject.value) {
     return gradeSummary.value.weakest_subject
@@ -553,7 +481,6 @@ const fetchStudentData = async () => {
 // Initialize data on component mount
 onMounted(() => {
   fetchStudentData()
->>>>>>> main
 })
 
 </script>

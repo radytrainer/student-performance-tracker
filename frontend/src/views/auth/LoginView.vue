@@ -72,10 +72,10 @@
 
             <!-- Form Content -->
             <div
-              class="relative h-full flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto scrollbar-hide"
+              class="relative h-full flex flex-col items-center justify-center p-4 md:p-20 overflow-y-auto scrollbar-hide"
               style="z-index: 10"
             >
-              <div class="w-full max-w-md bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-6 border border-white/20 mb-4 h-[80vh] flex flex-col">
+              <div class="w-full max-w-md-[90vh] bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-6 border border-white/20 mb-4 h-[80vh] flex flex-col">
                 <!-- Login Form -->
                 <LoginForm
                   v-if="isSignIn"
