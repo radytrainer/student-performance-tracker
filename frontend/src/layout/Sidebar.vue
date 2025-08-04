@@ -14,7 +14,7 @@
     <transition name="slide">
       <aside
         v-show="isOpen"
-        class="fixed md:relative top-0 left-0 h-screen w-100 bg-gradient-to-b from-purple-600 via-blue-600 to-indigo-700 text-white z-40 md:translate-x-0 transform transition-all duration-300 shadow-2xl"
+        class="fixed md:relative top-0 left-0 h-screen w-100 bg-gradient-to-b from-blue-600 via-blue-600 to-indigo-700 text-white z-40 md:translate-x-0 transform transition-all duration-300 shadow-2xl"
         :class="{ '-translate-x-full': !isOpen && isMobile }"
       >
         <!-- System Branding Section -->
@@ -29,7 +29,7 @@
             
             <!-- System Name -->
             <h2 class="text-xl font-bold text-white mb-1">
-              EduTrack Pro
+              Education Tracker
             </h2>
             <p class="text-white/70 text-sm">
               Student Performance Tracking System
