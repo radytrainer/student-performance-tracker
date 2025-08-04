@@ -167,8 +167,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { adminAPI } from '@/api/admin'
 
 const { hasPermission } = useAuth()
 
@@ -179,70 +180,21 @@ const subjects = ref([])
 const searchQuery = ref('')
 const categoryFilter = ref('')
 const showCreateModal = ref(false)
+const showDeleteModal = ref(false)
+const selectedSubject = ref(null)
+const successMessage = ref('')
 
-// Mock data
-const mockSubjects = [
-  {
-    id: 1,
-    name: 'Advanced Mathematics',
-    code: 'MATH401',
-    category: 'Mathematics',
-    credits: 4,
-    gradeRange: '11-12',
-    description: 'Advanced topics in calculus, statistics, and mathematical analysis',
-    color: '#3B82F6',
-    icon: 'fas fa-square-root-alt',
-    active: true
-  },
-  {
-    id: 2,
-    name: 'Physics',
-    code: 'PHYS301',
-    category: 'Science',
-    credits: 4,
-    gradeRange: '10-12',
-    description: 'Fundamental principles of physics including mechanics, thermodynamics, and electromagnetism',
-    color: '#10B981',
-    icon: 'fas fa-atom',
-    active: true
-  },
-  {
-    id: 3,
-    name: 'English Literature',
-    code: 'ENG201',
-    category: 'Language Arts',
-    credits: 3,
-    gradeRange: '9-12',
-    description: 'Study of classic and contemporary literature with focus on critical analysis',
-    color: '#8B5CF6',
-    icon: 'fas fa-book-open',
-    active: true
-  },
-  {
-    id: 4,
-    name: 'Chemistry',
-    code: 'CHEM301',
-    category: 'Science',
-    credits: 4,
-    gradeRange: '10-12',
-    description: 'Organic and inorganic chemistry with laboratory experiments',
-    color: '#F59E0B',
-    icon: 'fas fa-flask',
-    active: true
-  },
-  {
-    id: 5,
-    name: 'World History',
-    code: 'HIST201',
-    category: 'Social Studies',
-    credits: 3,
-    gradeRange: '9-11',
-    description: 'Comprehensive study of world civilizations and historical events',
-    color: '#EF4444',
-    icon: 'fas fa-globe',
-    active: true
-  }
-]
+// Subject categories with colors and icons
+const subjectCategories = {
+  'Mathematics': { color: '#3B82F6', icon: 'fas fa-square-root-alt' },
+  'Science': { color: '#10B981', icon: 'fas fa-atom' },
+  'Language Arts': { color: '#8B5CF6', icon: 'fas fa-book-open' },
+  'Social Studies': { color: '#EF4444', icon: 'fas fa-globe' },
+  'Arts': { color: '#F59E0B', icon: 'fas fa-palette' },
+  'Physical Education': { color: '#06B6D4', icon: 'fas fa-running' },
+  'Technology': { color: '#8B5CF6', icon: 'fas fa-laptop-code' },
+  'Other': { color: '#6B7280', icon: 'fas fa-book' }
+}
 
 // Computed
 const filteredSubjects = computed(() => {
@@ -251,35 +203,59 @@ const filteredSubjects = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(subject =>
-      subject.name.toLowerCase().includes(query) ||
-      subject.code.toLowerCase().includes(query) ||
-      subject.category.toLowerCase().includes(query)
+      subject.subject_name.toLowerCase().includes(query) ||
+      subject.subject_code.toLowerCase().includes(query) ||
+      subject.department.toLowerCase().includes(query)
     )
   }
 
   if (categoryFilter.value) {
-    filtered = filtered.filter(subject => subject.category === categoryFilter.value)
+    filtered = filtered.filter(subject => subject.department === categoryFilter.value)
   }
 
-  return filtered
+  return filtered.map(subject => ({
+    ...subject,
+    // Add UI properties for display
+    color: subjectCategories[subject.department]?.color || subjectCategories['Other'].color,
+    icon: subjectCategories[subject.department]?.icon || subjectCategories['Other'].icon,
+    gradeRange: '9-12', // Default since this isn't in the model
+    category: subject.department
+  }))
 })
 
 // Methods
 const viewSubject = (subject) => {
-  // TODO: Navigate to subject details view
   console.log('View subject:', subject)
+  // TODO: Navigate to subject details view
 }
 
 const editSubject = (subject) => {
-  // TODO: Implement edit subject functionality
-  console.log('Edit subject:', subject)
+  selectedSubject.value = subject
+  showCreateModal.value = true
 }
 
 const confirmDelete = (subject) => {
-  // TODO: Implement delete confirmation and functionality
-  if (confirm(`Are you sure you want to delete subject ${subject.name}?`)) {
-    console.log('Delete subject:', subject)
+  selectedSubject.value = subject
+  showDeleteModal.value = true
+}
+
+const deleteSubject = async () => {
+  try {
+    await adminAPI.deleteSubject(selectedSubject.value.id)
+    showSuccessMessage('Subject deleted successfully')
+    showDeleteModal.value = false
+    selectedSubject.value = null
+    await loadSubjects()
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to delete subject'
   }
+}
+
+const showSuccessMessage = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 5000)
 }
 
 const loadSubjects = async () => {
@@ -287,15 +263,29 @@ const loadSubjects = async () => {
     loading.value = true
     error.value = null
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    subjects.value = mockSubjects
+    const params = {}
+    if (searchQuery.value) params.search = searchQuery.value
+    if (categoryFilter.value) params.department = categoryFilter.value
+
+    const response = await adminAPI.getSubjects(params)
+    
+    // Handle both paginated and non-paginated responses
+    subjects.value = response.data.data.data || response.data.data || []
+    
   } catch (err) {
-    error.value = err.message || 'Failed to load subjects'
+    error.value = err.response?.data?.message || err.message || 'Failed to load subjects'
+    console.error('Error loading subjects:', err)
   } finally {
     loading.value = false
   }
 }
+
+// Watch for search changes
+watch([searchQuery, categoryFilter], () => {
+  if (!loading.value) {
+    loadSubjects()
+  }
+}, { debounce: 500 })
 
 onMounted(() => {
   loadSubjects()
