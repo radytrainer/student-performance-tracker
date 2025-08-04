@@ -17,4 +17,3 @@ const auth = useAuthStore()
 auth.initialize().then(() => {
   app.mount('#app')
 })
-

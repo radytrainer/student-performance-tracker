@@ -115,6 +115,7 @@ class AuthController extends Controller
                 ], 401);
             }
 
+
             if (!$user->is_active) {
                 return response()->json([
                     'success' => false,
@@ -229,6 +230,7 @@ class AuthController extends Controller
         }
     }
 
+
     /**
      * Refresh token
      */
@@ -293,7 +295,7 @@ class AuthController extends Controller
         do {
             $code = 'STU' . date('Y') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         } while (Student::where('student_code', $code)->exists());
-        
+
         return $code;
     }
 
@@ -305,7 +307,7 @@ class AuthController extends Controller
         do {
             $code = 'TCH' . date('Y') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         } while (Teacher::where('teacher_code', $code)->exists());
-        
+
         return $code;
     }
 
@@ -341,6 +343,7 @@ class AuthController extends Controller
             // Check if user exists by email
             $user = User::where('email', $socialUser->getEmail())->first();
 
+
             if ($user) {
                 // Update user info if necessary
                 $user->update([
@@ -352,7 +355,7 @@ class AuthController extends Controller
                 $baseUsername = $socialUser->getNickname() ?? explode('@', $socialUser->getEmail())[0];
                 $username = $baseUsername;
                 $counter = 1;
-                
+
                 while (User::where('username', $username)->exists()) {
                     $username = $baseUsername . '_' . $counter;
                     $counter++;
