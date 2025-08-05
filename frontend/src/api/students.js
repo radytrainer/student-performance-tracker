@@ -15,5 +15,8 @@ export default {
   },
   deleteStudent(id) {
     return apiClient.delete(`/students/${id}`)
+  },
+  getStudentDashboard(studentId) {
+    return apiClient.get(`/students/${studentId}/dashboard`)
   }
 }
