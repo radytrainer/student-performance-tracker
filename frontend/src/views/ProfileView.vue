@@ -44,7 +44,6 @@
                 @upload-error="handleImageUploadError"
                 @delete-success="handleImageDeleteSuccess"
                 @delete-error="handleImageDeleteError"
-
               />
             </div>
 
@@ -84,8 +83,8 @@
                   <div class="text-blue-200 text-sm">Last Login</div>
                 </div>
                 <div class="text-center sm:text-left">
-                  <div class="text-2xl font-bold">{{ user.student_id || user.id }}</div>
-                  <div class="text-blue-200 text-sm">Student ID</div>
+                  <div class="text-2xl font-bold">{{ getUserId }}</div>
+                  <div class="text-blue-200 text-sm">{{ getUserIdLabel }}</div>
                 </div>
               </div>
             </div>
@@ -98,12 +97,8 @@
           <div class="flex mb-8 border-b border-gray-200 overflow-x-auto">
             <button
               @click="activeTab = 'personal'"
-              :class="[
-                'flex items-center px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-300 whitespace-nowrap border-b-2 min-w-0',
-                activeTab === 'personal'
-                  ? 'text-blue-600 border-blue-600 bg-blue-50/50'
-                  : 'text-gray-500 hover:text-gray-700 border-transparent hover:border-gray-300',
-              ]"
+              :class="getTabClasses('personal')"
+              class="flex items-center px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-300 whitespace-nowrap border-b-2 min-w-0"
             >
               <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -112,12 +107,8 @@
             </button>
             <button
               @click="activeTab = 'account'"
-              :class="[
-                'flex items-center px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-300 whitespace-nowrap border-b-2 min-w-0',
-                activeTab === 'account'
-                  ? 'text-blue-600 border-blue-600 bg-blue-50/50'
-                  : 'text-gray-500 hover:text-gray-700 border-transparent hover:border-gray-300',
-              ]"
+              :class="getTabClasses('account')"
+              class="flex items-center px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-300 whitespace-nowrap border-b-2 min-w-0"
             >
               <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -128,12 +119,8 @@
             <button
               v-if="user.role === 'student'"
               @click="activeTab = 'grades'"
-              :class="[
-                'flex items-center px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-300 whitespace-nowrap border-b-2 min-w-0',
-                activeTab === 'grades'
-                  ? 'text-blue-600 border-blue-600 bg-blue-50/50'
-                  : 'text-gray-500 hover:text-gray-700 border-transparent hover:border-gray-300',
-              ]"
+              :class="getTabClasses('grades')"
+              class="flex items-center px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-300 whitespace-nowrap border-b-2 min-w-0"
             >
               <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
@@ -153,21 +140,20 @@
                   </svg>
                   Basic Information
                 </h3>
-
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <!-- Student ID Field (Non-editable) -->
+                  <!-- User ID Field (Non-editable) -->
                   <div class="lg:col-span-2">
-                    <label for="studentId" class="block text-sm font-semibold text-gray-700 mb-3">
-                      Student ID
+                    <label :for="getUserIdLabel.toLowerCase().replace(' ', '')" class="block text-sm font-semibold text-gray-700 mb-3">
+                      {{ getUserIdLabel }}
                     </label>
                     <div class="relative">
                       <input
-                        id="studentId"
-                        :value="user.student_id || user.id"
+                        :id="getUserIdLabel.toLowerCase().replace(' ', '')"
+                        :value="getUserId"
                         type="text"
                         class="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl bg-gray-100 text-gray-600 font-semibold focus:outline-none text-base shadow-inner"
                         disabled
-                        placeholder="Student ID"
+                        :placeholder="getUserIdLabel"
                       />
                       <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
@@ -200,7 +186,7 @@
                     <transition name="error-fade">
                       <p v-if="errors.username" class="text-red-500 text-sm mt-2 flex items-center animate-pulse">
                         <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                         </svg>
                         {{ errors.username }}
                       </p>
@@ -232,7 +218,7 @@
                     <transition name="error-fade">
                       <p v-if="errors.email" class="text-red-500 text-sm mt-2 flex items-center animate-pulse">
                         <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                         </svg>
                         {{ errors.email }}
                       </p>
@@ -263,7 +249,7 @@
                     <transition name="error-fade">
                       <p v-if="errors.phone" class="text-red-500 text-sm mt-2 flex items-center animate-pulse">
                         <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                         </svg>
                         {{ errors.phone }}
                       </p>
@@ -316,7 +302,6 @@
                   </svg>
                   Student Information
                 </h3>
-
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <!-- Gender -->
                   <div>
@@ -377,7 +362,6 @@
                       </svg>
                     </div>
                   </div>
-
                   <div>
                     <label for="parentPhone" class="block text-sm font-semibold text-gray-700 mb-3">
                       Parent/Guardian Phone
@@ -411,7 +395,6 @@
                   </svg>
                   Account Information
                 </h3>
-
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
                     <label for="role" class="block text-sm font-semibold text-gray-700 mb-3">
@@ -430,7 +413,6 @@
                       </svg>
                     </div>
                   </div>
-
                   <div>
                     <label for="memberSince" class="block text-sm font-semibold text-gray-700 mb-3">
                       Member Since
@@ -448,7 +430,6 @@
                       </svg>
                     </div>
                   </div>
-
                   <div class="lg:col-span-2">
                     <label for="lastLogin" class="block text-sm font-semibold text-gray-700 mb-3">
                       Last Login
@@ -477,7 +458,6 @@
                   </svg>
                   Profile Completion
                 </h3>
-
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
                     <span class="text-lg font-semibold text-gray-700">{{ profileCompletion }}% Complete</span>
@@ -492,7 +472,6 @@
                       :style="{ width: `${profileCompletion}%` }"
                     ></div>
                   </div>
-
                   <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
                     <div class="text-center">
                       <div class="text-2xl font-bold text-emerald-600">{{ profileCompletion }}%</div>
@@ -596,8 +575,8 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <p class="text-lg font-semibold">{{ grades.error }}</p>
-                    <button 
-                      @click="fetchStudentGrades(user.student_id)" 
+                    <button
+                      @click="fetchStudentGrades(user.student_id)"
                       class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       Retry
@@ -637,10 +616,7 @@
                           <div class="text-xs text-gray-500">{{ ((grade.score / (grade.max_score || grade.total)) * 100).toFixed(1) }}%</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                          <span :class="[
-                            'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
-                            getGradeBadgeClass(grade.letter_grade || grade.grade)
-                          ]">
+                          <span :class="getGradeBadgeClass(grade.letter_grade || grade.grade)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
                             {{ grade.letter_grade || grade.grade }}
                           </span>
                         </td>
@@ -650,49 +626,6 @@
                       </tr>
                     </tbody>
                   </table>
-                </div>
-              </div>
-
-              <!-- Raw API Data Display (for testing) -->
-              <div class="bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-sm overflow-auto">
-                <h3 class="text-white font-bold mb-4">📡 API Data Structure (for backend development)</h3>
-                
-                <div class="space-y-4">
-                  <!-- Grades API Response -->
-                  <div>
-                    <h4 class="text-yellow-400 font-semibold">GET /students/{studentId}/grades</h4>
-                    <pre class="mt-2 overflow-x-auto">{{
-                      JSON.stringify({
-                        success: true,
-                        message: "Grades retrieved successfully",
-                        grades: grades.data
-                      }, null, 2)
-                    }}</pre>
-                  </div>
-
-                  <!-- Summary API Response -->
-                  <div>
-                    <h4 class="text-yellow-400 font-semibold">GET /students/{studentId}/grades/summary</h4>
-                    <pre class="mt-2 overflow-x-auto">{{
-                      JSON.stringify({
-                        success: true,
-                        message: "Grade summary retrieved successfully", 
-                        summary: grades.summary
-                      }, null, 2)
-                    }}</pre>
-                  </div>
-
-                  <!-- GPA API Response -->
-                  <div>
-                    <h4 class="text-yellow-400 font-semibold">GET /students/{studentId}/gpa</h4>
-                    <pre class="mt-2 overflow-x-auto">{{
-                      JSON.stringify({
-                        success: true,
-                        message: "GPA retrieved successfully",
-                        gpa: grades.gpa
-                      }, null, 2)
-                    }}</pre>
-                  </div>
                 </div>
               </div>
             </div>
@@ -894,7 +827,33 @@ const profileCompletion = computed(() => {
   return Math.round((completedFields / fields.length) * 100);
 });
 
+const lastLoginDate = computed(() => {
+  const formatted = formatDate(user.lastLogin);
+  if (formatted === 'N/A') return 'N/A';
+  return formatted.split(',')[0];
+});
+
+const getUserId = computed(() => {
+  if (user.role === 'teacher') {
+    return user.teacher_id || user.id;
+  }
+  return user.student_code || user.id;
+});
+
+const getUserIdLabel = computed(() => {
+  if (user.role === 'teacher') {
+    return 'Teacher ID';
+  }
+  return 'Student ID';
+});
+
 // Enhanced styling methods
+const getTabClasses = (tab) => {
+  return activeTab.value === tab
+    ? 'text-blue-600 border-blue-600 bg-blue-50/50'
+    : 'text-gray-500 hover:text-gray-700 border-transparent hover:border-gray-300';
+};
+
 const getEnhancedInputClasses = (field) => {
   const baseClasses = "w-full pl-12 pr-4 py-4 border rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 font-medium text-base shadow-sm";
   const enabledClasses = "border-gray-300 focus:border-blue-500 focus:ring-blue-500/25 bg-white hover:border-gray-400";
@@ -911,7 +870,6 @@ const getEnhancedTextareaClasses = () => {
   const baseClasses = "w-full px-4 py-4 border rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 font-medium resize-none text-base shadow-sm";
   const enabledClasses = "border-gray-300 focus:border-blue-500 focus:ring-blue-500/25 bg-white hover:border-gray-400";
   const disabledClasses = "border-gray-200 bg-gray-100 text-gray-600 shadow-inner";
-
   return editing.value ? `${baseClasses} ${enabledClasses}` : `${baseClasses} ${disabledClasses}`;
 };
 
@@ -973,9 +931,7 @@ const getGradeBadgeClass = (grade) => {
   return "bg-gray-100 text-gray-800";
 };
 
-// Keep all your existing methods (loadProfile, startEditing, cancelEdit, saveProfile, etc.)
-// I'm maintaining the same functionality but with enhanced styling
-
+// Core functionality methods
 const loadProfile = async () => {
   try {
     loading.value = true;
@@ -1032,7 +988,6 @@ const loadProfile = async () => {
   }
 };
 
-// Keep all your other existing methods unchanged...
 const formatDateForInput = (dateString) => {
   if (!dateString) return "";
   if (dateString.includes("T")) {
@@ -1104,6 +1059,7 @@ const saveProfile = async () => {
   }
 };
 
+// Image upload handlers
 const handleImageUploadSuccess = async (data) => {
   try {
     showNotification("Profile image uploaded successfully!", "success");
@@ -1128,13 +1084,16 @@ const handleImageDeleteError = (message) => {
   showNotification(message, "error");
 };
 
+// Validation methods
 const validateForm = () => {
   clearErrors();
   let isValid = true;
+
   if (!user.username || !user.username.trim()) {
     errors.username = "Name is required";
     isValid = false;
   }
+
   if (!user.email || !user.email.trim()) {
     errors.email = "Email is required";
     isValid = false;
@@ -1142,10 +1101,12 @@ const validateForm = () => {
     errors.email = "Please enter a valid email address";
     isValid = false;
   }
+
   if (user.phone && user.phone.trim() && !/^[\+]?[1-9][\d\s\-()]{7,15}$/.test(user.phone.replace(/\s/g, ""))) {
     errors.phone = "Please enter a valid phone number";
     isValid = false;
   }
+
   return isValid;
 };
 
@@ -1211,7 +1172,7 @@ const showNotification = (message, type = "success") => {
   }, 5000);
 };
 
-// Mock data for testing (based on existing grades page)
+// Mock data for testing
 const mockGradesData = {
   grades: [
     {
@@ -1303,48 +1264,6 @@ const fetchStudentGrades = async (studentId) => {
       }
     });
     
-    /* 
-    // 🔄 REAL API CALLS (commented out for now)
-    console.log("🔄 Calling grades API...");
-    const gradesResponse = await gradesAPI.getStudentGrades(studentId);
-    console.log("📈 Grades API response:", gradesResponse.data);
-    
-    if (gradesResponse.data.success) {
-      grades.data = gradesResponse.data.grades || [];
-      console.log("✅ Grades data loaded:", grades.data.length, "grades found");
-    } else {
-      console.log("❌ Grades API returned unsuccessful response");
-    }
-    
-    // Fetch grade summary
-    try {
-      console.log("🔄 Calling grade summary API...");
-      const summaryResponse = await gradesAPI.getStudentGradeSummary(studentId);
-      console.log("📊 Grade summary API response:", summaryResponse.data);
-      
-      if (summaryResponse.data.success) {
-        grades.summary = summaryResponse.data.summary;
-        console.log("✅ Grade summary loaded:", grades.summary);
-      }
-    } catch (summaryError) {
-      console.warn("⚠️ Could not fetch grade summary:", summaryError);
-    }
-    
-    // Fetch GPA
-    try {
-      console.log("🔄 Calling GPA API...");
-      const gpaResponse = await gradesAPI.getStudentGPA(studentId);
-      console.log("🎯 GPA API response:", gpaResponse.data);
-      
-      if (gpaResponse.data.success) {
-        grades.gpa = gpaResponse.data.gpa;
-        console.log("✅ GPA loaded:", grades.gpa);
-      }
-    } catch (gpaError) {
-      console.warn("⚠️ Could not fetch GPA:", gpaError);
-    }
-    */
-    
     console.log("📋 Final grades state:", {
       data: grades.data,
       summary: grades.summary,
@@ -1366,18 +1285,6 @@ const fetchStudentGrades = async (studentId) => {
     console.log("🏁 Grades fetch completed. Loading:", grades.loading);
   }
 };
-
-const memberSinceDate = computed(() => {
-  const formatted = formatDate(user.createdAt);
-  if (formatted === 'N/A') return 'N/A';
-  return formatted.split(',')[0];
-});
-
-const lastLoginDate = computed(() => {
-  const formatted = formatDate(user.lastLogin);
-  if (formatted === 'N/A') return 'N/A';
-  return formatted.split(',')[0];
-});
 
 onMounted(async () => {
   await nextTick();
