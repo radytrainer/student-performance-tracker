@@ -7,7 +7,7 @@
       <p class="text-blue-800">You are viewing your grades in read-only mode.</p>
     </div>
 
-    <!-- Filters & Import/Export Row -->
+    <!-- Filters & Actions Row -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <!-- Class Filter -->
       <div>
@@ -57,12 +57,12 @@
           class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">All</option>
-          <option v-for="type in assessmentTypes" :key="type">{{ type }}</option>
+          <option v-for="type in assessmentTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
         </select>
       </div>
     </div>
 
-    <!-- Export Buttons -->
+    <!-- Action Buttons -->
     <div class="flex flex-wrap gap-3 mb-6">
       <!-- Export Buttons -->
       <button 
@@ -85,7 +85,7 @@
         Export to PDF
       </button>
 
-      <!-- Add Grade Button (Teacher Only) -->
+      <!-- Add Grade Button -->
       <button 
         v-if="user.role === 'teacher'"
         @click="openAddModal" 
@@ -99,7 +99,7 @@
     </div>
 
     <!-- Analytics Dashboard -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
       <!-- Grade Distribution -->
       <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
         <h2 class="text-xl font-semibold mb-4 text-gray-800">Grade Distribution</h2>
@@ -169,6 +169,40 @@
               Edit Grade
             </button>
             <button @click="selectedStudentGrade = null" class="text-blue-600 text-sm">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Over Time -->
+      <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Performance Over Time</h2>
+        <div class="w-full h-64">
+          <canvas ref="performanceChart"></canvas>
+        </div>
+        <div class="mt-4 flex justify-between items-center">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">View By:</label>
+            <select 
+              v-model="performanceViewBy" 
+              @change="updatePerformanceChart" 
+              class="border border-gray-300 rounded-md p-1 text-sm"
+            >
+              <option value="term">Term</option>
+              <option value="assessment">Assessment Type</option>
+              <option value="subject">Subject</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Metric:</label>
+            <select 
+              v-model="performanceMetric" 
+              @change="updatePerformanceChart" 
+              class="border border-gray-300 rounded-md p-1 text-sm"
+            >
+              <option value="average">Average Score</option>
+              <option value="median">Median Score</option>
+              <option value="passRate">Pass Rate (%)</option>
+            </select>
           </div>
         </div>
       </div>
@@ -361,7 +395,7 @@
                 class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
                 required
               >
-                <option v-for="type in assessmentTypes" :key="type" :value="type">{{ type }}</option>
+                <option v-for="type in assessmentTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
               </select>
             </div>
 
@@ -455,8 +489,10 @@ const user = ref({
 // Chart refs
 const gradeChart = ref(null)
 const scoresChart = ref(null)
+const performanceChart = ref(null)
 const gradeChartInstance = ref(null)
 const scoresChartInstance = ref(null)
+const performanceChartInstance = ref(null)
 
 // UI state
 const selectedGradeGroup = ref(null)
@@ -464,6 +500,8 @@ const selectedStudentGrade = ref(null)
 const showAddModal = ref(false)
 const isEditMode = ref(false)
 const selectedGrade = ref(null)
+const performanceViewBy = ref('term')
+const performanceMetric = ref('average')
 
 // Filters and pagination
 const filters = ref({ 
@@ -485,7 +523,13 @@ const pagination = ref({
 })
 
 // Constants
-const assessmentTypes = ref(['quiz', 'exam', 'project', 'assignment'])
+const assessmentTypes = ref([
+  { value: 'quiz', label: 'Quiz' },
+  { value: 'exam', label: 'Exam' },
+  { value: 'project', label: 'Project' },
+  { value: 'assignment', label: 'Assignment' }
+])
+
 const gradeLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
 // Form data
@@ -592,6 +636,7 @@ const calculateGradeLetter = () => {
 const updateCharts = () => {
   updateGradeDistributionChart()
   updateStudentScoresChart()
+  updatePerformanceChart()
 }
 
 const updateGradeDistributionChart = () => {
@@ -788,6 +833,155 @@ const updateStudentScoresChart = () => {
   })
 }
 
+const updatePerformanceChart = () => {
+  if (!grades.value.length) {
+    if (performanceChartInstance.value) {
+      performanceChartInstance.value.destroy()
+      performanceChartInstance.value = null
+    }
+    return
+  }
+
+  let labels = []
+  let data = []
+  let backgroundColor = 'rgba(79, 70, 229, 0.7)'
+
+  // Group data based on selected view
+  if (performanceViewBy.value === 'term') {
+    const termGroups = {}
+    grades.value.forEach(grade => {
+      const termName = grade.term?.term_name || 'Unknown Term'
+      if (!termGroups[termName]) {
+        termGroups[termName] = []
+      }
+      termGroups[termName].push(grade.score_obtained)
+    })
+
+    labels = Object.keys(termGroups)
+    data = Object.values(termGroups).map(scores => {
+      if (performanceMetric.value === 'average') {
+        return scores.reduce((a, b) => a + b, 0) / scores.length
+      } else if (performanceMetric.value === 'median') {
+        const sorted = [...scores].sort((a, b) => a - b)
+        const mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+      } else { // passRate
+        const passing = scores.filter(score => score >= 50).length
+        return (passing / scores.length) * 100
+      }
+    })
+  } else if (performanceViewBy.value === 'assessment') {
+    const assessmentGroups = {}
+    grades.value.forEach(grade => {
+      const assessmentType = grade.assessment_type || 'Unknown'
+      if (!assessmentGroups[assessmentType]) {
+        assessmentGroups[assessmentType] = []
+      }
+      assessmentGroups[assessmentType].push(grade.score_obtained)
+    })
+
+    labels = Object.keys(assessmentGroups)
+    data = Object.values(assessmentGroups).map(scores => {
+      if (performanceMetric.value === 'average') {
+        return scores.reduce((a, b) => a + b, 0) / scores.length
+      } else if (performanceMetric.value === 'median') {
+        const sorted = [...scores].sort((a, b) => a - b)
+        const mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+      } else { // passRate
+        const passing = scores.filter(score => score >= 50).length
+        return (passing / scores.length) * 100
+      }
+    })
+  } else { // subject
+    const subjectGroups = {}
+    grades.value.forEach(grade => {
+      const subjectName = grade.class_subject?.subject?.subject_name || 'Unknown Subject'
+      if (!subjectGroups[subjectName]) {
+        subjectGroups[subjectName] = []
+      }
+      subjectGroups[subjectName].push(grade.score_obtained)
+    })
+
+    labels = Object.keys(subjectGroups)
+    data = Object.values(subjectGroups).map(scores => {
+      if (performanceMetric.value === 'average') {
+        return scores.reduce((a, b) => a + b, 0) / scores.length
+      } else if (performanceMetric.value === 'median') {
+        const sorted = [...scores].sort((a, b) => a - b)
+        const mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+      } else { // passRate
+        const passing = scores.filter(score => score >= 50).length
+        return (passing / scores.length) * 100
+      }
+    })
+  }
+
+  const chartData = {
+    labels: labels,
+    datasets: [{
+      label: performanceMetric.value === 'passRate' ? 'Pass Rate (%)' : 
+             performanceMetric.value === 'average' ? 'Average Score' : 'Median Score',
+      data: data,
+      backgroundColor: backgroundColor,
+      borderColor: backgroundColor.replace('0.7', '1'),
+      borderWidth: 1,
+      tension: 0.1
+    }]
+  }
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = performanceMetric.value === 'passRate' ? 'Pass Rate' : 
+                         performanceMetric.value === 'average' ? 'Average' : 'Median'
+            return `${label}: ${context.raw.toFixed(1)}`
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: performanceMetric.value === 'passRate' ? 100 : 100,
+        title: {
+          display: true,
+          text: performanceMetric.value === 'passRate' ? 'Pass Rate (%)' : 'Score'
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: performanceViewBy.value === 'term' ? 'Term' : 
+                performanceViewBy.value === 'assessment' ? 'Assessment Type' : 'Subject'
+        }
+      }
+    }
+  }
+
+  nextTick(() => {
+    if (performanceChartInstance.value) {
+      performanceChartInstance.value.data = chartData
+      performanceChartInstance.value.options = chartOptions
+      performanceChartInstance.value.update()
+    } else if (performanceChart.value) {
+      performanceChartInstance.value = new Chart(performanceChart.value, {
+        type: 'line',
+        data: chartData,
+        options: chartOptions
+      })
+    }
+  })
+}
+
 const handleGradeChartClick = (event) => {
   if (gradeChartInstance.value) {
     const elements = gradeChartInstance.value.getElementsAtEventForMode(
@@ -884,7 +1078,8 @@ const submitNewGrade = async () => {
   const payload = { 
     ...newGrade.value, 
     max_score: 100, 
-    weightage: 1 
+    weightage: 1,
+    recorded_by: user.value.id // Add the current user as the recorder
   }
 
   try {
@@ -933,7 +1128,8 @@ const exportToExcel = () => {
     'Assessment Type': grade.assessment_type,
     'Score': grade.score_obtained,
     'Grade': grade.grade_letter || 'N/A',
-    'Max Score': 100
+    'Max Score': 100,
+    'Date Recorded': grade.created_at ? new Date(grade.created_at).toLocaleDateString() : 'N/A'
   }))
 
   // Create a worksheet
@@ -1031,6 +1227,7 @@ onMounted(() => {
 })
 
 watch(grades, updateCharts, { deep: true })
+watch([performanceViewBy, performanceMetric], updatePerformanceChart)
 </script>
 
 <style scoped>
