@@ -126,10 +126,40 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('admin/users/{id}', [UserController::class, 'update']);
         Route::patch('admin/users/{id}/status', [UserController::class, 'toggleStatus']);
 
-        // Legacy User Management routes (commented out - controllers don't exist)
-        // Route::apiResource('admin/users', 'Admin\UserController');
-        // Route::post('admin/users/{user}/reset-password', 'Admin\UserController@resetPassword');
-        // Route::put('admin/users/{user}/role', 'Admin\UserController@updateRole');
+        // Admin User Management routes with Admin\UserController
+        Route::post('admin/users/{user}/reset-password', [App\Http\Controllers\Admin\UserController::class, 'resetPassword']);
+        Route::put('admin/users/{user}/role', [App\Http\Controllers\Admin\UserController::class, 'updateRole']);
+        Route::patch('admin/users/{user}/toggle-status', [App\Http\Controllers\Admin\UserController::class, 'toggleStatus']);
+        Route::post('admin/users/bulk-status', [App\Http\Controllers\Admin\UserController::class, 'bulkUpdateStatus']);
+        Route::get('admin/users/{user}/access-logs', [App\Http\Controllers\Admin\UserController::class, 'getAccessLogs']);
+
+        // Admin Academic Data Management
+        // Student Management
+        Route::apiResource('admin/students', App\Http\Controllers\Admin\StudentController::class);
+        Route::post('admin/students/bulk-action', [App\Http\Controllers\Admin\StudentController::class, 'bulkAction']);
+        Route::get('admin/classes/{classId}/students', [App\Http\Controllers\Admin\StudentController::class, 'getByClass']);
+
+        // Class Management  
+        Route::apiResource('admin/classes', App\Http\Controllers\Admin\ClassController::class);
+        Route::post('admin/classes/{class}/assign-teacher', [App\Http\Controllers\Admin\ClassController::class, 'assignTeacher']);
+        Route::get('admin/teachers/available', [App\Http\Controllers\Admin\ClassController::class, 'getAvailableTeachers']);
+        Route::get('admin/classes-stats', [App\Http\Controllers\Admin\ClassController::class, 'getClassStats']);
+
+        // Subject Management
+        Route::apiResource('admin/subjects', App\Http\Controllers\Admin\SubjectController::class);
+        Route::post('admin/subjects/bulk-action', [App\Http\Controllers\Admin\SubjectController::class, 'bulkAction']);
+        Route::get('admin/subjects/departments', [App\Http\Controllers\Admin\SubjectController::class, 'getDepartments']);
+        Route::get('admin/subjects-stats', [App\Http\Controllers\Admin\SubjectController::class, 'getSubjectStats']);
+
+        // Term Management
+        Route::apiResource('admin/terms', App\Http\Controllers\Admin\TermController::class);
+        Route::post('admin/terms/{term}/set-current', [App\Http\Controllers\Admin\TermController::class, 'setCurrent']);
+        Route::get('admin/terms/current', [App\Http\Controllers\Admin\TermController::class, 'getCurrent']);
+
+        // Data Import
+        Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
+        Route::get('admin/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
+        Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
 
         // Future Admin routes (controllers need to be created)
         // Route::get('admin/settings', 'Admin\SettingsController@index');
@@ -238,14 +268,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Route::get('terms/{term}', 'TermController@show');
     // Route::get('terms/current', 'TermController@current');
 
-    // General notifications and alerts
-    Route::get('my-notifications', 'NotificationController@my');
-    Route::put('my-notifications/mark-all-read', 'NotificationController@markAllAsRead');
+    // General notifications and alerts (commented out - controller needs to be created)
+    // Route::get('my-notifications', 'NotificationController@my');
+    // Route::put('my-notifications/mark-all-read', 'NotificationController@markAllAsRead');
 
-    // Search endpoints
-    Route::get('search/students', 'SearchController@students')->middleware('permission:students.view');
-    Route::get('search/teachers', 'SearchController@teachers')->middleware('permission:teachers.view');
-    Route::get('search/classes', 'SearchController@classes');
+    // Search endpoints (commented out - controller needs to be created)
+    // Route::get('search/students', 'SearchController@students')->middleware('permission:students.view');
+    // Route::get('search/teachers', 'SearchController@teachers')->middleware('permission:teachers.view');
+    // Route::get('search/classes', 'SearchController@classes');
 });
 
 // Routes for testing role-based access

@@ -14,34 +14,26 @@
     <transition name="slide">
       <aside
         v-show="isOpen"
-        class="fixed md:relative top-0 left-0 h-screen w-100 bg-gradient-to-b from-purple-600 via-blue-600 to-indigo-700 text-white z-40 md:translate-x-0 transform transition-all duration-300 shadow-2xl"
+        class="fixed md:relative top-0 left-0 h-screen w-100 bg-gradient-to-b from-blue-600 via-blue-600 to-indigo-700 text-white z-40 md:translate-x-0 transform transition-all duration-300 shadow-2xl"
         :class="{ '-translate-x-full': !isOpen && isMobile }"
       >
-        <!-- User Profile Section -->
+        <!-- System Branding Section -->
         <div class="p-6 border-b border-white/10">
           <div class="flex flex-col items-center text-center">
-            <!-- Profile Picture -->
-            <ImageUpload
-              :current-image="profileImage || user?.profile_picture"
-              :fallback-text="`${user?.first_name || ''} ${user?.last_name || ''}`"
-              :alt-text="`${user?.first_name || ''} ${user?.last_name || ''} Profile Picture`"
-              size="medium"
-              :editable="false"
-              class="mb-4"
-            />
+            <!-- System Logo -->
+            <div class="w-20 h-20 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center mb-4 shadow-lg">
+              <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
+              </svg>
+            </div>
             
-            <!-- User Info -->
-            <h3 class="text-lg font-bold text-white mb-1">
-              {{ user?.first_name }} {{ user?.last_name }}
-            </h3>
-            <p class="text-white/70 text-sm mb-3">
-              {{ user?.email }}
+            <!-- System Name -->
+            <h2 class="text-xl font-bold text-white mb-1">
+              Education Tracker
+            </h2>
+            <p class="text-white/70 text-sm">
+              Student Performance Tracking System
             </p>
-            
-            <!-- Role Badge -->
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/20 text-white border border-white/30">
-              {{ userRole?.toUpperCase() }}
-            </span>
           </div>
         </div>
 
@@ -160,13 +152,10 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { useProfileImage } from '@/composables/useProfileImage'
 import { useActiveUsers } from '@/composables/useActiveUsers'
-import ImageUpload from '@/components/ImageUpload.vue'
 
 const route = useRoute()
-const { getAvailableRoutes, user, userRole } = useAuth()
-const { profileImage } = useProfileImage()
+const { getAvailableRoutes } = useAuth()
 const {
   activeUsers,
   totalActiveUsers,
@@ -183,12 +172,7 @@ const isMobile = ref(window.innerWidth < 768)
 
 const availableRoutes = computed(() => getAvailableRoutes())
 
-const userInitials = computed(() => {
-  if (!user.value) return ''
-  const first = user.value.first_name?.charAt(0) || ''
-  const last = user.value.last_name?.charAt(0) || ''
-  return (first + last).toUpperCase()
-})
+
 
 const isActiveRoute = (path) => {
   return route.path === path || route.path.startsWith(path + '/')

@@ -6,9 +6,21 @@
     </div>
     <div v-else>
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Class Management</h1>
-      <p class="text-gray-600 mt-1">Manage classes, sections, and enrollment</p>
+    <h1 class="text-3xl font-bold text-gray-800">Class Management</h1>
+    <p class="text-gray-600 mt-1">Manage classes, sections, and enrollment</p>
     </div>
+
+     <!-- Success Message -->
+     <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+       <div class="flex">
+         <div class="flex-shrink-0">
+           <i class="fas fa-check-circle text-green-400"></i>
+         </div>
+         <div class="ml-3">
+           <p class="text-sm text-green-700">{{ successMessage }}</p>
+         </div>
+       </div>
+     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
@@ -69,27 +81,26 @@
           <div class="p-6">
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <h3 class="text-lg font-semibold text-gray-900">{{ cls.name }}</h3>
-                <p class="text-sm text-gray-500 mt-1">{{ cls.section }}</p>
+                <h3 class="text-lg font-semibold text-gray-900">{{ cls.class_name }}</h3>
+                <p class="text-sm text-gray-500 mt-1">{{ cls.academic_year }}</p>
                 <div class="mt-3 space-y-2">
                   <div class="flex items-center text-sm text-gray-600">
-                    <i class="fas fa-graduation-cap mr-2"></i>
-                    Grade {{ cls.grade }}
+                    <i class="fas fa-door-open mr-2"></i>
+                    Room {{ cls.room_number || 'Not assigned' }}
                   </div>
                   <div class="flex items-center text-sm text-gray-600">
                     <i class="fas fa-chalkboard-teacher mr-2"></i>
-                    {{ cls.teacher }}
+                    {{ cls.class_teacher_name || 'No teacher assigned' }}
                   </div>
                   <div class="flex items-center text-sm text-gray-600">
                     <i class="fas fa-users mr-2"></i>
-                    {{ cls.studentCount }} students
+                    {{ cls.student_count || 0 }} students
                   </div>
                 </div>
               </div>
               <div class="flex-shrink-0">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      :class="cls.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'">
-                  {{ cls.active ? 'Active' : 'Inactive' }}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Active
                 </span>
               </div>
             </div>
@@ -150,13 +161,46 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center mb-4">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-lg font-medium text-gray-900">Delete Class</h3>
+          </div>
+        </div>
+        <p class="text-gray-600 mb-6">
+          Are you sure you want to delete <strong>{{ selectedClass?.class_name }}</strong>? 
+          This action cannot be undone.
+        </p>
+        <div class="flex justify-end space-x-3">
+          <button
+            @click="showDeleteModal = false"
+            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="deleteClass"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Delete Class
+          </button>
+        </div>
+      </div>
+    </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { adminAPI } from '@/api/admin'
 
 const { hasPermission } = useAuth()
 
@@ -167,37 +211,9 @@ const classes = ref([])
 const searchQuery = ref('')
 const gradeFilter = ref('')
 const showCreateModal = ref(false)
-
-// Mock data
-const mockClasses = [
-  {
-    id: 1,
-    name: 'Mathematics Advanced',
-    section: 'Section A',
-    grade: '11',
-    teacher: 'Dr. Smith',
-    studentCount: 28,
-    active: true
-  },
-  {
-    id: 2,
-    name: 'Physics',
-    section: 'Section B',
-    grade: '12',
-    teacher: 'Prof. Johnson',
-    studentCount: 24,
-    active: true
-  },
-  {
-    id: 3,
-    name: 'Chemistry',
-    section: 'Section A',
-    grade: '10',
-    teacher: 'Ms. Williams',
-    studentCount: 30,
-    active: true
-  }
-]
+const showDeleteModal = ref(false)
+const selectedClass = ref(null)
+const successMessage = ref('')
 
 // Computed
 const filteredClasses = computed(() => {
@@ -206,14 +222,16 @@ const filteredClasses = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(cls =>
-      cls.name.toLowerCase().includes(query) ||
-      cls.section.toLowerCase().includes(query) ||
-      cls.teacher.toLowerCase().includes(query)
+      cls.class_name.toLowerCase().includes(query) ||
+      cls.room_number?.toLowerCase().includes(query) ||
+      cls.class_teacher_name?.toLowerCase().includes(query)
     )
   }
 
   if (gradeFilter.value) {
-    filtered = filtered.filter(cls => cls.grade === gradeFilter.value)
+    filtered = filtered.filter(cls => 
+      cls.class_name.toLowerCase().includes(gradeFilter.value.toLowerCase())
+    )
   }
 
   return filtered
@@ -226,15 +244,32 @@ const viewClass = (cls) => {
 }
 
 const editClass = (cls) => {
-  // TODO: Implement edit class functionality
-  console.log('Edit class:', cls)
+  selectedClass.value = cls
+  showCreateModal.value = true
 }
 
 const confirmDelete = (cls) => {
-  // TODO: Implement delete confirmation and functionality
-  if (confirm(`Are you sure you want to delete class ${cls.name}?`)) {
-    console.log('Delete class:', cls)
+  selectedClass.value = cls
+  showDeleteModal.value = true
+}
+
+const deleteClass = async () => {
+  try {
+    await adminAPI.deleteClass(selectedClass.value.id)
+    showSuccessMessage('Class deleted successfully')
+    showDeleteModal.value = false
+    selectedClass.value = null
+    await loadClasses()
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to delete class'
   }
+}
+
+const showSuccessMessage = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 5000)
 }
 
 const loadClasses = async () => {
@@ -242,15 +277,29 @@ const loadClasses = async () => {
     loading.value = true
     error.value = null
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    classes.value = mockClasses
+    const params = {}
+    if (searchQuery.value) params.search = searchQuery.value
+    if (gradeFilter.value) params.academic_year = gradeFilter.value
+
+    const response = await adminAPI.getClasses(params)
+    
+    // Transform data to match frontend expectations
+    classes.value = response.data.data.data || response.data.data || []
+    
   } catch (err) {
-    error.value = err.message || 'Failed to load classes'
+    error.value = err.response?.data?.message || err.message || 'Failed to load classes'
+    console.error('Error loading classes:', err)
   } finally {
     loading.value = false
   }
 }
+
+// Watch for search changes
+watch([searchQuery, gradeFilter], () => {
+  if (!loading.value) {
+    loadClasses()
+  }
+}, { debounce: 500 })
 
 onMounted(() => {
   loadClasses()
