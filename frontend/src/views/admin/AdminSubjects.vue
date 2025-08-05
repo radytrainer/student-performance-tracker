@@ -6,9 +6,21 @@
     </div>
     <div v-else>
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Subject Management</h1>
-      <p class="text-gray-600 mt-1">Manage subjects, curriculum, and academic structure</p>
+    <h1 class="text-3xl font-bold text-gray-800">Subject Management</h1>
+    <p class="text-gray-600 mt-1">Manage subjects, curriculum, and academic structure</p>
     </div>
+
+     <!-- Success Message -->
+     <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+       <div class="flex">
+         <div class="flex-shrink-0">
+           <i class="fas fa-check-circle text-green-400"></i>
+         </div>
+         <div class="ml-3">
+           <p class="text-sm text-green-700">{{ successMessage }}</p>
+         </div>
+       </div>
+     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
@@ -76,8 +88,8 @@
                     <i :class="subject.icon" :style="{ color: subject.color }"></i>
                   </div>
                   <div class="ml-3">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ subject.name }}</h3>
-                    <p class="text-sm text-gray-500">{{ subject.code }}</p>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ subject.subject_name }}</h3>
+                    <p class="text-sm text-gray-500">{{ subject.subject_code }}</p>
                   </div>
                 </div>
                 
@@ -88,7 +100,7 @@
                   </div>
                   <div class="flex items-center text-sm text-gray-600">
                     <i class="fas fa-clock mr-2"></i>
-                    {{ subject.credits }} credits
+                    {{ subject.credit_hours }} credits
                   </div>
                   <div class="flex items-center text-sm text-gray-600">
                     <i class="fas fa-graduation-cap mr-2"></i>
@@ -162,13 +174,46 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center mb-4">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-lg font-medium text-gray-900">Delete Subject</h3>
+          </div>
+        </div>
+        <p class="text-gray-600 mb-6">
+          Are you sure you want to delete <strong>{{ selectedSubject?.subject_name }}</strong>? 
+          This action cannot be undone and will affect all related class assignments.
+        </p>
+        <div class="flex justify-end space-x-3">
+          <button
+            @click="showDeleteModal = false"
+            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="deleteSubject"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Delete Subject
+          </button>
+        </div>
+      </div>
+    </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { adminAPI } from '@/api/admin'
 
 const { hasPermission } = useAuth()
 
@@ -179,70 +224,21 @@ const subjects = ref([])
 const searchQuery = ref('')
 const categoryFilter = ref('')
 const showCreateModal = ref(false)
+const showDeleteModal = ref(false)
+const selectedSubject = ref(null)
+const successMessage = ref('')
 
-// Mock data
-const mockSubjects = [
-  {
-    id: 1,
-    name: 'Advanced Mathematics',
-    code: 'MATH401',
-    category: 'Mathematics',
-    credits: 4,
-    gradeRange: '11-12',
-    description: 'Advanced topics in calculus, statistics, and mathematical analysis',
-    color: '#3B82F6',
-    icon: 'fas fa-square-root-alt',
-    active: true
-  },
-  {
-    id: 2,
-    name: 'Physics',
-    code: 'PHYS301',
-    category: 'Science',
-    credits: 4,
-    gradeRange: '10-12',
-    description: 'Fundamental principles of physics including mechanics, thermodynamics, and electromagnetism',
-    color: '#10B981',
-    icon: 'fas fa-atom',
-    active: true
-  },
-  {
-    id: 3,
-    name: 'English Literature',
-    code: 'ENG201',
-    category: 'Language Arts',
-    credits: 3,
-    gradeRange: '9-12',
-    description: 'Study of classic and contemporary literature with focus on critical analysis',
-    color: '#8B5CF6',
-    icon: 'fas fa-book-open',
-    active: true
-  },
-  {
-    id: 4,
-    name: 'Chemistry',
-    code: 'CHEM301',
-    category: 'Science',
-    credits: 4,
-    gradeRange: '10-12',
-    description: 'Organic and inorganic chemistry with laboratory experiments',
-    color: '#F59E0B',
-    icon: 'fas fa-flask',
-    active: true
-  },
-  {
-    id: 5,
-    name: 'World History',
-    code: 'HIST201',
-    category: 'Social Studies',
-    credits: 3,
-    gradeRange: '9-11',
-    description: 'Comprehensive study of world civilizations and historical events',
-    color: '#EF4444',
-    icon: 'fas fa-globe',
-    active: true
-  }
-]
+// Subject categories with colors and icons
+const subjectCategories = {
+  'Mathematics': { color: '#3B82F6', icon: 'fas fa-square-root-alt' },
+  'Science': { color: '#10B981', icon: 'fas fa-atom' },
+  'Language Arts': { color: '#8B5CF6', icon: 'fas fa-book-open' },
+  'Social Studies': { color: '#EF4444', icon: 'fas fa-globe' },
+  'Arts': { color: '#F59E0B', icon: 'fas fa-palette' },
+  'Physical Education': { color: '#06B6D4', icon: 'fas fa-running' },
+  'Technology': { color: '#8B5CF6', icon: 'fas fa-laptop-code' },
+  'Other': { color: '#6B7280', icon: 'fas fa-book' }
+}
 
 // Computed
 const filteredSubjects = computed(() => {
@@ -251,35 +247,59 @@ const filteredSubjects = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(subject =>
-      subject.name.toLowerCase().includes(query) ||
-      subject.code.toLowerCase().includes(query) ||
-      subject.category.toLowerCase().includes(query)
+      subject.subject_name.toLowerCase().includes(query) ||
+      subject.subject_code.toLowerCase().includes(query) ||
+      subject.department.toLowerCase().includes(query)
     )
   }
 
   if (categoryFilter.value) {
-    filtered = filtered.filter(subject => subject.category === categoryFilter.value)
+    filtered = filtered.filter(subject => subject.department === categoryFilter.value)
   }
 
-  return filtered
+  return filtered.map(subject => ({
+    ...subject,
+    // Add UI properties for display
+    color: subjectCategories[subject.department]?.color || subjectCategories['Other'].color,
+    icon: subjectCategories[subject.department]?.icon || subjectCategories['Other'].icon,
+    gradeRange: '9-12', // Default since this isn't in the model
+    category: subject.department
+  }))
 })
 
 // Methods
 const viewSubject = (subject) => {
-  // TODO: Navigate to subject details view
   console.log('View subject:', subject)
+  // TODO: Navigate to subject details view
 }
 
 const editSubject = (subject) => {
-  // TODO: Implement edit subject functionality
-  console.log('Edit subject:', subject)
+  selectedSubject.value = subject
+  showCreateModal.value = true
 }
 
 const confirmDelete = (subject) => {
-  // TODO: Implement delete confirmation and functionality
-  if (confirm(`Are you sure you want to delete subject ${subject.name}?`)) {
-    console.log('Delete subject:', subject)
+  selectedSubject.value = subject
+  showDeleteModal.value = true
+}
+
+const deleteSubject = async () => {
+  try {
+    await adminAPI.deleteSubject(selectedSubject.value.id)
+    showSuccessMessage('Subject deleted successfully')
+    showDeleteModal.value = false
+    selectedSubject.value = null
+    await loadSubjects()
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to delete subject'
   }
+}
+
+const showSuccessMessage = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 5000)
 }
 
 const loadSubjects = async () => {
@@ -287,15 +307,29 @@ const loadSubjects = async () => {
     loading.value = true
     error.value = null
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    subjects.value = mockSubjects
+    const params = {}
+    if (searchQuery.value) params.search = searchQuery.value
+    if (categoryFilter.value) params.department = categoryFilter.value
+
+    const response = await adminAPI.getSubjects(params)
+    
+    // Handle both paginated and non-paginated responses
+    subjects.value = response.data.data.data || response.data.data || []
+    
   } catch (err) {
-    error.value = err.message || 'Failed to load subjects'
+    error.value = err.response?.data?.message || err.message || 'Failed to load subjects'
+    console.error('Error loading subjects:', err)
   } finally {
     loading.value = false
   }
 }
+
+// Watch for search changes
+watch([searchQuery, categoryFilter], () => {
+  if (!loading.value) {
+    loadSubjects()
+  }
+}, { debounce: 500 })
 
 onMounted(() => {
   loadSubjects()
