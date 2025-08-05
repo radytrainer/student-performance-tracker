@@ -107,11 +107,14 @@ export function useAuth() {
       admin: [
         { name: 'Admin Dashboard', path: '/admin/dashboard', icon: 'fas fa-tachometer-alt' },
         { name: 'Manage Users', path: '/admin/users', icon: 'fas fa-users' },
+        { name: 'Manage Students', path: '/admin/students', icon: 'fas fa-user-graduate' },
         { name: 'Manage Classes', path: '/admin/classes', icon: 'fas fa-school' },
         { name: 'Manage Subjects', path: '/admin/subjects', icon: 'fas fa-book' },
+        { name: 'Academic Terms', path: '/admin/terms', icon: 'fas fa-calendar-alt' },
+        { name: 'Data Import', path: '/admin/import', icon: 'fas fa-file-import' },
         { name: 'System Settings', path: '/admin/settings', icon: 'fas fa-cog' },
         { name: 'Reports', path: '/admin/reports', icon: 'fas fa-chart-bar' },
-        { name: 'Analytics', path: '/analytics', icon: 'fas fa-analytics' }
+        { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
       ],
       teacher: [
         { name: 'Teacher Dashboard', path: '/teacher/dashboard', icon: 'fas fa-chalkboard-teacher' },
