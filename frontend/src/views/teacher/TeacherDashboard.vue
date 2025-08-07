@@ -6,7 +6,19 @@
         <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
           Analytics Dashboard
         </h1>
-        <p class="text-gray-600 text-lg">Professional Student Performance Analytics</p>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+          <p class="text-gray-600 text-lg">Professional Student Performance Analytics</p>
+          <div class="flex items-center gap-4 mt-2 md:mt-0">
+            <div class="text-sm text-gray-500">{{ currentTime }}</div>
+            <button 
+              @click="refreshData" 
+              :disabled="isRefreshing"
+              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw :class="`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- KPI Cards -->
@@ -14,7 +26,7 @@
         <div
           v-for="(kpi, index) in kpiData"
           :key="index"
-          class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-white/20"
+          class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-white/20"
         >
           <div class="flex items-center justify-between mb-4">
             <div :class="`p-3 rounded-xl bg-gradient-to-br ${kpi.gradient} shadow-lg`">
@@ -37,7 +49,10 @@
           <div class="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
             <Filter class="w-5 h-5 text-white" />
           </div>
-          <h3 class="text-xl font-bold text-gray-900">Smart Filters</h3>
+          <h3 class="text-xl font-bold text-gray-900">Filters</h3>
+          <div class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+            {{ filteredStudents.length }} results
+          </div>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -45,25 +60,28 @@
             <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               v-model="filters.name"
-              @input="applyFilters"
               placeholder="Search students..."
               class="w-full pl-12 pr-4 py-3 bg-white/70 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
           
-          <input
+          <select
             v-model="filters.subject"
-            @input="applyFilters"
-            placeholder="Filter by subject..."
             class="w-full px-4 py-3 bg-white/70 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-          />
+          >
+            <option value="">All Subjects</option>
+            <option v-for="subject in availableSubjects" :key="subject" :value="subject">{{ subject }}</option>
+          </select>
           
-          <input
-            v-model="filters.term"
-            @input="applyFilters"
-            placeholder="Filter by term..."
+          <select
+            v-model="filters.performance"
             class="w-full px-4 py-3 bg-white/70 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-          />
+          >
+            <option value="">All Performance</option>
+            <option value="excellent">Excellent</option>
+            <option value="good">Good</option>
+            <option value="at-risk">At Risk</option>
+          </select>
           
           <button
             @click="clearFilters"
@@ -71,7 +89,7 @@
             class="px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-medium"
           >
             <X class="w-4 h-4 inline mr-2" />
-            Clear Filters
+            Clear
           </button>
         </div>
       </div>
@@ -92,7 +110,8 @@
           <div
             v-for="student in alertStudents"
             :key="student.id"
-            class="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-4 hover:shadow-md transition-all"
+            @click="selectedStudent = student"
+            class="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer"
           >
             <div class="flex items-center justify-between mb-2">
               <h4 class="font-semibold text-gray-900">{{ student.name }}</h4>
@@ -125,7 +144,7 @@
               </div>
             </div>
             
-            <div class="space-y-3">
+            <div class="space-y-3 max-h-96 overflow-y-auto">
               <button
                 v-for="student in filteredStudents"
                 :key="student.id"
@@ -162,10 +181,16 @@
               <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
                 <User class="w-8 h-8 text-white" />
               </div>
-              <div>
+              <div class="flex-1">
                 <h2 class="text-3xl font-bold text-gray-900">{{ selectedStudent.name }}</h2>
                 <p class="text-gray-600 text-lg">{{ selectedStudent.course }} • {{ selectedStudent.term }}</p>
               </div>
+              <button 
+                @click="exportStudentData"
+                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                <Download class="w-4 h-4" />
+              </button>
             </div>
             
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -188,18 +213,26 @@
             </div>
           </div>
 
-          <!-- Professional Charts Grid -->
+          <!-- Charts Grid -->
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
             <!-- Monthly Progress Chart -->
             <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
-              <div class="flex items-center gap-3 mb-6">
-                <div class="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-                  <TrendingUp class="w-5 h-5 text-white" />
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                  <div class="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
+                    <TrendingUp class="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-bold text-gray-900">Monthly Progress</h3>
+                    <p class="text-sm text-gray-600">Grade trends over time</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 class="text-xl font-bold text-gray-900">Monthly Progress</h3>
-                  <p class="text-sm text-gray-600">Grade trends over time</p>
-                </div>
+                <button 
+                  @click="exportChart('line')"
+                  class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-xs"
+                >
+                  Export
+                </button>
               </div>
               <div class="h-80">
                 <canvas ref="lineChart" class="w-full h-full"></canvas>
@@ -208,14 +241,22 @@
 
             <!-- Subject Performance Chart -->
             <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
-              <div class="flex items-center gap-3 mb-6">
-                <div class="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg">
-                  <BarChart3 class="w-5 h-5 text-white" />
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                  <div class="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg">
+                    <BarChart3 class="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-bold text-gray-900">Subject Performance</h3>
+                    <p class="text-sm text-gray-600">Grades by subject</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 class="text-xl font-bold text-gray-900">Subject Performance</h3>
-                  <p class="text-sm text-gray-600">Grades by subject</p>
-                </div>
+                <button 
+                  @click="sortSubjects"
+                  class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-xs"
+                >
+                  Sort
+                </button>
               </div>
               <div class="h-80">
                 <canvas ref="barChart" class="w-full h-full"></canvas>
@@ -224,14 +265,22 @@
 
             <!-- Grade Distribution Chart -->
             <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
-              <div class="flex items-center gap-3 mb-6">
-                <div class="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
-                  <PieChart class="w-5 h-5 text-white" />
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                  <div class="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+                    <PieChart class="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-bold text-gray-900">Grade Distribution</h3>
+                    <p class="text-sm text-gray-600">Performance breakdown</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 class="text-xl font-bold text-gray-900">Grade Distribution</h3>
-                  <p class="text-sm text-gray-600">Performance breakdown</p>
-                </div>
+                <button 
+                  @click="toggleChartType"
+                  class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-xs"
+                >
+                  {{ pieChartType === 'doughnut' ? 'Pie' : 'Doughnut' }}
+                </button>
               </div>
               <div class="h-80">
                 <canvas ref="pieChart" class="w-full h-full"></canvas>
@@ -256,112 +305,153 @@
           </div>
         </div>
       </div>
+
+      <!-- Simple Notification -->
+      <div v-if="notification.show" 
+           class="fixed bottom-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-300 z-50">
+        {{ notification.message }}
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { 
-  Users, TrendingUp, Calendar, AlertTriangle, Filter, Search, X, 
-  BarChart3, PieChart, User, Activity 
+import {
+  Users, TrendingUp, Calendar, AlertTriangle, Filter, Search, X, RefreshCw,
+  BarChart3, PieChart, User, Activity, Download
 } from 'lucide-vue-next'
 
-// Mock data
+// Sample students data
 const studentsData = ref([
   {
     id: 1,
-    name: "Sarah Johnson",
+    name: "Alex Johnson",
     course: "Computer Science",
     term: "Fall 2024",
-    averageGrade: 88,
-    attendanceRate: 94,
+    averageGrade: 85,
+    attendanceRate: 92,
     subjects: [
-      { name: "Mathematics", grade: 92 },
-      { name: "Programming", grade: 89 },
-      { name: "Physics", grade: 85 },
-      { name: "English", grade: 87 },
-      { name: "Database", grade: 90 }
+      { name: 'Mathematics', grade: 88 },
+      { name: 'Physics', grade: 82 },
+      { name: 'Programming', grade: 95 },
+      { name: 'English', grade: 78 },
+      { name: 'Chemistry', grade: 85 }
     ],
     monthlyGrades: [
-      { month: "Sep", grade: 85 },
-      { month: "Oct", grade: 87 },
-      { month: "Nov", grade: 89 },
-      { month: "Dec", grade: 88 }
+      { month: 'Sep', grade: 80 },
+      { month: 'Oct', grade: 82 },
+      { month: 'Nov', grade: 85 },
+      { month: 'Dec', grade: 87 },
+      { month: 'Jan', grade: 85 },
+      { month: 'Feb', grade: 90 }
     ]
   },
   {
     id: 2,
-    name: "Michael Chen",
-    course: "Engineering",
+    name: "Sarah Williams",
+    course: "Biology",
     term: "Fall 2024",
     averageGrade: 72,
     attendanceRate: 78,
     subjects: [
-      { name: "Mathematics", grade: 75 },
-      { name: "Physics", grade: 68 },
-      { name: "Chemistry", grade: 74 },
-      { name: "Engineering", grade: 71 },
-      { name: "Materials", grade: 72 }
+      { name: 'Biology', grade: 75 },
+      { name: 'Chemistry', grade: 68 },
+      { name: 'Mathematics', grade: 70 },
+      { name: 'English', grade: 76 },
+      { name: 'Physics', grade: 71 }
     ],
     monthlyGrades: [
-      { month: "Sep", grade: 74 },
-      { month: "Oct", grade: 72 },
-      { month: "Nov", grade: 71 },
-      { month: "Dec", grade: 72 }
+      { month: 'Sep', grade: 75 },
+      { month: 'Oct', grade: 73 },
+      { month: 'Nov', grade: 70 },
+      { month: 'Dec', grade: 72 },
+      { month: 'Jan', grade: 74 },
+      { month: 'Feb', grade: 76 }
     ]
   },
   {
     id: 3,
-    name: "Emma Davis",
-    course: "Business",
+    name: "Michael Chen",
+    course: "Engineering",
     term: "Fall 2024",
     averageGrade: 91,
-    attendanceRate: 97,
+    attendanceRate: 95,
     subjects: [
-      { name: "Economics", grade: 93 },
-      { name: "Marketing", grade: 89 },
-      { name: "Finance", grade: 92 },
-      { name: "Management", grade: 90 },
-      { name: "Statistics", grade: 91 }
+      { name: 'Mathematics', grade: 94 },
+      { name: 'Physics', grade: 92 },
+      { name: 'Engineering', grade: 96 },
+      { name: 'Chemistry', grade: 88 },
+      { name: 'English', grade: 85 }
     ],
     monthlyGrades: [
-      { month: "Sep", grade: 89 },
-      { month: "Oct", grade: 91 },
-      { month: "Nov", grade: 93 },
-      { month: "Dec", grade: 91 }
+      { month: 'Sep', grade: 88 },
+      { month: 'Oct', grade: 90 },
+      { month: 'Nov', grade: 91 },
+      { month: 'Dec', grade: 93 },
+      { month: 'Jan', grade: 91 },
+      { month: 'Feb', grade: 94 }
     ]
   },
   {
     id: 4,
-    name: "James Wilson",
-    course: "Psychology",
+    name: "Emma Davis",
+    course: "Literature",
     term: "Fall 2024",
-    averageGrade: 69,
-    attendanceRate: 65,
+    averageGrade: 88,
+    attendanceRate: 89,
     subjects: [
-      { name: "Psychology", grade: 72 },
-      { name: "Statistics", grade: 65 },
-      { name: "Research", grade: 68 },
-      { name: "Biology", grade: 71 },
-      { name: "Sociology", grade: 69 }
+      { name: 'English', grade: 92 },
+      { name: 'History', grade: 86 },
+      { name: 'Philosophy', grade: 90 },
+      { name: 'Art', grade: 85 },
+      { name: 'Psychology', grade: 87 }
     ],
     monthlyGrades: [
-      { month: "Sep", grade: 71 },
-      { month: "Oct", grade: 69 },
-      { month: "Nov", grade: 67 },
-      { month: "Dec", grade: 69 }
+      { month: 'Sep', grade: 85 },
+      { month: 'Oct', grade: 87 },
+      { month: 'Nov', grade: 88 },
+      { month: 'Dec', grade: 90 },
+      { month: 'Jan', grade: 88 },
+      { month: 'Feb', grade: 92 }
+    ]
+  },
+  {
+    id: 5,
+    name: "James Wilson",
+    course: "Mathematics",
+    term: "Fall 2024",
+    averageGrade: 68,
+    attendanceRate: 72,
+    subjects: [
+      { name: 'Mathematics', grade: 65 },
+      { name: 'Statistics', grade: 70 },
+      { name: 'Physics', grade: 68 },
+      { name: 'Computer Science', grade: 72 },
+      { name: 'English', grade: 65 }
+    ],
+    monthlyGrades: [
+      { month: 'Sep', grade: 70 },
+      { month: 'Oct', grade: 68 },
+      { month: 'Nov', grade: 66 },
+      { month: 'Dec', grade: 68 },
+      { month: 'Jan', grade: 70 },
+      { month: 'Feb', grade: 72 }
     ]
   }
 ])
 
-// Reactive data
+// State
+const currentTime = ref('')
+const isRefreshing = ref(false)
+const pieChartType = ref('doughnut')
+const notification = ref({ show: false, message: '' })
+
 const filters = ref({
   name: '',
   subject: '',
-  term: ''
+  performance: ''
 })
-
 const selectedStudent = ref(studentsData.value[0])
 
 // Chart refs
@@ -376,17 +466,29 @@ let barChartInstance = null
 let pieChartInstance = null
 let radarChartInstance = null
 
+// Time update
+const updateTime = () => {
+  currentTime.value = new Date().toLocaleString()
+}
+
 // Computed properties
 const filteredStudents = computed(() => {
   return studentsData.value.filter(student => {
     const nameMatch = !filters.value.name || student.name.toLowerCase().includes(filters.value.name.toLowerCase())
-    const subjectMatch = !filters.value.subject || student.subjects.some(subject => 
+    const subjectMatch = !filters.value.subject || student.subjects.some(subject =>
       subject.name.toLowerCase().includes(filters.value.subject.toLowerCase())
     )
-    const termMatch = !filters.value.term || student.term.toLowerCase().includes(filters.value.term.toLowerCase())
-    
-    return nameMatch && subjectMatch && termMatch
+    const performanceMatch = !filters.value.performance || getPerformanceLevel(student) === filters.value.performance
+    return nameMatch && subjectMatch && performanceMatch
   })
+})
+
+const availableSubjects = computed(() => {
+  const subjects = new Set()
+  studentsData.value.forEach(student => {
+    student.subjects.forEach(subject => subjects.add(subject.name))
+  })
+  return Array.from(subjects).sort()
 })
 
 const kpiData = computed(() => {
@@ -399,7 +501,7 @@ const kpiData = computed(() => {
     {
       title: 'Total Students',
       value: total,
-      icon: 'Users',
+      icon: Users,
       gradient: 'from-blue-500 to-blue-600',
       textColor: 'text-blue-600',
       badgeColor: 'bg-blue-100 text-blue-700',
@@ -408,7 +510,7 @@ const kpiData = computed(() => {
     {
       title: 'Average Grade',
       value: `${avgGrade}%`,
-      icon: 'TrendingUp',
+      icon: TrendingUp,
       gradient: 'from-green-500 to-green-600',
       textColor: 'text-green-600',
       badgeColor: 'bg-green-100 text-green-700',
@@ -417,7 +519,7 @@ const kpiData = computed(() => {
     {
       title: 'Attendance Rate',
       value: `${avgAttendance}%`,
-      icon: 'Calendar',
+      icon: Calendar,
       gradient: 'from-purple-500 to-purple-600',
       textColor: 'text-purple-600',
       badgeColor: 'bg-purple-100 text-purple-700',
@@ -426,7 +528,7 @@ const kpiData = computed(() => {
     {
       title: 'Performance Alerts',
       value: alerts,
-      icon: 'AlertTriangle',
+      icon: AlertTriangle,
       gradient: 'from-red-500 to-red-600',
       textColor: 'text-red-600',
       badgeColor: 'bg-red-100 text-red-700',
@@ -436,7 +538,7 @@ const kpiData = computed(() => {
 })
 
 const alertStudents = computed(() => {
-  return filteredStudents.value.filter(student => 
+  return filteredStudents.value.filter(student =>
     student.averageGrade < 75 || student.attendanceRate < 80
   )
 })
@@ -446,45 +548,113 @@ const hasActiveFilters = computed(() => {
 })
 
 // Methods
-const applyFilters = () => {
-  // Filters are reactive, so this will automatically update filteredStudents
+const refreshData = async () => {
+  isRefreshing.value = true
+  showNotification('Refreshing data...')
+  
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 1500))
+  
+  // Randomly update some values
+  studentsData.value.forEach(student => {
+    const variation = (Math.random() - 0.5) * 4
+    student.averageGrade = Math.max(0, Math.min(100, student.averageGrade + variation))
+    student.attendanceRate = Math.max(0, Math.min(100, student.attendanceRate + (Math.random() - 0.5) * 6))
+  })
+  
+  isRefreshing.value = false
+  showNotification('Data updated successfully')
+  updateCharts()
+}
+
+const exportStudentData = () => {
+  const data = JSON.stringify(selectedStudent.value, null, 2)
+  const blob = new Blob([data], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${selectedStudent.value.name}_data.json`
+  a.click()
+  showNotification('Student data exported')
+}
+
+const exportChart = (chartType) => {
+  const canvas = chartType === 'line' ? lineChart.value : 
+                 chartType === 'bar' ? barChart.value :
+                 chartType === 'pie' ? pieChart.value : radarChart.value
+  
+  if (canvas) {
+    const url = canvas.toDataURL('image/png')
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${chartType}_chart.png`
+    a.click()
+    showNotification('Chart exported')
+  }
+}
+
+const sortSubjects = () => {
+  selectedStudent.value.subjects.sort((a, b) => b.grade - a.grade)
+  updateCharts()
+  showNotification('Subjects sorted by grade')
+}
+
+const toggleChartType = () => {
+  pieChartType.value = pieChartType.value === 'doughnut' ? 'pie' : 'doughnut'
+  updateCharts()
+  showNotification(`Switched to ${pieChartType.value} chart`)
 }
 
 const clearFilters = () => {
   filters.value = {
     name: '',
     subject: '',
-    term: ''
+    performance: ''
   }
+  showNotification('Filters cleared')
+}
+
+const showNotification = (message) => {
+  notification.value = { show: true, message }
+  setTimeout(() => {
+    notification.value.show = false
+  }, 3000)
+}
+
+// Utility methods
+const getPerformanceLevel = (student) => {
+  if (student.averageGrade < 75 || student.attendanceRate < 80) return 'at-risk'
+  if (student.averageGrade >= 85 && student.attendanceRate >= 90) return 'excellent'
+  return 'good'
 }
 
 const getStatusColor = (student) => {
-  if (student.averageGrade < 75 || student.attendanceRate < 80) {
-    return 'bg-red-100 text-red-700'
+  const level = getPerformanceLevel(student)
+  switch (level) {
+    case 'at-risk': return 'bg-red-100 text-red-700'
+    case 'excellent': return 'bg-green-100 text-green-700'
+    default: return 'bg-blue-100 text-blue-700'
   }
-  if (student.averageGrade >= 85 && student.attendanceRate >= 90) {
-    return 'bg-green-100 text-green-700'
-  }
-  return 'bg-blue-100 text-blue-700'
 }
 
 const getStatusText = (student) => {
-  if (student.averageGrade < 75 || student.attendanceRate < 80) return 'At Risk'
-  if (student.averageGrade >= 85 && student.attendanceRate >= 90) return 'Excellent'
-  return 'Good'
+  const level = getPerformanceLevel(student)
+  switch (level) {
+    case 'at-risk': return 'At Risk'
+    case 'excellent': return 'Excellent'
+    default: return 'Good'
+  }
 }
 
 // Chart creation functions
 const createLineChart = async () => {
-  if (!lineChart.value) return
-  
+  if (!lineChart.value || !selectedStudent.value) return
+
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (lineChartInstance) {
-    lineChartInstance.destroy()
-  }
-  
+
+  if (lineChartInstance) lineChartInstance.destroy()
+
   const ctx = lineChart.value.getContext('2d')
   lineChartInstance = new Chart(ctx, {
     type: 'line',
@@ -493,12 +663,12 @@ const createLineChart = async () => {
       datasets: [{
         label: 'Grade Progress',
         data: selectedStudent.value.monthlyGrades.map(item => item.grade),
-        borderColor: 'rgb(59, 130, 246)',
+        borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderWidth: 4,
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: 'rgb(59, 130, 246)',
+        pointBackgroundColor: '#3b82f6',
         pointBorderColor: '#fff',
         pointBorderWidth: 3,
         pointRadius: 8,
@@ -508,40 +678,17 @@ const createLineChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         y: {
           beginAtZero: true,
           max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: { font: { size: 12, weight: '500' } }
         },
         x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
-        }
-      },
-      elements: {
-        point: {
-          hoverBackgroundColor: 'rgb(59, 130, 246)'
+          grid: { display: false },
+          ticks: { font: { size: 12, weight: '500' } }
         }
       }
     }
@@ -549,18 +696,16 @@ const createLineChart = async () => {
 }
 
 const createBarChart = async () => {
-  if (!barChart.value) return
-  
+  if (!barChart.value || !selectedStudent.value) return
+
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (barChartInstance) {
-    barChartInstance.destroy()
-  }
-  
+
+  if (barChartInstance) barChartInstance.destroy()
+
   const ctx = barChart.value.getContext('2d')
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-  
+
   barChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -568,7 +713,7 @@ const createBarChart = async () => {
       datasets: [{
         label: 'Grade',
         data: selectedStudent.value.subjects.map(subject => subject.grade),
-        backgroundColor: colors.map(color => color + '20'),
+        backgroundColor: colors.map(color => color + '40'),
         borderColor: colors,
         borderWidth: 2,
         borderRadius: 8,
@@ -578,36 +723,17 @@ const createBarChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         y: {
           beginAtZero: true,
           max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: { font: { size: 12, weight: '500' } }
         },
         x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 11,
-              weight: '500'
-            },
-            maxRotation: 45
-          }
+          grid: { display: false },
+          ticks: { font: { size: 11, weight: '500' }, maxRotation: 45 }
         }
       }
     }
@@ -615,20 +741,18 @@ const createBarChart = async () => {
 }
 
 const createPieChart = async () => {
-  if (!pieChart.value) return
-  
+  if (!pieChart.value || !selectedStudent.value) return
+
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (pieChartInstance) {
-    pieChartInstance.destroy()
-  }
-  
+
+  if (pieChartInstance) pieChartInstance.destroy()
+
   const ctx = pieChart.value.getContext('2d')
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-  
+
   pieChartInstance = new Chart(ctx, {
-    type: 'doughnut',
+    type: pieChartType.value,
     data: {
       labels: selectedStudent.value.subjects.map(subject => subject.name),
       datasets: [{
@@ -642,17 +766,14 @@ const createPieChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '60%',
+      cutout: pieChartType.value === 'doughnut' ? '60%' : 0,
       plugins: {
         legend: {
           position: 'bottom',
           labels: {
             padding: 20,
             usePointStyle: true,
-            font: {
-              size: 12,
-              weight: '500'
-            }
+            font: { size: 12, weight: '500' }
           }
         }
       }
@@ -661,17 +782,15 @@ const createPieChart = async () => {
 }
 
 const createRadarChart = async () => {
-  if (!radarChart.value) return
-  
+  if (!radarChart.value || !selectedStudent.value) return
+
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (radarChartInstance) {
-    radarChartInstance.destroy()
-  }
-  
+
+  if (radarChartInstance) radarChartInstance.destroy()
+
   const ctx = radarChart.value.getContext('2d')
-  
+
   radarChartInstance = new Chart(ctx, {
     type: 'radar',
     data: {
@@ -679,10 +798,10 @@ const createRadarChart = async () => {
       datasets: [{
         label: 'Performance',
         data: selectedStudent.value.subjects.map(subject => subject.grade),
-        borderColor: 'rgb(139, 92, 246)',
+        borderColor: '#8b5cf6',
         backgroundColor: 'rgba(139, 92, 246, 0.2)',
         borderWidth: 3,
-        pointBackgroundColor: 'rgb(139, 92, 246)',
+        pointBackgroundColor: '#8b5cf6',
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
         pointRadius: 6
@@ -691,27 +810,14 @@ const createRadarChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         r: {
           beginAtZero: true,
           max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.1)'
-          },
-          angleLines: {
-            color: 'rgba(0, 0, 0, 0.1)'
-          },
-          pointLabels: {
-            font: {
-              size: 11,
-              weight: '500'
-            }
-          }
+          grid: { color: 'rgba(0, 0, 0, 0.1)' },
+          angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+          pointLabels: { font: { size: 11, weight: '500' } }
         }
       }
     }
@@ -720,20 +826,30 @@ const createRadarChart = async () => {
 
 const updateCharts = async () => {
   await nextTick()
-  createLineChart()
-  createBarChart()
-  createPieChart()
-  createRadarChart()
+  setTimeout(() => {
+    createLineChart()
+    createBarChart()
+    createPieChart()
+    createRadarChart()
+  }, 100)
 }
 
 // Lifecycle
 onMounted(() => {
+  updateTime()
+  setInterval(updateTime, 1000)
   updateCharts()
 })
 
 watch(selectedStudent, () => {
   updateCharts()
 }, { deep: true })
+
+watch(filteredStudents, () => {
+  if (selectedStudent.value && !filteredStudents.value.some(s => s.id === selectedStudent.value.id)) {
+    selectedStudent.value = filteredStudents.value[0] || null
+  }
+})
 </script>
 
 <style scoped>
