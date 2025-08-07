@@ -64,7 +64,7 @@
             <div v-if="modalFilteredStudents.length > 0" class="space-y-4 max-h-96 overflow-y-auto">
               <div v-for="student in modalFilteredStudents" :key="student.user_id" class="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <label class="block font-medium mb-2 text-gray-700">
-                  {{ student.user?.first_name }} {{ student.user?.last_name }} 
+                  {{ student.user?.first_name || "N/A" }} {{ student.user?.last_name || "" }} 
                   <span class="text-sm text-gray-500">(ID: {{ student.user_id }})</span>
                 </label>
                 
@@ -139,11 +139,11 @@
           <label class="block mb-1 font-medium text-gray-700">Student</label>
           <select v-model="viewFilters.student_id" @change="fetchAttendance" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
             <option value="">All Students</option>
-            <option v-for="student in students" :key="student.user_id" :value="student.user_id">{{ student.user?.first_name }} {{ student.user?.last_name }}</option>
+            <option v-for="student in students" :key="student.user_id" :value="student.user_id">{{ student.user?.first_name || "N/A" }} {{ student.user?.last_name || "" }}</option>
           </select>
         </div>
         <div>
-          <label class="block mb-1 font-medium text-gray-700">Date Range</label>
+          <label class="block mb-1 font-medium text-gray-700">Start Date</label>
           <input type="date" v-model="viewFilters.start_date" @change="fetchAttendance" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" />
         </div>
         <div>
@@ -174,8 +174,8 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="record in attendanceRecords" :key="record.id" class="hover:bg-gray-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ record.student_id }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ record.student?.user?.first_name }} {{ record.student?.user?.last_name }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ record.class?.class_name }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ record.student?.user?.first_name || "N/A" }} {{ record.student?.user?.last_name || "" }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ record.class?.class_name || "N/A" }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(record.date) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusBadgeClass(record.status)">
@@ -198,7 +198,7 @@
 
       <!-- 📈 Attendance Summary per Student -->
       <div v-for="student in uniqueStudents" :key="student.user_id" class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-800">{{ student.user?.first_name }} {{ student.user?.last_name }}</h3>
+        <h3 class="text-lg font-semibold text-gray-800">{{ student.user?.first_name || "N/A" }} {{ student.user?.last_name || "" }}</h3>
         <div class="grid grid-cols-2 gap-4 mt-2">
           <div><p class="text-gray-600">Present: {{ getAttendanceCount(student.user_id, "Present") }}</p></div>
           <div><p class="text-gray-600">Absent: {{ getAttendanceCount(student.user_id, "Absent") }}</p></div>
@@ -270,74 +270,16 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
 import axios from "axios";
-import BarChart from '@/components/charts/BarChart.vue'
-import LineChart from '@/components/charts/LineChart.vue'
-import PieChart from '@/components/charts/PieChart.vue'
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import { PlusIcon } from 'lucide-vue-next'
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import BarChart from "@/components/charts/BarChart.vue";
+import LineChart from "@/components/charts/LineChart.vue";
+import PieChart from "@/components/charts/PieChart.vue";
+import FullCalendar from "@fullcalendar/vue3";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import { PlusIcon } from "lucide-vue-next";
 
-// Example: attendance events for calendar
-const calendarOptions = ref({
-  plugins: [dayGridPlugin],
-  initialView: 'dayGridMonth',
-  events: [
-    { title: 'Present', date: '2025-08-01', color: '#22c55e' },
-    { title: 'Absent', date: '2025-08-02', color: '#ef4444' },
-    { title: 'Late', date: '2025-08-03', color: '#facc15' },
-    { title: 'Present', date: '2025-08-04', color: '#22c55e' },
-  ],
-})
-
-const barChartData = ref({
-  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-  datasets: [
-    {
-      label: 'Attendance Rate (%)',
-      data: [92, 88, 95, 90, 87, 93],
-      backgroundColor: '#3b82f6'
-    }
-  ]
-})
-
-const lineChartData = ref({
-  labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-  datasets: [
-    {
-      label: 'Late Arrivals',
-      data: [5, 3, 7, 2],
-      borderColor: '#f59e0b',
-      tension: 0.3
-    }
-  ]
-})
-
-const pieChartData = ref({
-  labels: ['Present', 'Absent', 'Late', 'Excused'],
-  datasets: [
-    {
-      label: 'Status Distribution',
-      data: [120, 15, 10, 5],
-      backgroundColor: ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6']
-    }
-  ]
-})
-
-const barChartOptions = ref({
-  responsive: true,
-  maintainAspectRatio: false
-})
-
-const lineChartOptions = ref({
-  responsive: true,
-  maintainAspectRatio: false
-})
-
-const pieChartOptions = ref({
-  responsive: true,
-  maintainAspectRatio: false
-})
-
+// API client setup
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api",
   headers: {
@@ -346,17 +288,21 @@ const apiClient = axios.create({
   },
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("auth_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    console.error("Request error:", error);
+    return Promise.reject(error);
   }
-  return config;
-}, (error) => {
-  console.error("Request error:", error);
-  return Promise.reject(error);
-});
+);
 
+// Reactive state
 const loading = ref(false);
 const loadingCharts = ref(false);
 const errorCharts = ref(false);
@@ -378,7 +324,6 @@ const viewFilters = ref({
   class_id: "",
   student_id: "",
   start_date: "",
-  end_date: "",
   status: "",
 });
 
@@ -390,144 +335,174 @@ const newAttendance = ref({
 const studentAttendance = ref({});
 const studentAttendanceNotes = ref({});
 
-// Mock data for development
-const initializeMockData = () => {
-  classes.value = [
-    { id: "1", class_name: "Grade 10A" },
-    { id: "2", class_name: "Grade 10B" },
-    { id: "3", class_name: "Grade 11A" },
-  ];
+// Computed calendar options
+const calendarOptions = computed(() => ({
+  plugins: [dayGridPlugin],
+  initialView: "dayGridMonth",
+  events: attendanceRecords.value.map((record) => ({
+    title: record.status,
+    date: record.date,
+    color: getStatusColor(record.status),
+  })),
+}));
 
-  subjects.value = [
-    { id: "1", subject_name: "Mathematics" },
-    { id: "2", subject_name: "English" },
-    { id: "3", subject_name: "Science" },
-  ];
+// Computed chart data
+const barChartData = computed(() => {
+  const months = [
+    ...new Set(
+      attendanceRecords.value.map((r) =>
+        new Date(r.date).toLocaleString("en-US", { month: "short", year: "numeric" })
+      )
+    ),
+  ].sort((a, b) => new Date(a) - new Date(b));
+  const data = months.map((month) => {
+    const records = attendanceRecords.value.filter(
+      (r) => new Date(r.date).toLocaleString("en-US", { month: "short", year: "numeric" }) === month
+    );
+    const present = records.filter((r) => r.status === "Present").length;
+    const total = records.length;
+    return total > 0 ? (present / total) * 100 : 0;
+  });
 
-  students.value = [
-    { id: "1", user_id: "1", class_id: "1", user: { id: "1", first_name: "John", last_name: "Doe" } },
-    { id: "2", user_id: "2", class_id: "1", user: { id: "2", first_name: "Jane", last_name: "Smith" } },
-    { id: "3", user_id: "3", class_id: "2", user: { id: "3", first_name: "Bob", last_name: "Johnson" } },
-    { id: "4", user_id: "4", class_id: "2", user: { id: "4", first_name: "Alice", last_name: "Brown" } },
-    { id: "5", user_id: "5", class_id: "3", user: { id: "5", first_name: "Charlie", last_name: "Wilson" } },
-  ];
+  return {
+    labels: months,
+    datasets: [
+      {
+        label: "Attendance Rate (%)",
+        data,
+        backgroundColor: "#3b82f6",
+      },
+    ],
+  };
+});
 
-  attendanceRecords.value = [
-    {
-      id: "1",
-      student_id: "1",
-      class_id: "1",
-      date: "2025-01-15",
-      status: "Present",
-      notes: "",
-      student: students.value[0],
-      class: classes.value[0],
-    },
-    {
-      id: "2",
-      student_id: "2",
-      class_id: "1",
-      date: "2025-01-15",
-      status: "Absent",
-      notes: "Sick leave",
-      student: students.value[1],
-      class: classes.value[0],
-    },
-    {
-      id: "3",
-      student_id: "3",
-      class_id: "2",
-      date: "2025-01-15",
-      status: "Late",
-      notes: "Traffic jam",
-      student: students.value[2],
-      class: classes.value[1],
-    },
-    {
-      id: "4",
-      student_id: "4",
-      class_id: "2",
-      date: "2025-01-15",
-      status: "Present",
-      notes: "",
-      student: students.value[3],
-      class: classes.value[1],
-    },
-  ];
-};
+const lineChartData = computed(() => {
+  const weeks = [
+    ...new Set(
+      attendanceRecords.value.map((r) => {
+        const date = new Date(r.date);
+        const year = date.getFullYear();
+        const week = Math.ceil((date.getDate() + date.getDay()) / 7);
+        return `Week ${week} ${year}`;
+      })
+    ),
+  ].sort();
+  const data = weeks.map((week) => {
+    const records = attendanceRecords.value.filter((r) => {
+      const date = new Date(r.date);
+      const year = date.getFullYear();
+      const weekNum = Math.ceil((date.getDate() + date.getDay()) / 7);
+      return `Week ${weekNum} ${year}` === week;
+    });
+    return records.filter((r) => r.status === "Late").length;
+  });
 
+  return {
+    labels: weeks,
+    datasets: [
+      {
+        label: "Late Arrivals",
+        data,
+        borderColor: "#f59e0b",
+        tension: 0.3,
+      },
+    ],
+  };
+});
+
+const pieChartData = computed(() => {
+  const statuses = ["Present", "Absent", "Late", "Excused"];
+  const data = statuses.map((status) => attendanceRecords.value.filter((r) => r.status === status).length);
+
+  return {
+    labels: statuses,
+    datasets: [
+      {
+        label: "Status Distribution",
+        data,
+        backgroundColor: ["#22c55e", "#ef4444", "#facc15", "#3b82f6"],
+      },
+    ],
+  };
+});
+
+const barChartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false,
+});
+
+const lineChartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false,
+});
+
+const pieChartOptions = ref({
+  responsive: true,
+  maintainAspectRatio: false,
+});
+
+// Fetch all initial data
 const fetchAll = async () => {
   loading.value = true;
   try {
-    // For development, use mock data
-    // In production, uncomment the API calls below
-    initializeMockData();
-    
-    
     const [cls, sub, stu] = await Promise.all([
       apiClient.get("/classes"),
       apiClient.get("/subjects"),
       apiClient.get("/students"),
     ]);
-    classes.value = cls.data.data;
-    subjects.value = sub.data.data;
-    students.value = stu.data.data;
-    
-    
+    classes.value = cls.data.data || [];
+    subjects.value = sub.data.data || [];
+    students.value = stu.data.data || [];
     await fetchAttendance();
   } catch (err) {
-    error.value = "Failed to load data: " + (err.response?.data?.message || err.message);
+    error.value = `Failed to load data: ${err.response?.data?.message || err.message}`;
     console.error("Fetch all error:", err);
   } finally {
     loading.value = false;
   }
 };
 
+// Fetch attendance records
 const fetchAttendance = async () => {
   loading.value = true;
   try {
-    // For development, skip API call
-    // In production, uncomment the API call below
-    
-    /*
     const params = { ...filters.value, ...viewFilters.value };
     const res = await apiClient.get("/attendance", { params });
-    attendanceRecords.value = res.data.data;
-    */
-    
+    attendanceRecords.value = res.data.data || [];
     error.value = null;
   } catch (err) {
-    error.value = "Failed to load attendance records: " + (err.response?.data?.message || err.message);
-    console.error("Fetch attendance error:", err.response ? err.response : err);
+    error.value = `Failed to load attendance records: ${err.response?.data?.message || err.message}`;
+    console.error("Fetch attendance error:", err);
   } finally {
     loading.value = false;
   }
 };
 
-// Computed property for students filtered by selected class in modal
+// Computed properties
 const modalFilteredStudents = computed(() => {
   if (!newAttendance.value.class_id) return [];
   return students.value.filter((student) => student.class_id === newAttendance.value.class_id);
 });
 
-// Computed property for students filtered by main filters
 const filteredStudents = computed(() => {
   if (!filters.value.class_id) return students.value;
   return students.value.filter((student) => student.class_id === filters.value.class_id);
 });
 
-// Computed property to check if form can be submitted
 const canSubmit = computed(() => {
   if (!newAttendance.value.class_id || !newAttendance.value.date) return false;
   if (modalFilteredStudents.value.length === 0) return false;
-  
-  // Check if all students have attendance status selected
-  return modalFilteredStudents.value.every(student => 
-    studentAttendance.value[student.user_id] && 
-    studentAttendance.value[student.user_id] !== ""
+  return modalFilteredStudents.value.every(
+    (student) => studentAttendance.value[student.user_id] && studentAttendance.value[student.user_id] !== ""
   );
 });
 
+const uniqueStudents = computed(() => {
+  const studentIds = [...new Set(attendanceRecords.value.map((r) => r.student_id))];
+  return students.value.filter((s) => studentIds.includes(s.user_id));
+});
+
+// Modal functions
 const openTakeAttendanceModal = () => {
   showAttendanceModal.value = true;
   resetAttendanceForm();
@@ -543,10 +518,8 @@ const resetAttendanceForm = () => {
   newAttendance.value.date = filters.value.date;
   studentAttendance.value = {};
   studentAttendanceNotes.value = {};
-  
-  // Initialize attendance for current students
   if (newAttendance.value.class_id) {
-    const currentStudents = students.value.filter(student => student.class_id === newAttendance.value.class_id);
+    const currentStudents = students.value.filter((student) => student.class_id === newAttendance.value.class_id);
     currentStudents.forEach((student) => {
       studentAttendance.value[student.user_id] = "Present";
       studentAttendanceNotes.value[student.user_id] = "";
@@ -555,11 +528,8 @@ const resetAttendanceForm = () => {
 };
 
 const onClassChange = () => {
-  // Reset attendance data when class changes
   studentAttendance.value = {};
   studentAttendanceNotes.value = {};
-  
-  // Initialize attendance for new class students
   modalFilteredStudents.value.forEach((student) => {
     studentAttendance.value[student.user_id] = "Present";
     studentAttendanceNotes.value[student.user_id] = "";
@@ -590,31 +560,7 @@ const submitAttendance = async () => {
       recorded_at: new Date().toISOString(),
     }));
 
-    // For development, just log the data and simulate success
-    console.log("Attendance data to be submitted:", payloads);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Add the new records to our mock data
-    const newRecords = payloads.map((payload, index) => ({
-      id: `new_${Date.now()}_${index}`,
-      student_id: payload.student_id,
-      class_id: payload.class_id,
-      date: payload.date,
-      status: payload.status,
-      notes: payload.notes,
-      student: students.value.find(s => s.user_id === payload.student_id),
-      class: classes.value.find(c => c.id === payload.class_id),
-    }));
-    
-    attendanceRecords.value.push(...newRecords);
-    
-    
-    // In production, use this API call:
     await apiClient.post("/attendance", payloads);
-    
-    
     alert("Attendance saved successfully!");
     showAttendanceModal.value = false;
     await fetchAttendance();
@@ -624,11 +570,7 @@ const submitAttendance = async () => {
   }
 };
 
-const uniqueStudents = computed(() => {
-  const studentIds = [...new Set(attendanceRecords.value.map((r) => r.student_id))];
-  return students.value.filter((s) => studentIds.includes(s.user_id));
-});
-
+// Helper functions
 const getAttendanceCount = (studentId, status) => {
   return attendanceRecords.value.filter((r) => r.student_id === studentId && r.status === status).length;
 };
@@ -643,30 +585,14 @@ const getAttendancePercentage = (studentId) => {
   return total > 0 ? (present / total) * 100 : 0;
 };
 
-const exportCSV = () => {
-  const headers = ["Student ID", "Full Name", "Class", "Date", "Status", "Notes"];
-  const rows = attendanceRecords.value.map((record) => [
-    record.student_id,
-    `${record.student?.user?.first_name} ${record.student?.user?.last_name}`,
-    record.class?.class_name,
-    formatDate(record.date),
-    record.status,
-    record.notes || "",
-  ]);
-  const csvContent = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `attendance_${new Date().toISOString().split("T")[0]}.csv`;
-  link.click();
-};
-
-const exportPDF = () => {
-  alert("PDF export functionality to be implemented");
-};
-
-const showAnalytics = () => {
-  alert("Analytics view to be implemented");
+const getStatusColor = (status) => {
+  const colors = {
+    Present: "#22c55e",
+    Absent: "#ef4444",
+    Late: "#facc15",
+    Excused: "#3b82f6",
+  };
+  return colors[status] || "#6b7280";
 };
 
 const getStatusBadgeClass = (status) => {
@@ -687,10 +613,71 @@ const formatDate = (dateString) => {
   });
 };
 
+// Export functions
+const exportCSV = () => {
+  const headers = ["Student ID", "Full Name", "Class", "Date", "Status", "Notes"];
+  const rows = attendanceRecords.value.map((record) => [
+    record.student_id,
+    `${record.student?.user?.first_name || "N/A"} ${record.student?.user?.last_name || ""}`,
+    record.class?.class_name || "N/A",
+    formatDate(record.date),
+    record.status,
+    record.notes || "",
+  ]);
+  const csvContent = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `attendance_${new Date().toISOString().split("T")[0]}.csv`;
+  link.click();
+};
+
+const exportPDF = () => {
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text("Attendance Report", 20, 20);
+
+  const headers = ["Student ID", "Full Name", "Class", "Date", "Status", "Notes"];
+  const rows = attendanceRecords.value.map((record) => [
+    record.student_id,
+    `${record.student?.user?.first_name || "N/A"} ${record.student?.user?.last_name || ""}`,
+    record.class?.class_name || "N/A",
+    formatDate(record.date),
+    record.status,
+    record.notes || "",
+  ]);
+
+  doc.autoTable({
+    startY: 30,
+    head: [headers],
+    body: rows,
+  });
+
+  doc.save(`attendance_${new Date().toISOString().split("T")[0]}.pdf`);
+};
+
+const showAnalytics = () => {
+  const summary = {
+    totalRecords: attendanceRecords.value.length,
+    byStatus: attendanceStatuses.value.reduce((acc, status) => {
+      acc[status] = attendanceRecords.value.filter((r) => r.status === status).length;
+      return acc;
+    }, {}),
+    byClass: classes.value.reduce((acc, cls) => {
+      acc[cls.class_name] = attendanceRecords.value.filter((r) => r.class_id === cls.id).length;
+      return acc;
+    }, {}),
+  };
+  console.log("Analytics Summary:", summary);
+  alert("Analytics summary logged to console. Check console for details.");
+};
+
+// Watchers
 watch(() => ({ ...filters.value, ...viewFilters.value }), fetchAttendance, {
   deep: true,
 });
 
+// Lifecycle hooks
 onMounted(() => {
   fetchAll();
 });
