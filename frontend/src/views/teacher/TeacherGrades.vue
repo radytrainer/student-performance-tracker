@@ -7,7 +7,7 @@
       <p class="text-blue-800">You are viewing your grades in read-only mode.</p>
     </div>
 
-    <!-- Filters & Import/Export Row -->
+    <!-- Filters & Actions Row -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <!-- Class Filter -->
       <div>
@@ -50,53 +50,20 @@
 
       <!-- Assessment Type Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Assessment</label>
+        <label class="block mb-1 font-medium text-gray-700">Assessment type</label>
         <select 
           v-model="filters.assessment_type" 
           @change="fetchGrades" 
           class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">All</option>
-          <option v-for="type in assessmentTypes" :key="type">{{ type }}</option>
+          <option v-for="type in assessmentTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
         </select>
       </div>
     </div>
 
-    <!-- Import/Export Buttons -->
+    <!-- Action Buttons -->
     <div class="flex flex-wrap gap-3 mb-6">
-      <!-- CSV/Excel Import -->
-      <div class="relative">
-        <input 
-          type="file" 
-          id="file-upload" 
-          @change="handleFileUpload" 
-          accept=".csv,.xlsx,.xls" 
-          class="hidden"
-        >
-        <label 
-          for="file-upload" 
-          class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md cursor-pointer transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-          </svg>
-          Import Grades
-        </label>
-        <span v-if="uploadProgress > 0" class="absolute bottom-0 left-0 h-1 bg-indigo-300" :style="`width: ${uploadProgress}%`"></span>
-      </div>
-
-      <!-- Google Sheets Import -->
-      <button 
-        @click="importFromGoogleSheets" 
-        class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
-        :disabled="googleLoading"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        {{ googleLoading ? 'Connecting...' : 'Import from Google Sheets' }}
-      </button>
-
       <!-- Export Buttons -->
       <button 
         @click="exportToExcel" 
@@ -118,7 +85,7 @@
         Export to PDF
       </button>
 
-      <!-- Add Grade Button (Teacher Only) -->
+      <!-- Add Grade Button -->
       <button 
         v-if="user.role === 'teacher'"
         @click="openAddModal" 
@@ -132,7 +99,7 @@
     </div>
 
     <!-- Analytics Dashboard -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
       <!-- Grade Distribution -->
       <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
         <h2 class="text-xl font-semibold mb-4 text-gray-800">Grade Distribution</h2>
@@ -202,6 +169,40 @@
               Edit Grade
             </button>
             <button @click="selectedStudentGrade = null" class="text-blue-600 text-sm">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Over Time -->
+      <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Performance Over Time</h2>
+        <div class="w-full h-64">
+          <canvas ref="performanceChart"></canvas>
+        </div>
+        <div class="mt-4 flex justify-between items-center">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">View By:</label>
+            <select 
+              v-model="performanceViewBy" 
+              @change="updatePerformanceChart" 
+              class="border border-gray-300 rounded-md p-1 text-sm"
+            >
+              <option value="term">Term</option>
+              <option value="assessment">Assessment Type</option>
+              <option value="subject">Subject</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Metric:</label>
+            <select 
+              v-model="performanceMetric" 
+              @change="updatePerformanceChart" 
+              class="border border-gray-300 rounded-md p-1 text-sm"
+            >
+              <option value="average">Average Score</option>
+              <option value="median">Median Score</option>
+              <option value="passRate">Pass Rate (%)</option>
+            </select>
           </div>
         </div>
       </div>
@@ -394,7 +395,7 @@
                 class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
                 required
               >
-                <option v-for="type in assessmentTypes" :key="type" :value="type">{{ type }}</option>
+                <option v-for="type in assessmentTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
               </select>
             </div>
 
@@ -443,32 +444,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Google Auth Modal -->
-    <div v-if="showGoogleAuthModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white w-full max-w-md rounded-lg shadow-xl p-6">
-        <h3 class="text-xl font-bold mb-4 text-gray-800">Connect Google Sheets</h3>
-        <p class="mb-4">Please authorize access to your Google Sheets account:</p>
-        <button 
-          @click="authenticateGoogle" 
-          class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Sign in with Google
-        </button>
-        <button 
-          @click="showGoogleAuthModal = false" 
-          class="mt-4 w-full px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -514,8 +489,10 @@ const user = ref({
 // Chart refs
 const gradeChart = ref(null)
 const scoresChart = ref(null)
+const performanceChart = ref(null)
 const gradeChartInstance = ref(null)
 const scoresChartInstance = ref(null)
+const performanceChartInstance = ref(null)
 
 // UI state
 const selectedGradeGroup = ref(null)
@@ -523,9 +500,8 @@ const selectedStudentGrade = ref(null)
 const showAddModal = ref(false)
 const isEditMode = ref(false)
 const selectedGrade = ref(null)
-const showGoogleAuthModal = ref(false)
-const googleLoading = ref(false)
-const uploadProgress = ref(0)
+const performanceViewBy = ref('term')
+const performanceMetric = ref('average')
 
 // Filters and pagination
 const filters = ref({ 
@@ -547,7 +523,13 @@ const pagination = ref({
 })
 
 // Constants
-const assessmentTypes = ref(['quiz', 'exam', 'project', 'assignment'])
+const assessmentTypes = ref([
+  { value: 'quiz', label: 'Quiz' },
+  { value: 'exam', label: 'Exam' },
+  { value: 'project', label: 'Project' },
+  { value: 'assignment', label: 'Assignment' }
+])
+
 const gradeLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 
 // Form data
@@ -654,6 +636,7 @@ const calculateGradeLetter = () => {
 const updateCharts = () => {
   updateGradeDistributionChart()
   updateStudentScoresChart()
+  updatePerformanceChart()
 }
 
 const updateGradeDistributionChart = () => {
@@ -850,6 +833,155 @@ const updateStudentScoresChart = () => {
   })
 }
 
+const updatePerformanceChart = () => {
+  if (!grades.value.length) {
+    if (performanceChartInstance.value) {
+      performanceChartInstance.value.destroy()
+      performanceChartInstance.value = null
+    }
+    return
+  }
+
+  let labels = []
+  let data = []
+  let backgroundColor = 'rgba(79, 70, 229, 0.7)'
+
+  // Group data based on selected view
+  if (performanceViewBy.value === 'term') {
+    const termGroups = {}
+    grades.value.forEach(grade => {
+      const termName = grade.term?.term_name || 'Unknown Term'
+      if (!termGroups[termName]) {
+        termGroups[termName] = []
+      }
+      termGroups[termName].push(grade.score_obtained)
+    })
+
+    labels = Object.keys(termGroups)
+    data = Object.values(termGroups).map(scores => {
+      if (performanceMetric.value === 'average') {
+        return scores.reduce((a, b) => a + b, 0) / scores.length
+      } else if (performanceMetric.value === 'median') {
+        const sorted = [...scores].sort((a, b) => a - b)
+        const mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+      } else { // passRate
+        const passing = scores.filter(score => score >= 50).length
+        return (passing / scores.length) * 100
+      }
+    })
+  } else if (performanceViewBy.value === 'assessment') {
+    const assessmentGroups = {}
+    grades.value.forEach(grade => {
+      const assessmentType = grade.assessment_type || 'Unknown'
+      if (!assessmentGroups[assessmentType]) {
+        assessmentGroups[assessmentType] = []
+      }
+      assessmentGroups[assessmentType].push(grade.score_obtained)
+    })
+
+    labels = Object.keys(assessmentGroups)
+    data = Object.values(assessmentGroups).map(scores => {
+      if (performanceMetric.value === 'average') {
+        return scores.reduce((a, b) => a + b, 0) / scores.length
+      } else if (performanceMetric.value === 'median') {
+        const sorted = [...scores].sort((a, b) => a - b)
+        const mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+      } else { // passRate
+        const passing = scores.filter(score => score >= 50).length
+        return (passing / scores.length) * 100
+      }
+    })
+  } else { // subject
+    const subjectGroups = {}
+    grades.value.forEach(grade => {
+      const subjectName = grade.class_subject?.subject?.subject_name || 'Unknown Subject'
+      if (!subjectGroups[subjectName]) {
+        subjectGroups[subjectName] = []
+      }
+      subjectGroups[subjectName].push(grade.score_obtained)
+    })
+
+    labels = Object.keys(subjectGroups)
+    data = Object.values(subjectGroups).map(scores => {
+      if (performanceMetric.value === 'average') {
+        return scores.reduce((a, b) => a + b, 0) / scores.length
+      } else if (performanceMetric.value === 'median') {
+        const sorted = [...scores].sort((a, b) => a - b)
+        const mid = Math.floor(sorted.length / 2)
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+      } else { // passRate
+        const passing = scores.filter(score => score >= 50).length
+        return (passing / scores.length) * 100
+      }
+    })
+  }
+
+  const chartData = {
+    labels: labels,
+    datasets: [{
+      label: performanceMetric.value === 'passRate' ? 'Pass Rate (%)' : 
+             performanceMetric.value === 'average' ? 'Average Score' : 'Median Score',
+      data: data,
+      backgroundColor: backgroundColor,
+      borderColor: backgroundColor.replace('0.7', '1'),
+      borderWidth: 1,
+      tension: 0.1
+    }]
+  }
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = performanceMetric.value === 'passRate' ? 'Pass Rate' : 
+                         performanceMetric.value === 'average' ? 'Average' : 'Median'
+            return `${label}: ${context.raw.toFixed(1)}`
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: performanceMetric.value === 'passRate' ? 100 : 100,
+        title: {
+          display: true,
+          text: performanceMetric.value === 'passRate' ? 'Pass Rate (%)' : 'Score'
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: performanceViewBy.value === 'term' ? 'Term' : 
+                performanceViewBy.value === 'assessment' ? 'Assessment Type' : 'Subject'
+        }
+      }
+    }
+  }
+
+  nextTick(() => {
+    if (performanceChartInstance.value) {
+      performanceChartInstance.value.data = chartData
+      performanceChartInstance.value.options = chartOptions
+      performanceChartInstance.value.update()
+    } else if (performanceChart.value) {
+      performanceChartInstance.value = new Chart(performanceChart.value, {
+        type: 'line',
+        data: chartData,
+        options: chartOptions
+      })
+    }
+  })
+}
+
 const handleGradeChartClick = (event) => {
   if (gradeChartInstance.value) {
     const elements = gradeChartInstance.value.getElementsAtEventForMode(
@@ -946,7 +1078,8 @@ const submitNewGrade = async () => {
   const payload = { 
     ...newGrade.value, 
     max_score: 100, 
-    weightage: 1 
+    weightage: 1,
+    recorded_by: user.value.id // Add the current user as the recorder
   }
 
   try {
@@ -979,73 +1112,6 @@ const deleteGrade = async (id) => {
   }
 }
 
-const handleFileUpload = async (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-
-  const formData = new FormData()
-  formData.append('file', file)
-
-  try {
-    uploadProgress.value = 0
-    const res = await apiClient.post('/grades/import', formData, {
-      onUploadProgress: progressEvent => {
-        uploadProgress.value = Math.round((progressEvent.loaded / progressEvent.total) * 100)
-      }
-    })
-    grades.value = res.data.data
-    updateCharts()
-  } catch (err) {
-    error.value = 'Failed to import file: ' + (err.response?.data?.message || err.message)
-  } finally {
-    uploadProgress.value = 0
-    event.target.value = '' // Reset file input
-  }
-}
-
-const importFromGoogleSheets = () => {
-  showGoogleAuthModal.value = true
-}
-
-const authenticateGoogle = async () => {
-  googleLoading.value = true
-  try {
-    // In a real app, you would implement OAuth flow here
-    // This is a mock implementation
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // Mock response
-    const mockData = Array.from({ length: 10 }, (_, i) => ({
-      id: grades.value.length + i + 1,
-      student_id: 1000 + i,
-      student: {
-        user: {
-          first_name: `Student${i + 1}`,
-          last_name: 'Mock'
-        }
-      },
-      class_subject: {
-        class: { class_name: `Class ${i % 3 + 1}` },
-        subject: { subject_name: ['Math', 'Science', 'History'][i % 3] }
-      },
-      term: { term_name: ['Term 1', 'Term 2', 'Term 3'][i % 3] },
-      assessment_type: ['quiz', 'exam', 'project', 'assignment'][i % 4],
-      score_obtained: Math.floor(Math.random() * 50) + 50,
-      grade_letter: ['A', 'B', 'C', 'D', 'E', 'F'][Math.floor(Math.random() * 6)],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }))
-
-    grades.value = [...grades.value, ...mockData]
-    updateCharts()
-    showGoogleAuthModal.value = false
-  } catch (err) {
-    error.value = 'Failed to connect to Google Sheets: ' + err.message
-  } finally {
-    googleLoading.value = false
-  }
-}
-
 const exportToExcel = () => {
   if (grades.value.length === 0) {
     alert('No data to export')
@@ -1062,7 +1128,8 @@ const exportToExcel = () => {
     'Assessment Type': grade.assessment_type,
     'Score': grade.score_obtained,
     'Grade': grade.grade_letter || 'N/A',
-    'Max Score': 100
+    'Max Score': 100,
+    'Date Recorded': grade.created_at ? new Date(grade.created_at).toLocaleDateString() : 'N/A'
   }))
 
   // Create a worksheet
@@ -1160,6 +1227,7 @@ onMounted(() => {
 })
 
 watch(grades, updateCharts, { deep: true })
+watch([performanceViewBy, performanceMetric], updatePerformanceChart)
 </script>
 
 <style scoped>
@@ -1236,10 +1304,5 @@ select:focus, input:focus {
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
-}
-
-/* Progress bar for upload */
-.progress-bar {
-  transition: width 0.3s ease;
 }
 </style>
