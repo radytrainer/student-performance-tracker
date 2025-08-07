@@ -288,4 +288,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'permissions' => \App\Http\Middleware\PermissionMiddleware::getRolePermissions($user->role)
         ]);
     });
+
+    Route::middleware(['auth:sanctum', 'role:teacher'])->get(
+    '/teacher/dashboard-students', 
+    [App\Http\Controllers\Teacher\DashboardController::class, 'students']
+);
 });
+
+

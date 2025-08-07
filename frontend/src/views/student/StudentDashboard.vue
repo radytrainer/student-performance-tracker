@@ -52,7 +52,6 @@
           </div>
           <h3 class="text-xl font-bold text-gray-900">Performance Insights</h3>
         </div>
-        
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
             <div class="flex items-center gap-2 mb-2">
@@ -62,7 +61,6 @@
             <p class="text-sm text-green-700">{{ topSubject.name }} ({{ topSubject.grade }}%)</p>
             <p class="text-xs text-green-600 mt-1">Keep up the excellent work!</p>
           </div>
-          
           <div class="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4">
             <div class="flex items-center gap-2 mb-2">
               <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -71,7 +69,6 @@
             <p class="text-sm text-blue-700">{{ trendDirection }} {{ Math.abs(trendValue) }}%</p>
             <p class="text-xs text-blue-600 mt-1">{{ trendMessage }}</p>
           </div>
-          
           <div class="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4">
             <div class="flex items-center gap-2 mb-2">
               <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
@@ -91,7 +88,6 @@
           </div>
           <h3 class="text-xl font-bold text-gray-900">Academic Goals</h3>
         </div>
-        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-4">
             <div>
@@ -107,7 +103,6 @@
               </div>
               <p class="text-xs text-gray-600 mt-1">Current: {{ studentData.averageGrade }}%</p>
             </div>
-            
             <div>
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-medium text-gray-700">Attendance Target</span>
@@ -122,7 +117,6 @@
               <p class="text-xs text-gray-600 mt-1">Current: {{ studentData.attendanceRate }}%</p>
             </div>
           </div>
-          
           <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4">
             <h4 class="font-semibold text-indigo-800 mb-3">Quick Actions</h4>
             <div class="space-y-2">
@@ -215,7 +209,6 @@
           </div>
           <h3 class="text-xl font-bold text-gray-900">Recent Activity</h3>
         </div>
-        
         <div class="space-y-3">
           <div v-for="activity in recentActivities" :key="activity.id" 
                class="flex items-center gap-4 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
@@ -240,62 +233,47 @@ import {
   Users, TrendingUp, Calendar, AlertTriangle, Filter, Search, X,
   BarChart3, PieChart, User, Activity, Target, BookOpen, Award, Clock
 } from 'lucide-vue-next'
-
 import { useAuth } from '@/composables/useAuth'
+import api from '@/api/axiosConfig' // Your axios instance or API utility
 
-// Use composable to get current user
 const { user } = useAuth()
 
-// Student data (this would typically come from an API based on the logged-in student)
 const studentData = ref({
-  id: 1,
-  name: "Sarah Johnson",
-  course: "Computer Science",
-  term: "Fall 2024",
-  averageGrade: 88,
-  attendanceRate: 94,
-  subjects: [
-    { name: "Mathematics", grade: 92 },
-    { name: "Programming", grade: 89 },
-    { name: "Physics", grade: 85 },
-    { name: "English", grade: 87 },
-    { name: "Database", grade: 90 }
-  ],
-  monthlyGrades: [
-    { month: "Sep", grade: 85 },
-    { month: "Oct", grade: 87 },
-    { month: "Nov", grade: 89 },
-    { month: "Dec", grade: 88 }
-  ]
+  id: null,
+  name: "",
+  course: "",
+  term: "",
+  averageGrade: 0,
+  attendanceRate: 0,
+  subjects: [],
+  monthlyGrades: []
 })
 
-// Recent activities
-const recentActivities = ref([
-  {
-    id: 1,
-    title: "Assignment Submitted",
-    description: "Database Design Project submitted",
-    time: "2 hours ago",
-    icon: BookOpen,
-    color: "bg-blue-500"
-  },
-  {
-    id: 2,
-    title: "Quiz Completed",
-    description: "Mathematics Quiz - Score: 92%",
-    time: "1 day ago",
-    icon: Award,
-    color: "bg-green-500"
-  },
-  {
-    id: 3,
-    title: "Class Attended",
-    description: "Programming Fundamentals",
-    time: "2 days ago",
-    icon: Clock,
-    color: "bg-purple-500"
+const recentActivities = ref([])
+
+// Fetch student dashboard data from backend
+const fetchStudentDashboard = async () => {
+  try {
+    // Adjust the endpoint if your backend uses a different route
+    const res = await api.get('/student/dashboard')
+    const data = res.data
+
+    studentData.value = {
+      id: data.student?.id,
+      name: data.student?.name,
+      course: data.student?.course,
+      term: data.student?.term,
+      averageGrade: data.stats?.average_grade,
+      attendanceRate: data.stats?.attendance_rate,
+      subjects: data.subjects || [],
+      monthlyGrades: data.monthly_grades || []
+    }
+    recentActivities.value = data.recent_activities || []
+    await updateCharts()
+  } catch (error) {
+    console.error('Failed to fetch student dashboard data:', error)
   }
-])
+}
 
 // Chart refs
 const lineChart = ref(null)
@@ -312,8 +290,7 @@ let radarChartInstance = null
 // Computed properties
 const kpiData = computed(() => {
   const totalSubjects = studentData.value.subjects.length
-  const bestGrade = Math.max(...studentData.value.subjects.map(s => s.grade))
-  
+  const bestGrade = Math.max(...studentData.value.subjects.map(s => s.grade || 0))
   return [
     {
       title: 'Overall Grade',
@@ -356,25 +333,28 @@ const kpiData = computed(() => {
 
 const topSubject = computed(() => {
   return studentData.value.subjects.reduce((prev, current) => 
-    (prev.grade > current.grade) ? prev : current
+    (prev.grade > current.grade) ? prev : current, { name: '', grade: 0 }
   )
 })
 
 const weakestSubject = computed(() => {
   return studentData.value.subjects.reduce((prev, current) => 
-    (prev.grade < current.grade) ? prev : current
+    (prev.grade < current.grade) ? prev : current, { name: '', grade: 100 }
   )
 })
 
 const trendDirection = computed(() => {
   const grades = studentData.value.monthlyGrades
+  if (grades.length < 2) return ''
   const lastGrade = grades[grades.length - 1].grade
   const previousGrade = grades[grades.length - 2].grade
   return lastGrade > previousGrade ? 'Improving by' : 'Declining by'
 })
 
+const attendancePercentage = computed(() => studentData.value.attendanceRate)
 const trendValue = computed(() => {
   const grades = studentData.value.monthlyGrades
+  if (grades.length < 2) return 0
   const lastGrade = grades[grades.length - 1].grade
   const previousGrade = grades[grades.length - 2].grade
   return Math.round(((lastGrade - previousGrade) / previousGrade) * 100)
@@ -385,17 +365,12 @@ const trendMessage = computed(() => {
     'Great progress this month!' : 'Focus on improvement areas'
 })
 
-// Chart creation functions
+// Chart creation functions (same as your current code)
 const createLineChart = async () => {
   if (!lineChart.value) return
-  
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (lineChartInstance) {
-    lineChartInstance.destroy()
-  }
-  
+  if (lineChartInstance) lineChartInstance.destroy()
   const ctx = lineChart.value.getContext('2d')
   lineChartInstance = new Chart(ctx, {
     type: 'line',
@@ -420,34 +395,18 @@ const createLineChart = async () => {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          display: false
-        }
+        legend: { display: false }
       },
       scales: {
         y: {
           beginAtZero: true,
           max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: { font: { size: 12, weight: '500' } }
         },
         x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
+          grid: { display: false },
+          ticks: { font: { size: 12, weight: '500' } }
         }
       }
     }
@@ -456,17 +415,11 @@ const createLineChart = async () => {
 
 const createBarChart = async () => {
   if (!barChart.value) return
-  
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (barChartInstance) {
-    barChartInstance.destroy()
-  }
-  
+  if (barChartInstance) barChartInstance.destroy()
   const ctx = barChart.value.getContext('2d')
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-  
   barChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -484,36 +437,17 @@ const createBarChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         y: {
           beginAtZero: true,
           max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: { font: { size: 12, weight: '500' } }
         },
         x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 11,
-              weight: '500'
-            },
-            maxRotation: 45
-          }
+          grid: { display: false },
+          ticks: { font: { size: 11, weight: '500' }, maxRotation: 45 }
         }
       }
     }
@@ -522,17 +456,11 @@ const createBarChart = async () => {
 
 const createPieChart = async () => {
   if (!pieChart.value) return
-  
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (pieChartInstance) {
-    pieChartInstance.destroy()
-  }
-  
+  if (pieChartInstance) pieChartInstance.destroy()
   const ctx = pieChart.value.getContext('2d')
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-  
   pieChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -555,10 +483,7 @@ const createPieChart = async () => {
           labels: {
             padding: 20,
             usePointStyle: true,
-            font: {
-              size: 12,
-              weight: '500'
-            }
+            font: { size: 12, weight: '500' }
           }
         }
       }
@@ -568,16 +493,10 @@ const createPieChart = async () => {
 
 const createRadarChart = async () => {
   if (!radarChart.value) return
-  
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (radarChartInstance) {
-    radarChartInstance.destroy()
-  }
-  
+  if (radarChartInstance) radarChartInstance.destroy()
   const ctx = radarChart.value.getContext('2d')
-  
   radarChartInstance = new Chart(ctx, {
     type: 'radar',
     data: {
@@ -597,27 +516,14 @@ const createRadarChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         r: {
           beginAtZero: true,
           max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.1)'
-          },
-          angleLines: {
-            color: 'rgba(0, 0, 0, 0.1)'
-          },
-          pointLabels: {
-            font: {
-              size: 11,
-              weight: '500'
-            }
-          }
+          grid: { color: 'rgba(0, 0, 0, 0.1)' },
+          angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+          pointLabels: { font: { size: 11, weight: '500' } }
         }
       }
     }
@@ -632,9 +538,8 @@ const updateCharts = async () => {
   createRadarChart()
 }
 
-// Lifecycle
 onMounted(() => {
-  updateCharts()
+  fetchStudentDashboard()
 })
 </script>
 
