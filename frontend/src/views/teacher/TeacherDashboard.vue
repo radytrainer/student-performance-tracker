@@ -266,103 +266,20 @@ import {
   Users, TrendingUp, Calendar, AlertTriangle, Filter, Search, X, 
   BarChart3, PieChart, User, Activity 
 } from 'lucide-vue-next'
+import axios from 'axios'
 
-// Mock data
-const studentsData = ref([
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    course: "Computer Science",
-    term: "Fall 2024",
-    averageGrade: 88,
-    attendanceRate: 94,
-    subjects: [
-      { name: "Mathematics", grade: 92 },
-      { name: "Programming", grade: 89 },
-      { name: "Physics", grade: 85 },
-      { name: "English", grade: 87 },
-      { name: "Database", grade: 90 }
-    ],
-    monthlyGrades: [
-      { month: "Sep", grade: 85 },
-      { month: "Oct", grade: 87 },
-      { month: "Nov", grade: 89 },
-      { month: "Dec", grade: 88 }
-    ]
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    course: "Engineering",
-    term: "Fall 2024",
-    averageGrade: 72,
-    attendanceRate: 78,
-    subjects: [
-      { name: "Mathematics", grade: 75 },
-      { name: "Physics", grade: 68 },
-      { name: "Chemistry", grade: 74 },
-      { name: "Engineering", grade: 71 },
-      { name: "Materials", grade: 72 }
-    ],
-    monthlyGrades: [
-      { month: "Sep", grade: 74 },
-      { month: "Oct", grade: 72 },
-      { month: "Nov", grade: 71 },
-      { month: "Dec", grade: 72 }
-    ]
-  },
-  {
-    id: 3,
-    name: "Emma Davis",
-    course: "Business",
-    term: "Fall 2024",
-    averageGrade: 91,
-    attendanceRate: 97,
-    subjects: [
-      { name: "Economics", grade: 93 },
-      { name: "Marketing", grade: 89 },
-      { name: "Finance", grade: 92 },
-      { name: "Management", grade: 90 },
-      { name: "Statistics", grade: 91 }
-    ],
-    monthlyGrades: [
-      { month: "Sep", grade: 89 },
-      { month: "Oct", grade: 91 },
-      { month: "Nov", grade: 93 },
-      { month: "Dec", grade: 91 }
-    ]
-  },
-  {
-    id: 4,
-    name: "James Wilson",
-    course: "Psychology",
-    term: "Fall 2024",
-    averageGrade: 69,
-    attendanceRate: 65,
-    subjects: [
-      { name: "Psychology", grade: 72 },
-      { name: "Statistics", grade: 65 },
-      { name: "Research", grade: 68 },
-      { name: "Biology", grade: 71 },
-      { name: "Sociology", grade: 69 }
-    ],
-    monthlyGrades: [
-      { month: "Sep", grade: 71 },
-      { month: "Oct", grade: 69 },
-      { month: "Nov", grade: 67 },
-      { month: "Dec", grade: 69 }
-    ]
-  }
-])
+// State
+const studentsData = ref([])
+const loading = ref(true)
+const error = ref(null)
 
-// Reactive data
 const filters = ref({
   name: '',
   subject: '',
   term: ''
 })
 
-const selectedStudent = ref(studentsData.value[0])
+const selectedStudent = ref(null)
 
 // Chart refs
 const lineChart = ref(null)
@@ -376,24 +293,47 @@ let barChartInstance = null
 let pieChartInstance = null
 let radarChartInstance = null
 
+// Fetch students data from API
+const fetchStudentsData = async () => {
+  loading.value = true
+  error.value = null
+  try {
+    // Replace with your actual API endpoint
+    const resp = await axios.get('/api/teacher/dashboard-students', {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('auth_token')}`
+      }
+    })
+    // Map/transform data if needed
+    studentsData.value = resp.data.data || []
+    // Set default selected student
+    selectedStudent.value = studentsData.value[0] || null
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'Failed to load students data'
+    studentsData.value = []
+    selectedStudent.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
 // Computed properties
 const filteredStudents = computed(() => {
   return studentsData.value.filter(student => {
     const nameMatch = !filters.value.name || student.name.toLowerCase().includes(filters.value.name.toLowerCase())
-    const subjectMatch = !filters.value.subject || student.subjects.some(subject => 
+    const subjectMatch = !filters.value.subject || (student.subjects || []).some(subject => 
       subject.name.toLowerCase().includes(filters.value.subject.toLowerCase())
     )
-    const termMatch = !filters.value.term || student.term.toLowerCase().includes(filters.value.term.toLowerCase())
-    
+    const termMatch = !filters.value.term || (student.term || '').toLowerCase().includes(filters.value.term.toLowerCase())
     return nameMatch && subjectMatch && termMatch
   })
 })
 
 const kpiData = computed(() => {
   const total = filteredStudents.value.length
-  const avgGrade = total > 0 ? Math.round(filteredStudents.value.reduce((sum, s) => sum + s.averageGrade, 0) / total) : 0
-  const avgAttendance = total > 0 ? Math.round(filteredStudents.value.reduce((sum, s) => sum + s.attendanceRate, 0) / total) : 0
-  const alerts = filteredStudents.value.filter(s => s.averageGrade < 75 || s.attendanceRate < 80).length
+  const avgGrade = total > 0 ? Math.round(filteredStudents.value.reduce((sum, s) => sum + (s.averageGrade || 0), 0) / total) : 0
+  const avgAttendance = total > 0 ? Math.round(filteredStudents.value.reduce((sum, s) => sum + (s.attendanceRate || 0), 0) / total) : 0
+  const alerts = filteredStudents.value.filter(s => (s.averageGrade || 0) < 75 || (s.attendanceRate || 0) < 80).length
 
   return [
     {
@@ -437,7 +377,7 @@ const kpiData = computed(() => {
 
 const alertStudents = computed(() => {
   return filteredStudents.value.filter(student => 
-    student.averageGrade < 75 || student.attendanceRate < 80
+    (student.averageGrade || 0) < 75 || (student.attendanceRate || 0) < 80
   )
 })
 
@@ -448,6 +388,10 @@ const hasActiveFilters = computed(() => {
 // Methods
 const applyFilters = () => {
   // Filters are reactive, so this will automatically update filteredStudents
+  // Optionally, reset selectedStudent if not in filtered list
+  if (selectedStudent.value && !filteredStudents.value.some(s => s.id === selectedStudent.value.id)) {
+    selectedStudent.value = filteredStudents.value[0] || null
+  }
 }
 
 const clearFilters = () => {
@@ -459,40 +403,35 @@ const clearFilters = () => {
 }
 
 const getStatusColor = (student) => {
-  if (student.averageGrade < 75 || student.attendanceRate < 80) {
+  if ((student.averageGrade || 0) < 75 || (student.attendanceRate || 0) < 80) {
     return 'bg-red-100 text-red-700'
   }
-  if (student.averageGrade >= 85 && student.attendanceRate >= 90) {
+  if ((student.averageGrade || 0) >= 85 && (student.attendanceRate || 0) >= 90) {
     return 'bg-green-100 text-green-700'
   }
   return 'bg-blue-100 text-blue-700'
 }
 
 const getStatusText = (student) => {
-  if (student.averageGrade < 75 || student.attendanceRate < 80) return 'At Risk'
-  if (student.averageGrade >= 85 && student.attendanceRate >= 90) return 'Excellent'
+  if ((student.averageGrade || 0) < 75 || (student.attendanceRate || 0) < 80) return 'At Risk'
+  if ((student.averageGrade || 0) >= 85 && (student.attendanceRate || 0) >= 90) return 'Excellent'
   return 'Good'
 }
 
-// Chart creation functions
+// Chart creation functions (same as before, but add null checks for selectedStudent)
 const createLineChart = async () => {
-  if (!lineChart.value) return
-  
+  if (!lineChart.value || !selectedStudent.value) return
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (lineChartInstance) {
-    lineChartInstance.destroy()
-  }
-  
+  if (lineChartInstance) lineChartInstance.destroy()
   const ctx = lineChart.value.getContext('2d')
   lineChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: selectedStudent.value.monthlyGrades.map(item => item.month),
+      labels: (selectedStudent.value.monthlyGrades || []).map(item => item.month),
       datasets: [{
         label: 'Grade Progress',
-        data: selectedStudent.value.monthlyGrades.map(item => item.grade),
+        data: (selectedStudent.value.monthlyGrades || []).map(item => item.grade),
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderWidth: 4,
@@ -508,66 +447,30 @@ const createLineChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
-        },
-        x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
-        }
+        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { font: { size: 12, weight: '500' } } },
+        x: { grid: { display: false }, ticks: { font: { size: 12, weight: '500' } } }
       },
-      elements: {
-        point: {
-          hoverBackgroundColor: 'rgb(59, 130, 246)'
-        }
-      }
+      elements: { point: { hoverBackgroundColor: 'rgb(59, 130, 246)' } }
     }
   })
 }
 
 const createBarChart = async () => {
-  if (!barChart.value) return
-  
+  if (!barChart.value || !selectedStudent.value) return
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (barChartInstance) {
-    barChartInstance.destroy()
-  }
-  
+  if (barChartInstance) barChartInstance.destroy()
   const ctx = barChart.value.getContext('2d')
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-  
   barChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: selectedStudent.value.subjects.map(subject => subject.name),
+      labels: (selectedStudent.value.subjects || []).map(subject => subject.name),
       datasets: [{
         label: 'Grade',
-        data: selectedStudent.value.subjects.map(subject => subject.grade),
+        data: (selectedStudent.value.subjects || []).map(subject => subject.grade),
         backgroundColor: colors.map(color => color + '20'),
         borderColor: colors,
         borderWidth: 2,
@@ -578,61 +481,28 @@ const createBarChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            font: {
-              size: 12,
-              weight: '500'
-            }
-          }
-        },
-        x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 11,
-              weight: '500'
-            },
-            maxRotation: 45
-          }
-        }
+        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { font: { size: 12, weight: '500' } } },
+        x: { grid: { display: false }, ticks: { font: { size: 11, weight: '500' }, maxRotation: 45 } }
       }
     }
   })
 }
 
 const createPieChart = async () => {
-  if (!pieChart.value) return
-  
+  if (!pieChart.value || !selectedStudent.value) return
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (pieChartInstance) {
-    pieChartInstance.destroy()
-  }
-  
+  if (pieChartInstance) pieChartInstance.destroy()
   const ctx = pieChart.value.getContext('2d')
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-  
   pieChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: selectedStudent.value.subjects.map(subject => subject.name),
+      labels: (selectedStudent.value.subjects || []).map(subject => subject.name),
       datasets: [{
-        data: selectedStudent.value.subjects.map(subject => subject.grade),
+        data: (selectedStudent.value.subjects || []).map(subject => subject.grade),
         backgroundColor: colors,
         borderColor: '#fff',
         borderWidth: 4,
@@ -649,10 +519,7 @@ const createPieChart = async () => {
           labels: {
             padding: 20,
             usePointStyle: true,
-            font: {
-              size: 12,
-              weight: '500'
-            }
+            font: { size: 12, weight: '500' }
           }
         }
       }
@@ -661,24 +528,18 @@ const createPieChart = async () => {
 }
 
 const createRadarChart = async () => {
-  if (!radarChart.value) return
-  
+  if (!radarChart.value || !selectedStudent.value) return
   const { Chart, registerables } = await import('chart.js')
   Chart.register(...registerables)
-  
-  if (radarChartInstance) {
-    radarChartInstance.destroy()
-  }
-  
+  if (radarChartInstance) radarChartInstance.destroy()
   const ctx = radarChart.value.getContext('2d')
-  
   radarChartInstance = new Chart(ctx, {
     type: 'radar',
     data: {
-      labels: selectedStudent.value.subjects.map(subject => subject.name),
+      labels: (selectedStudent.value.subjects || []).map(subject => subject.name),
       datasets: [{
         label: 'Performance',
-        data: selectedStudent.value.subjects.map(subject => subject.grade),
+        data: (selectedStudent.value.subjects || []).map(subject => subject.grade),
         borderColor: 'rgb(139, 92, 246)',
         backgroundColor: 'rgba(139, 92, 246, 0.2)',
         borderWidth: 3,
@@ -691,27 +552,14 @@ const createRadarChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         r: {
           beginAtZero: true,
           max: 100,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.1)'
-          },
-          angleLines: {
-            color: 'rgba(0, 0, 0, 0.1)'
-          },
-          pointLabels: {
-            font: {
-              size: 11,
-              weight: '500'
-            }
-          }
+          grid: { color: 'rgba(0, 0, 0, 0.1)' },
+          angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+          pointLabels: { font: { size: 11, weight: '500' } }
         }
       }
     }
@@ -727,13 +575,23 @@ const updateCharts = async () => {
 }
 
 // Lifecycle
-onMounted(() => {
-  updateCharts()
+onMounted(async () => {
+  await fetchStudentsData()
+  await updateCharts()
 })
 
 watch(selectedStudent, () => {
   updateCharts()
 }, { deep: true })
+
+watch(filteredStudents, () => {
+  // If selectedStudent is not in filtered list, select the first one
+  if (selectedStudent.value && !filteredStudents.value.some(s => s.id === selectedStudent.value.id)) {
+    selectedStudent.value = filteredStudents.value[0] || null
+  }
+  updateCharts()
+})
+
 </script>
 
 <style scoped>
