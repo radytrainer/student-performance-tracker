@@ -560,7 +560,6 @@ onMounted(() => {
   updateCharts()
 })
 </script>
-
 <style scoped>
 .bg-clip-text {
   -webkit-background-clip: text;
