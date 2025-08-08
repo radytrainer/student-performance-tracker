@@ -66,6 +66,7 @@ Route::middleware('web')->group(function () {
 // Temporary public access for testing user management
 Route::get('/users', [UserController::class, 'index']);
 Route::get('/users/{id}', [UserController::class, 'show']);
+Route::get('/students-users', [UserController::class, 'students']);
 
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
 Route::post('/users', [UserController::class, 'store']);
@@ -293,6 +294,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     '/teacher/dashboard-students', 
     [App\Http\Controllers\Teacher\DashboardController::class, 'students']
 );
+
 });
 
 

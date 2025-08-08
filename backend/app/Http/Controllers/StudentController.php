@@ -16,7 +16,11 @@ class StudentController extends BaseController
         'data' => Student::with('user')->get()
     ]);
 }
-
+    public function students()
+{
+    $students = \App\Models\User::where('role', 'student')->get();
+    return response()->json(['data' => $students]);
+}
     /**
      * Display a listing of students (role-based filtering applied)
      */

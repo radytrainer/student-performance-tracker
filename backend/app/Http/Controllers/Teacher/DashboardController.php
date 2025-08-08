@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Student;
 use Carbon\Carbon;
+use App\Models\User;
 
 class DashboardController extends Controller
 {
@@ -34,4 +35,13 @@ class DashboardController extends Controller
 
         return response()->json(['data' => $students]);
     }
+
+    public function countStudents()
+{
+    $studentCount = User::where('role', 'student')->count();
+
+    return response()->json([
+        'student' => $studentCount,
+    ]);
+}
 }
