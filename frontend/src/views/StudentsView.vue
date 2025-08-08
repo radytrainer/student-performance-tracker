@@ -465,11 +465,12 @@ const newStudent = reactive<Omit<Student, 'id'>>({
   name: '',
   email: '',
   phone: '',
-  role: '' as Role | '',
-  status: '' as Status | '',
+  role: '' as any,
+  status: '' as any,
   createdAt: '',
   profileImage: ''
 })
+
 
 // Edit form state
 const editForm = reactive<Student>({
