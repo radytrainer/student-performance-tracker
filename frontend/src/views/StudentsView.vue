@@ -502,7 +502,6 @@ const loadStudents = async () => {
     loading.value = false
   }
 }
-
 onMounted(() => {
   loadStudents()
 })
