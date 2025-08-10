@@ -19,6 +19,7 @@ class User extends Authenticatable
         'password_hash',
         'role',
         'school_id',
+        'is_super_admin',
         'first_name',
         'last_name',
         'profile_picture',
@@ -110,6 +111,16 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'admin' && $this->is_super_admin;
+    }
+
+    public function isSchoolAdmin(): bool
+    {
+        return $this->role === 'admin' && !$this->is_super_admin;
+    }
+
     public function isTeacher(): bool
     {
         return $this->role === 'teacher';
@@ -123,8 +134,11 @@ class User extends Authenticatable
     // Query scopes for role-based filtering
     public function scopeAccessibleUsers($query, User $currentUser)
     {
-        if ($currentUser->isAdmin()) {
-            // Admin can only see users from their school
+        if ($currentUser->isSuperAdmin()) {
+            // Super admin can see all users
+            return $query;
+        } elseif ($currentUser->isSchoolAdmin()) {
+            // School admin can only see users from their school
             return $query->where('school_id', $currentUser->school_id);
         }
 

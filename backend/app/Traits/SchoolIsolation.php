@@ -19,6 +19,13 @@ trait SchoolIsolation
      */
     protected function applySchoolIsolation(Builder $query)
     {
+        $user = auth()->user();
+        
+        // Super admins can see all data
+        if ($user && $user->isSuperAdmin()) {
+            return $query;
+        }
+        
         $schoolId = $this->getCurrentSchoolId();
         
         if ($schoolId) {
@@ -34,6 +41,13 @@ trait SchoolIsolation
      */
     protected function applyUserSchoolIsolation(Builder $query)
     {
+        $user = auth()->user();
+        
+        // Super admins can see all users
+        if ($user && $user->isSuperAdmin()) {
+            return $query;
+        }
+        
         return $query->forSchool($this->getCurrentSchoolId());
     }
 
@@ -42,6 +56,13 @@ trait SchoolIsolation
      */
     protected function applyClassSchoolIsolation(Builder $query)
     {
+        $user = auth()->user();
+        
+        // Super admins can see all classes
+        if ($user && $user->isSuperAdmin()) {
+            return $query;
+        }
+        
         return $query->forSchool($this->getCurrentSchoolId());
     }
 
