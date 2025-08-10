@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Traits\SchoolIsolation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -10,6 +11,7 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    use SchoolIsolation;
     public function __construct()
     {
         // Temporarily disable auth middleware for testing
@@ -18,7 +20,12 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::query()->with(['school', 'student', 'teacher']);
+
+        // Apply school isolation for admins
+        if (auth()->user() && auth()->user()->isAdmin()) {
+            $query = $this->applyUserSchoolIsolation($query);
+        }
 
         // Search functionality
         if ($request->has('search') && !empty($request->search)) {
