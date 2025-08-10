@@ -65,6 +65,12 @@ export function useAuth() {
     const allowedRoles = permissions[permission]
     if (!allowedRoles) return false
     
+    // If permission is a function, call it
+    if (typeof allowedRoles === 'function') {
+      return allowedRoles()
+    }
+    
+    // If permission is an array of roles, check if user has one of them
     return allowedRoles.includes(userRole.value)
   }
 
@@ -97,6 +103,10 @@ export function useAuth() {
 
   // Navigation helpers
   const getDefaultRoute = () => {
+    if (isSuperAdmin.value) {
+      return '/super-admin/dashboard'
+    }
+    
     switch (userRole.value) {
       case 'admin':
         return '/admin/dashboard'
@@ -169,6 +179,8 @@ export function useAuth() {
 
     // Role checks
     isAdmin,
+    isSuperAdmin,
+    isSchoolAdmin,
     isTeacher,
     isStudent,
     hasRole,
