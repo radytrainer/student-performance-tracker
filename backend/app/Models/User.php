@@ -18,6 +18,7 @@ class User extends Authenticatable
         'email',
         'password_hash',
         'role',
+        'school_id',
         'first_name',
         'last_name',
         'profile_picture',
@@ -73,6 +74,11 @@ class User extends Authenticatable
     }
 
     // Relationships
+    public function school(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(School::class);
+    }
+
     public function teacher(): HasOne
     {
         return $this->hasOne(Teacher::class);
@@ -118,11 +124,18 @@ class User extends Authenticatable
     public function scopeAccessibleUsers($query, User $currentUser)
     {
         if ($currentUser->isAdmin()) {
-            return $query; // Admin can see all users
+            // Admin can only see users from their school
+            return $query->where('school_id', $currentUser->school_id);
         }
 
         // Non-admin users can only see their own profile
         return $query->where('id', $currentUser->id);
+    }
+
+    // Scope for school-based isolation
+    public function scopeForSchool($query, $schoolId)
+    {
+        return $query->where('school_id', $schoolId);
     }
 
     public function scopeByRole($query, $role)
