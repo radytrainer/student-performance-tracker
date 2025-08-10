@@ -23,7 +23,7 @@ class UserController extends Controller
         $query = User::query()->with(['school', 'student', 'teacher']);
 
         // Apply school isolation for admins
-        if (auth()->user() && auth()->user()->isAdmin()) {
+        if (auth()->user() && auth()->user()->role === 'admin') {
             $query = $this->applyUserSchoolIsolation($query);
         }
 
@@ -88,6 +88,11 @@ class UserController extends Controller
         $validated['password_hash'] = Hash::make($validated['password']);
         unset($validated['password']);
 
+        // Auto-assign school for new users
+        if (auth()->user() && auth()->user()->school_id) {
+            $validated['school_id'] = auth()->user()->school_id;
+        }
+
         $user = User::create($validated);
 
         return response()->json($user, 201);
@@ -96,6 +101,12 @@ class UserController extends Controller
     public function show(string $id)
     {
         $user = User::findOrFail($id);
+        
+        // Check school isolation
+        if (auth()->user() && !$this->canAccessBySchool($user)) {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+        
         $user->profile_picture = $user->profile_picture ? asset('storage/' . $user->profile_picture) : null;
         return response()->json($user);
     }

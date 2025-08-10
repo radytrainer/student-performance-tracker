@@ -80,7 +80,7 @@
                 <LoginForm
                   v-if="isSignIn"
                   :errors="signInErrors"
-                  :is-loading="authStore.isLoading"
+                  :is-loding="authStore.isLoading"
                   :initial-data="signInData"
                   :auth-error="authStore.error"
                   @submit="handleSignIn"

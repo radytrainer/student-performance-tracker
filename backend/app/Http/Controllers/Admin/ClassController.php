@@ -7,6 +7,7 @@ use App\Models\Classes;
 use App\Models\Teacher;
 use App\Models\Subject;
 use App\Models\ClassSubject;
+use App\Traits\SchoolIsolation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 
 class ClassController extends Controller
 {
+    use SchoolIsolation;
     /**
      * Constructor to ensure only admins can access these methods
      */
@@ -34,6 +36,9 @@ class ClassController extends Controller
             $academicYear = $request->get('academic_year', '');
 
             $query = Classes::with(['classTeacher.user', 'students', 'classSubjects.subject']);
+
+            // Apply school isolation
+            $query = $this->applyClassSchoolIsolation($query);
 
             // Apply search filter
             if ($search) {
