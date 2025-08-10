@@ -64,6 +64,20 @@
               <option value="teacher">Teacher</option>
               <option value="student">Student</option>
             </select>
+            <select
+              v-model="classFilter"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              @change="applyFilters"
+            >
+              <option value="">All Classes</option>
+              <option 
+                v-for="classItem in classes" 
+                :key="classItem.id" 
+                :value="classItem.id"
+              >
+                {{ classItem.class_name }}
+              </option>
+            </select>
           </div>
           <div class="flex items-center space-x-3">
             <!-- Bulk Actions -->
@@ -516,8 +530,12 @@ const allUsers = ref([]) // Store all users for local filtering
 const pagination = ref(null)
 const searchQuery = ref('')
 const roleFilter = ref('')
+const classFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
+
+// Classes data
+const classes = ref([])
 
 // Modal states
 const showUserModal = ref(false)
@@ -570,6 +588,19 @@ const filteredUsers = computed(() => {
   // Apply role filter
   if (roleFilter.value) {
     filtered = filtered.filter(user => user.role === roleFilter.value)
+  }
+
+  // Apply class filter
+  if (classFilter.value) {
+    filtered = filtered.filter(user => {
+      if (user.role === 'student' && user.student) {
+        return user.student.current_class_id === parseInt(classFilter.value)
+      } else if (user.role === 'teacher' && user.teacher) {
+        // Check if teacher is assigned to the selected class
+        return user.teacher.classes && user.teacher.classes.some(cls => cls.id === parseInt(classFilter.value))
+      }
+      return false
+    })
   }
 
   return filtered
@@ -703,6 +734,15 @@ const applyFilters = () => {
   currentPage.value = 1
   searchQuery.value = '' // Clear search when changing filters
   loadUsers()
+}
+
+const loadClasses = async () => {
+  try {
+    const response = await adminAPI.getClasses()
+    classes.value = response.data.data || response.data
+  } catch (err) {
+    console.error('Error loading classes:', err)
+  }
 }
 
 const changePage = (page) => {
@@ -973,12 +1013,13 @@ const bulkDeactivate = async () => {
 }
 
 // Watch for search/filter changes to reset pagination
-watch([searchQuery, roleFilter], () => {
+watch([searchQuery, roleFilter, classFilter], () => {
   currentPage.value = 1
   selectedUsers.value = [] // Clear selection when filtering
 })
 
 onMounted(() => {
   loadUsers()
+  loadClasses()
 })
 </script>
