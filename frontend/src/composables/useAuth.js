@@ -11,6 +11,8 @@ export function useAuth() {
 
   // Role checking functions
   const isAdmin = computed(() => userRole.value === 'admin')
+  const isSuperAdmin = computed(() => userRole.value === 'admin' && authStore.user?.is_super_admin)
+  const isSchoolAdmin = computed(() => userRole.value === 'admin' && !authStore.user?.is_super_admin)
   const isTeacher = computed(() => userRole.value === 'teacher')
   const isStudent = computed(() => userRole.value === 'student')
 
@@ -27,6 +29,11 @@ export function useAuth() {
 
   const hasPermission = (permission) => {
     const permissions = {
+      // Super Admin permissions
+      'super_admin.manage_schools': () => isSuperAdmin.value,
+      'super_admin.manage_sub_admins': () => isSuperAdmin.value,
+      'super_admin.view_all_schools': () => isSuperAdmin.value,
+
       // Admin permissions
       'admin.manage_users': ['admin'],
       'admin.manage_system': ['admin'],
