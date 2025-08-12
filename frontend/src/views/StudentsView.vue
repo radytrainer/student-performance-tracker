@@ -484,59 +484,8 @@ const editForm = reactive<Student>({
   profileImage: ''
 })
 
-// Sample students data
-const students = ref<Student[]>([
-  {
-    id: 1,
-    name: 'Em Sophy',
-    email: 'sophy.em@student.passerellesnumeriques.org',
-    phone: '+855 12 345 678',
-    role: 'Student',
-    status: 'Active',
-    createdAt: '2023-01-15',
-    profileImage: ''
-  },
-  {
-    id: 2,
-    name: 'Sok Dara',
-    email: 'dara.sok@student.passerellesnumeriques.org',
-    phone: '+855 98 765 432',
-    role: 'Student',
-    status: 'Active',
-    createdAt: '2023-02-20',
-    profileImage: ''
-  },
-  {
-    id: 3,
-    name: 'Chea Pisach',
-    email: 'pisach.chea@student.passerellesnumeriques.org',
-    phone: '+855 77 888 999',
-    role: 'Graduate',
-    status: 'Inactive',
-    createdAt: '2022-09-10',
-    profileImage: ''
-  },
-  {
-    id: 4,
-    name: 'Lim Sophea',
-    email: 'sophea.lim@student.passerellesnumeriques.org',
-    phone: '+855 11 222 333',
-    role: 'Alumni',
-    status: 'Active',
-    createdAt: '2021-03-05',
-    profileImage: ''
-  },
-  {
-    id: 5,
-    name: 'Chan Mony',
-    email: 'mony.chan@student.passerellesnumeriques.org',
-    phone: '+855 66 777 888',
-    role: 'Student',
-    status: 'Active',
-    createdAt: '2023-03-12',
-    profileImage: ''
-  }
-])
+// Students list loaded from API
+const students = ref<Student[]>([])
 
 // Computed: filter + search + sort
 const filteredStudents = computed<Student[]>(() => {
@@ -692,11 +641,23 @@ function clearFilters() {
   sortBy.value = 'name'
 }
 
+import studentsAPI from '@/api/students'
+
 async function loadStudents() {
   loading.value = true
   try {
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 800))
+    const res = await studentsAPI.getAllStudents()
+    const list = (res.data?.data || []) as any[]
+    students.value = list.map((s: any) => ({
+      id: s.user_id,
+      name: `${s.user?.first_name || ''} ${s.user?.last_name || ''}`.trim() || 'Unknown',
+      email: s.user?.email || 'unknown@example.com',
+      phone: s.parent_phone || '',
+      role: 'Student',
+      status: s.user?.is_active ? 'Active' : 'Inactive',
+      createdAt: s.user?.created_at || '',
+      profileImage: s.user?.profile_picture || ''
+    }))
   } catch (error) {
     console.error('Error loading students:', error)
   } finally {
