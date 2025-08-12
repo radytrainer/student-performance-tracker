@@ -366,13 +366,39 @@ const loadSchools = async () => {
       console.log('Loading schools for super admin...')
       const response = await superAdminAPI.getSchools()
       console.log('Schools API response:', response.data)
-      schools.value = response.data.data?.data || response.data.data || []
-      console.log('Schools set to:', schools.value)
+      const realSchools = response.data.data?.data || response.data.data || []
+      
+      // Add Cambodia schools as additional options
+      const cambodiaSchools = [
+        { id: 101, name: "Passerelles Numeriques Cambodia (PNC)", code: "PNC" },
+        { id: 102, name: "Pour un Sourire d'Enfant (PSE)", code: "PSE" },
+        { id: 103, name: "Royal University of Phnom Penh (RUPP)", code: "RUPP" },
+        { id: 104, name: "Institute of Technology of Cambodia (ITC)", code: "ITC" },
+        { id: 105, name: "American University of Phnom Penh (AUPP)", code: "AUPP" },
+        { id: 106, name: "Western University (Cambodia)", code: "WUC" },
+        { id: 107, name: "Asia Euro University", code: "AEU" },
+        { id: 108, name: "Norton University", code: "NU" },
+      ]
+      
+      // Combine real schools + Cambodia schools
+      schools.value = [...realSchools, ...cambodiaSchools]
+      console.log('Schools set to (with Cambodia schools):', schools.value)
     } else {
-      // Regular admin - this could be extended to show current user's school
-      // For now, we'll leave it empty for regular admins
-      console.log('Not super admin, no schools loaded')
-      schools.value = []
+      // For testing: load schools even for regular users
+      console.log('Not super admin, but loading schools for testing...')
+      try {
+        const response = await superAdminAPI.getSchools()
+        schools.value = response.data.data?.data || response.data.data || []
+        console.log('Schools loaded for testing:', schools.value)
+      } catch (error) {
+        // Fallback to hardcoded schools for testing
+        schools.value = [
+          { id: 1, name: 'Lincoln High School', code: 'LHS001' },
+          { id: 2, name: 'Washington Elementary', code: 'WES002' },
+          { id: 3, name: 'Roosevelt Academy', code: 'ROA003' }
+        ]
+        console.log('Using fallback schools for testing:', schools.value)
+      }
     }
   } catch (error) {
     console.error('Error loading schools:', error)
