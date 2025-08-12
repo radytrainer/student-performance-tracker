@@ -579,17 +579,38 @@ function closeEdit() {
   showEditModal.value = false
 }
 
-function saveEdit() {
+async function saveEdit() {
   if (!editForm.name.trim() || !editForm.email.trim()) return
 
-  const idx = students.value.findIndex((s) => s.id === editForm.id)
-  if (idx > -1) {
-    students.value[idx] = { ...students.value[idx], ...editForm }
-  }
-  showEditModal.value = false
+  try {
+    const [firstName, ...restNames] = editForm.name.trim().split(' ')
+    const lastName = restNames.join(' ')
+    
+    const updateData = {
+      first_name: firstName,
+      last_name: lastName,
+      email: editForm.email.trim(),
+      parent_phone: editForm.phone.trim(),
+      is_active: editForm.status === 'Active'
+    }
 
-  if (selectedStudent.value && selectedStudent.value.id === editForm.id) {
-    selectedStudent.value = { ...students.value[idx] }
+    await studentsAPI.updateStudent(editForm.id, updateData)
+    
+    // Refresh the students list
+    await loadStudents()
+    
+    showEditModal.value = false
+    
+    // Update selected student if it's the one being edited
+    if (selectedStudent.value && selectedStudent.value.id === editForm.id) {
+      const updatedStudent = students.value.find(s => s.id === editForm.id)
+      if (updatedStudent) {
+        selectedStudent.value = { ...updatedStudent }
+      }
+    }
+  } catch (error) {
+    console.error('Error updating student:', error)
+    alert('Failed to update student. Please try again.')
   }
 }
 
@@ -598,15 +619,19 @@ function askDelete(student: Student) {
   showDeleteModal.value = true
 }
 
-function confirmDelete() {
-  if (studentToDelete.value) {
-    const index = students.value.findIndex((s) => s.id === studentToDelete.value!.id)
-    if (index > -1) {
-      students.value.splice(index, 1)
-    }
+async function confirmDelete() {
+  if (!studentToDelete.value) return
+
+  try {
+    await studentsAPI.deleteStudent(studentToDelete.value.id)
+    await loadStudents()
+  } catch (error) {
+    console.error('Error deleting student:', error)
+    alert('Failed to delete student. Please try again.')
+  } finally {
+    showDeleteModal.value = false
+    studentToDelete.value = null
   }
-  showDeleteModal.value = false
-  studentToDelete.value = null
 }
 
 function addStudent() {
