@@ -65,17 +65,18 @@
               <option value="student">Student</option>
             </select>
             <select
+              v-if="classes && classes.length > 0"
               v-model="classFilter"
               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               @change="applyFilters"
             >
               <option value="">All Classes</option>
               <option 
-                v-for="classItem in classes" 
-                :key="classItem.id" 
-                :value="classItem.id"
+                v-for="classItem in classes || []" 
+                :key="classItem?.id" 
+                :value="classItem?.id"
               >
-                {{ classItem.class_name }}
+                {{ classItem?.class_name }}
               </option>
             </select>
           </div>
@@ -597,7 +598,8 @@ const filteredUsers = computed(() => {
         return user.student.current_class_id === parseInt(classFilter.value)
       } else if (user.role === 'teacher' && user.teacher) {
         // Check if teacher is assigned to the selected class
-        return user.teacher.classes && user.teacher.classes.some(cls => cls.id === parseInt(classFilter.value))
+        return user.teacher.classes && Array.isArray(user.teacher.classes) && 
+               user.teacher.classes.some(cls => cls?.id === parseInt(classFilter.value))
       }
       return false
     })
@@ -739,9 +741,10 @@ const applyFilters = () => {
 const loadClasses = async () => {
   try {
     const response = await adminAPI.getClasses()
-    classes.value = response.data.data || response.data
+    classes.value = response.data.data || response.data || []
   } catch (err) {
     console.error('Error loading classes:', err)
+    classes.value = [] // Ensure classes is always an array
   }
 }
 

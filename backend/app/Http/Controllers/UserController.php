@@ -22,8 +22,8 @@ class UserController extends Controller
     {
         $query = User::query()->with(['school', 'student', 'teacher']);
 
-        // Apply school isolation for admins
-        if (auth()->user() && auth()->user()->role === 'admin') {
+        // Apply school isolation for admins (but not super admins)
+        if (auth()->user() && auth()->user()->role === 'admin' && !auth()->user()->is_super_admin) {
             $query = $this->applyUserSchoolIsolation($query);
         }
 
