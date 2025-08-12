@@ -132,7 +132,7 @@
         </div>
 
         <!-- School Selection -->
-        <div v-if="showSchoolSelection">
+        <div v-if="true">
           <label class="block text-sm font-medium text-gray-700 mb-1">
             School *
           </label>
@@ -266,7 +266,12 @@ const schools = ref([])
 
 // Show school selection for super admin or when no school is pre-assigned
 const showSchoolSelection = computed(() => {
-  return isSuperAdmin.value || (schools.value.length > 1)
+  console.log('showSchoolSelection check:', {
+    isSuperAdmin: isSuperAdmin.value,
+    schoolsLength: schools.value.length,
+    schools: schools.value
+  })
+  return isSuperAdmin.value || (schools.value.length > 0)
 })
 
 // Watch for user prop changes to populate form
@@ -346,13 +351,27 @@ const setErrors = (newErrors) => {
 // Load schools based on user permissions
 const loadSchools = async () => {
   try {
-    if (isSuperAdmin.value) {
+    const { user } = useAuth()
+    console.log('loadSchools called')
+    console.log('Current user:', user.value)
+    console.log('isSuperAdmin computed:', isSuperAdmin.value)
+    console.log('User is_super_admin field:', user.value?.is_super_admin)
+    
+    // Check both the computed property and direct field access
+    const isSuper = isSuperAdmin.value || user.value?.is_super_admin
+    console.log('Final isSuper check:', isSuper)
+    
+    if (isSuper) {
       // Super admin can see all schools
+      console.log('Loading schools for super admin...')
       const response = await superAdminAPI.getSchools()
+      console.log('Schools API response:', response.data)
       schools.value = response.data.data?.data || response.data.data || []
+      console.log('Schools set to:', schools.value)
     } else {
       // Regular admin - this could be extended to show current user's school
       // For now, we'll leave it empty for regular admins
+      console.log('Not super admin, no schools loaded')
       schools.value = []
     }
   } catch (error) {

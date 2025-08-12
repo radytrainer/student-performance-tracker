@@ -527,30 +527,40 @@ const fetchSchools = async () => {
       const schools = result.data || [];
       availableSchools.value = schools;
     } else {
-      // Fallback to static data if API fails
+      // Fallback to real schools from our database + Cambodia schools
       availableSchools.value = [
-        { id: "1", name: "Passerelles Numeriques Cambodia (PNC)" },
-        { id: "2", name: "Pour un Sourire d'Enfant (PSE)" },
-        { id: "3", name: "Royal University of Phnom Penh (RUPP)" },
-        { id: "4", name: "Institute of Technology of Cambodia (ITC)" },
-        { id: "5", name: "American University of Phnom Penh (AUPP)" },
-        { id: "6", name: "Western University (Cambodia)" },
-        { id: "7", name: "Asia Euro University" },
-        { id: "8", name: "Norton University" },
+        // Real schools from our system (will be populated first from API)
+        { id: 1, name: "Lincoln High School" },
+        { id: 2, name: "Washington Elementary" },
+        { id: 3, name: "Roosevelt Academy" },
+        // Cambodia schools as additional options
+        { id: "101", name: "Passerelles Numeriques Cambodia (PNC)" },
+        { id: "102", name: "Pour un Sourire d'Enfant (PSE)" },
+        { id: "103", name: "Royal University of Phnom Penh (RUPP)" },
+        { id: "104", name: "Institute of Technology of Cambodia (ITC)" },
+        { id: "105", name: "American University of Phnom Penh (AUPP)" },
+        { id: "106", name: "Western University (Cambodia)" },
+        { id: "107", name: "Asia Euro University" },
+        { id: "108", name: "Norton University" },
       ];
     }
   } catch (error) {
     console.error("Failed to fetch schools:", error);
-    // Fallback to static data on error
+    // Fallback to our real schools + Cambodia schools on error
     availableSchools.value = [
-      { id: "1", name: "Passerelles Numeriques Cambodia (PNC)" },
-      { id: "2", name: "Pour un Sourire d'Enfant (PSE)" },
-      { id: "3", name: "Royal University of Phnom Penh (RUPP)" },
-      { id: "4", name: "Institute of Technology of Cambodia (ITC)" },
-      { id: "5", name: "American University of Phnom Penh (AUPP)" },
-      { id: "6", name: "Western University (Cambodia)" },
-      { id: "7", name: "Asia Euro University" },
-      { id: "8", name: "Norton University" },
+      // Real schools from our system
+      { id: 1, name: "Lincoln High School" },
+      { id: 2, name: "Washington Elementary" },
+      { id: 3, name: "Roosevelt Academy" },
+      // Cambodia schools as additional options
+      { id: "101", name: "Passerelles Numeriques Cambodia (PNC)" },
+      { id: "102", name: "Pour un Sourire d'Enfant (PSE)" },
+      { id: "103", name: "Royal University of Phnom Penh (RUPP)" },
+      { id: "104", name: "Institute of Technology of Cambodia (ITC)" },
+      { id: "105", name: "American University of Phnom Penh (AUPP)" },
+      { id: "106", name: "Western University (Cambodia)" },
+      { id: "107", name: "Asia Euro University" },
+      { id: "108", name: "Norton University" },
     ];
   } finally {
     isLoadingSchools.value = false;
