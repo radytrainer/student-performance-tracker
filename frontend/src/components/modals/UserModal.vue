@@ -131,6 +131,31 @@
           </p>
         </div>
 
+        <!-- School Selection -->
+        <div v-if="showSchoolSelection">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            School *
+          </label>
+          <select
+            v-model="form.school_id"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            :class="{ 'border-red-300': errors.school_id }"
+          >
+            <option value="">Select a school</option>
+            <option 
+              v-for="school in schools" 
+              :key="school.id" 
+              :value="school.id"
+            >
+              {{ school.name }} ({{ school.code }})
+            </option>
+          </select>
+          <p v-if="errors.school_id" class="text-red-500 text-xs mt-1">
+            {{ errors.school_id[0] }}
+          </p>
+        </div>
+
         <!-- Password -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -205,7 +230,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useAuth } from '@/composables/useAuth'
+import { superAdminAPI } from '@/api/superAdmin'
+import { adminAPI } from '@/api/admin'
 
 const props = defineProps({
   show: Boolean,
@@ -215,6 +243,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
+const { isSuperAdmin } = useAuth()
+
 const isEdit = computed(() => !!props.user?.id)
 
 const form = ref({
@@ -223,6 +253,7 @@ const form = ref({
   username: '',
   email: '',
   role: '',
+  school_id: '',
   password: '',
   password_confirmation: '',
   is_active: true,
@@ -231,6 +262,12 @@ const form = ref({
 
 const errors = ref({})
 const previewImage = ref('')
+const schools = ref([])
+
+// Show school selection for super admin or when no school is pre-assigned
+const showSchoolSelection = computed(() => {
+  return isSuperAdmin.value || (schools.value.length > 1)
+})
 
 // Watch for user prop changes to populate form
 watch(() => props.user, (newUser) => {
@@ -241,6 +278,7 @@ watch(() => props.user, (newUser) => {
       username: newUser.username || '',
       email: newUser.email || '',
       role: newUser.role || '',
+      school_id: newUser.school_id || '',
       password: '',
       password_confirmation: '',
       is_active: newUser.is_active ?? true,
@@ -255,6 +293,7 @@ watch(() => props.user, (newUser) => {
       username: '',
       email: '',
       role: '',
+      school_id: '',
       password: '',
       password_confirmation: '',
       is_active: true,
@@ -303,6 +342,31 @@ const handleSubmit = () => {
 const setErrors = (newErrors) => {
   errors.value = newErrors
 }
+
+// Load schools based on user permissions
+const loadSchools = async () => {
+  try {
+    if (isSuperAdmin.value) {
+      // Super admin can see all schools
+      const response = await superAdminAPI.getSchools()
+      schools.value = response.data.data?.data || response.data.data || []
+    } else {
+      // Regular admin - this could be extended to show current user's school
+      // For now, we'll leave it empty for regular admins
+      schools.value = []
+    }
+  } catch (error) {
+    console.error('Error loading schools:', error)
+    schools.value = []
+  }
+}
+
+// Load schools when component mounts or when show prop changes
+watch(() => props.show, (newShow) => {
+  if (newShow) {
+    loadSchools()
+  }
+}, { immediate: true })
 
 defineExpose({
   setErrors

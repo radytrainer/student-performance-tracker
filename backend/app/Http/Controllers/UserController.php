@@ -72,6 +72,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
             'role' => ['required', Rule::in(['admin', 'teacher', 'student'])],
+            'school_id' => 'nullable|exists:schools,id',
             'first_name' => 'required|string',
             'last_name' => 'required|string',
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -88,9 +89,19 @@ class UserController extends Controller
         $validated['password_hash'] = Hash::make($validated['password']);
         unset($validated['password']);
 
-        // Auto-assign school for new users
-        if (auth()->user() && auth()->user()->school_id) {
-            $validated['school_id'] = auth()->user()->school_id;
+        // Handle school assignment based on user permissions
+        $currentUser = auth()->user();
+        
+        if ($currentUser) {
+            if ($currentUser->is_super_admin) {
+                // Super admin can assign any school or leave it null
+                if (!isset($validated['school_id']) || empty($validated['school_id'])) {
+                    $validated['school_id'] = null;
+                }
+            } else {
+                // Regular admin can only assign users to their own school
+                $validated['school_id'] = $currentUser->school_id;
+            }
         }
 
         $user = User::create($validated);
@@ -121,6 +132,7 @@ class UserController extends Controller
             'first_name' => 'sometimes|required|string',
             'last_name' => 'sometimes|required|string',
             'role' => ['sometimes', 'required', Rule::in(['admin', 'teacher', 'student'])],
+            'school_id' => 'nullable|exists:schools,id',
             'password' => 'nullable|string|min:6',
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
@@ -135,6 +147,17 @@ class UserController extends Controller
         if (!empty($validated['password'])) {
             $validated['password_hash'] = Hash::make($validated['password']);
             unset($validated['password']);
+        }
+
+        // Handle school assignment for updates (similar to create)
+        $currentUser = auth()->user();
+        
+        if ($currentUser && isset($validated['school_id'])) {
+            if (!$currentUser->is_super_admin) {
+                // Regular admin can only assign users to their own school
+                $validated['school_id'] = $currentUser->school_id;
+            }
+            // Super admin can change to any school (validation already handled above)
         }
 
         $user->update($validated);

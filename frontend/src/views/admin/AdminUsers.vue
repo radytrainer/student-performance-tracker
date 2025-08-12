@@ -65,7 +65,7 @@
               <option value="student">Student</option>
             </select>
             <select
-              v-if="classes && classes.length > 0"
+              v-if="false"
               v-model="classFilter"
               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               @change="applyFilters"
@@ -79,6 +79,10 @@
                 {{ classItem?.class_name }}
               </option>
             </select>
+            <!-- Temporarily disabled class filter -->
+            <div class="text-sm text-gray-500 px-4 py-2">
+              Class filter temporarily disabled
+            </div>
           </div>
           <div class="flex items-center space-x-3">
             <!-- Bulk Actions -->
@@ -740,8 +744,11 @@ const applyFilters = () => {
 
 const loadClasses = async () => {
   try {
+    console.log('Loading classes...')
     const response = await adminAPI.getClasses()
+    console.log('Classes API response:', response.data)
     classes.value = response.data.data || response.data || []
+    console.log('Classes set to:', classes.value)
   } catch (err) {
     console.error('Error loading classes:', err)
     classes.value = [] // Ensure classes is always an array
@@ -1021,8 +1028,12 @@ watch([searchQuery, roleFilter, classFilter], () => {
   selectedUsers.value = [] // Clear selection when filtering
 })
 
-onMounted(() => {
-  loadUsers()
-  loadClasses()
+onMounted(async () => {
+  try {
+    await loadUsers()
+    // await loadClasses() // Temporarily disabled
+  } catch (error) {
+    console.error('Error during component initialization:', error)
+  }
 })
 </script>
