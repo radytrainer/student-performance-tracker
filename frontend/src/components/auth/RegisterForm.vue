@@ -527,40 +527,16 @@ const fetchSchools = async () => {
       const schools = result.data || [];
       availableSchools.value = schools;
     } else {
-      // Fallback to real schools from our database + Cambodia schools
-      availableSchools.value = [
-        // Real schools from our system (will be populated first from API)
-        { id: 1, name: "Lincoln High School" },
-        { id: 2, name: "Washington Elementary" },
-        { id: 3, name: "Roosevelt Academy" },
-        // Cambodia schools as additional options
-        { id: "101", name: "Passerelles Numeriques Cambodia (PNC)" },
-        { id: "102", name: "Pour un Sourire d'Enfant (PSE)" },
-        { id: "103", name: "Royal University of Phnom Penh (RUPP)" },
-        { id: "104", name: "Institute of Technology of Cambodia (ITC)" },
-        { id: "105", name: "American University of Phnom Penh (AUPP)" },
-        { id: "106", name: "Western University (Cambodia)" },
-        { id: "107", name: "Asia Euro University" },
-        { id: "108", name: "Norton University" },
-      ];
+      // If API call fails but gets a response, still try to use empty array
+      availableSchools.value = [];
     }
   } catch (error) {
     console.error("Failed to fetch schools:", error);
-    // Fallback to our real schools + Cambodia schools on error
+    // Minimal fallback - in production, all schools should come from database
     availableSchools.value = [
-      // Real schools from our system
       { id: 1, name: "Lincoln High School" },
       { id: 2, name: "Washington Elementary" },
       { id: 3, name: "Roosevelt Academy" },
-      // Cambodia schools as additional options
-      { id: "101", name: "Passerelles Numeriques Cambodia (PNC)" },
-      { id: "102", name: "Pour un Sourire d'Enfant (PSE)" },
-      { id: "103", name: "Royal University of Phnom Penh (RUPP)" },
-      { id: "104", name: "Institute of Technology of Cambodia (ITC)" },
-      { id: "105", name: "American University of Phnom Penh (AUPP)" },
-      { id: "106", name: "Western University (Cambodia)" },
-      { id: "107", name: "Asia Euro University" },
-      { id: "108", name: "Norton University" },
     ];
   } finally {
     isLoadingSchools.value = false;
