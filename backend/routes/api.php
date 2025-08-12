@@ -56,6 +56,7 @@ use App\Http\Controllers\Teacher\AttendanceController;
 // Public routes (no authentication required)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
+Route::get('/schools', [App\Http\Controllers\PublicSchoolController::class, 'index']); // Public schools for registration
 
 // Social Authentication routes (need web middleware for session)
 Route::middleware('web')->group(function () {

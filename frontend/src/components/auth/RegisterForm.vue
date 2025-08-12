@@ -515,10 +515,16 @@ const isLoadingSchools = ref(false);
 const fetchSchools = async () => {
   isLoadingSchools.value = true;
   try {
-    // Replace with your actual API endpoint
-    const response = await fetch("/api/schools");
+    // Use the public schools API for registration
+    const response = await fetch("/api/schools", {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
     if (response.ok) {
-      const schools = await response.json();
+      const result = await response.json();
+      const schools = result.data || [];
       availableSchools.value = schools;
     } else {
       // Fallback to static data if API fails
