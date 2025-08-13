@@ -42,6 +42,7 @@ export function useAuth() {
       'teacher.manage_attendance': ['admin', 'teacher'],
       'teacher.create_reports': ['admin', 'teacher'],
       'teacher.view_analytics': ['admin', 'teacher'],
+      'teacher.import_data': ['admin', 'teacher'],
 
       // Student permissions
       'student.view_own_grades': ['admin', 'teacher', 'student'],
@@ -122,6 +123,7 @@ export function useAuth() {
         { name: 'Students', path: '/students', icon: 'fas fa-user-graduate' },
         { name: 'Grades', path: '/teacher/grades', icon: 'fas fa-clipboard-list' },
         { name: 'Attendance', path: '/teacher/attendance', icon: 'fas fa-calendar-check' },
+        { name: 'Data Import', path: '/teacher/import', icon: 'fas fa-file-import' },
         { name: 'Feedback Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-poll' },
         { name: 'Reports', path: '/teacher/reports', icon: 'fas fa-file-alt' },
         { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
