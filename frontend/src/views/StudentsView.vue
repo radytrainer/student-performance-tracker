@@ -71,9 +71,11 @@
               >
                 <img
                   v-if="student.profileImage"
-                  :src="student.profileImage"
+                  :src="getImageUrl(student.profileImage)"
                   :alt="student.name"
                   class="w-full h-full object-cover"
+                  @error="handleImageError"
+                  loading="lazy"
                 />
                 <span v-else class="text-xl font-bold text-white">
                   {{ getInitials(student.name) }}
@@ -321,35 +323,37 @@
     </div>
 
     <!-- Student Details Modal -->
-    <div
-      v-if="showDetailsModal && selectedStudent"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      @click.self="showDetailsModal = false"
-    >
-      <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold text-gray-900">{{ selectedStudent.name }}</h2>
-          <button
-            @click="showDetailsModal = false"
-            class="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-          >
-            <X class="w-6 h-6" />
-          </button>
-        </div>
-        <div class="flex flex-col items-center space-y-4 mb-6">
-          <div
-            class="w-28 h-28 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-600"
-          >
-            <img
-              v-if="selectedStudent.profileImage"
-              :src="selectedStudent.profileImage"
-              :alt="selectedStudent.name"
-              class="w-full h-full object-cover"
-            />
-            <span v-else>{{ getInitials(selectedStudent.name) }}</span>
-          </div>
-          <p class="text-gray-700 text-center max-w-xs">{{ selectedStudent.email }}</p>
-        </div>
+        <div
+          v-if="showDetailsModal && selectedStudent"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          @click.self="showDetailsModal = false"
+        >
+          <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-bold text-gray-900">{{ selectedStudent.name }}</h2>
+              <button
+                @click="showDetailsModal = false"
+                class="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              >
+                <X class="w-6 h-6" />
+              </button>
+            </div>
+            <div class="flex flex-col items-center space-y-4 mb-6">
+              <div
+                class="w-28 h-28 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-600"
+              >
+                <img
+                  v-if="selectedStudent.profileImage"
+                  :src="getImageUrl(selectedStudent.profileImage)"
+                  :alt="selectedStudent.name"
+                  class="w-full h-full object-cover"
+                  @error="handleImageError"
+                  loading="lazy"
+                />
+                <span v-else>{{ getInitials(selectedStudent.name) }}</span>
+              </div>
+              <p class="text-gray-700 text-center max-w-xs">{{ selectedStudent.email }}</p>
+            </div>
 
         <ul class="space-y-3 text-gray-700 text-sm">
           <li>
@@ -484,59 +488,8 @@ const editForm = reactive<Student>({
   profileImage: ''
 })
 
-// Sample students data
-const students = ref<Student[]>([
-  {
-    id: 1,
-    name: 'Em Sophy',
-    email: 'sophy.em@student.passerellesnumeriques.org',
-    phone: '+855 12 345 678',
-    role: 'Student',
-    status: 'Active',
-    createdAt: '2023-01-15',
-    profileImage: ''
-  },
-  {
-    id: 2,
-    name: 'Sok Dara',
-    email: 'dara.sok@student.passerellesnumeriques.org',
-    phone: '+855 98 765 432',
-    role: 'Student',
-    status: 'Active',
-    createdAt: '2023-02-20',
-    profileImage: ''
-  },
-  {
-    id: 3,
-    name: 'Chea Pisach',
-    email: 'pisach.chea@student.passerellesnumeriques.org',
-    phone: '+855 77 888 999',
-    role: 'Graduate',
-    status: 'Inactive',
-    createdAt: '2022-09-10',
-    profileImage: ''
-  },
-  {
-    id: 4,
-    name: 'Lim Sophea',
-    email: 'sophea.lim@student.passerellesnumeriques.org',
-    phone: '+855 11 222 333',
-    role: 'Alumni',
-    status: 'Active',
-    createdAt: '2021-03-05',
-    profileImage: ''
-  },
-  {
-    id: 5,
-    name: 'Chan Mony',
-    email: 'mony.chan@student.passerellesnumeriques.org',
-    phone: '+855 66 777 888',
-    role: 'Student',
-    status: 'Active',
-    createdAt: '2023-03-12',
-    profileImage: ''
-  }
-])
+// Students list loaded from API
+const students = ref<Student[]>([])
 
 // Computed: filter + search + sort
 const filteredStudents = computed<Student[]>(() => {
@@ -585,6 +538,33 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
+function getImageUrl(imagePath: string): string {
+  if (!imagePath) return ''
+  
+  // Handle full URLs
+  if (imagePath.startsWith('http')) {
+    return imagePath
+  }
+  
+  // Handle relative paths
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  return `${baseUrl}/storage/${imagePath.replace(/^\/+/, '')}`
+}
+
+function handleImageError(event: Event) {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
+  
+  // Find the parent container and show initials fallback
+  const parent = img.parentElement
+  if (parent) {
+    const fallback = document.createElement('span')
+    fallback.className = 'text-xl font-bold text-white'
+    fallback.textContent = getInitials(img.alt || '')
+    parent.appendChild(fallback)
+  }
+}
+
 function getStatusBadgeClass(status: Status | string): string {
   switch (status) {
     case 'Active':
@@ -630,17 +610,38 @@ function closeEdit() {
   showEditModal.value = false
 }
 
-function saveEdit() {
+async function saveEdit() {
   if (!editForm.name.trim() || !editForm.email.trim()) return
 
-  const idx = students.value.findIndex((s) => s.id === editForm.id)
-  if (idx > -1) {
-    students.value[idx] = { ...students.value[idx], ...editForm }
-  }
-  showEditModal.value = false
+  try {
+    const [firstName, ...restNames] = editForm.name.trim().split(' ')
+    const lastName = restNames.join(' ')
+    
+    const updateData = {
+      first_name: firstName,
+      last_name: lastName,
+      email: editForm.email.trim(),
+      parent_phone: editForm.phone.trim(),
+      is_active: editForm.status === 'Active'
+    }
 
-  if (selectedStudent.value && selectedStudent.value.id === editForm.id) {
-    selectedStudent.value = { ...students.value[idx] }
+    await studentsAPI.updateStudent(editForm.id, updateData)
+    
+    // Refresh the students list
+    await loadStudents()
+    
+    showEditModal.value = false
+    
+    // Update selected student if it's the one being edited
+    if (selectedStudent.value && selectedStudent.value.id === editForm.id) {
+      const updatedStudent = students.value.find(s => s.id === editForm.id)
+      if (updatedStudent) {
+        selectedStudent.value = { ...updatedStudent }
+      }
+    }
+  } catch (error) {
+    console.error('Error updating student:', error)
+    alert('Failed to update student. Please try again.')
   }
 }
 
@@ -649,15 +650,19 @@ function askDelete(student: Student) {
   showDeleteModal.value = true
 }
 
-function confirmDelete() {
-  if (studentToDelete.value) {
-    const index = students.value.findIndex((s) => s.id === studentToDelete.value!.id)
-    if (index > -1) {
-      students.value.splice(index, 1)
-    }
+async function confirmDelete() {
+  if (!studentToDelete.value) return
+
+  try {
+    await studentsAPI.deleteStudent(studentToDelete.value.id)
+    await loadStudents()
+  } catch (error) {
+    console.error('Error deleting student:', error)
+    alert('Failed to delete student. Please try again.')
+  } finally {
+    showDeleteModal.value = false
+    studentToDelete.value = null
   }
-  showDeleteModal.value = false
-  studentToDelete.value = null
 }
 
 function addStudent() {
@@ -692,11 +697,23 @@ function clearFilters() {
   sortBy.value = 'name'
 }
 
+import studentsAPI from '@/api/students'
+
 async function loadStudents() {
   loading.value = true
   try {
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 800))
+    const res = await studentsAPI.getAllStudents()
+    const list = (res.data?.data || []) as any[]
+    students.value = list.map((s: any) => ({
+      id: s.user_id,
+      name: `${s.user?.first_name || ''} ${s.user?.last_name || ''}`.trim() || 'Unknown',
+      email: s.user?.email || 'unknown@example.com',
+      phone: s.parent_phone || '',
+      role: 'Student',
+      status: s.user?.is_active ? 'Active' : 'Inactive',
+      createdAt: s.user?.created_at || '',
+      profileImage: s.user?.profile_picture || ''
+    }))
   } catch (error) {
     console.error('Error loading students:', error)
   } finally {

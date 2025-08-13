@@ -76,7 +76,7 @@
                     required
                   >
                     <option value="">Select Status</option>
-                    <option v-for="status in attendanceStatuses" :key="status" :value="status">{{ status }}</option>
+                    <option v-for="status in attendanceStatuses" :key="status" :value="status">{{ status.charAt(0).toUpperCase() + status.slice(1) }}</option>
                   </select>
                 </div>
                 
@@ -150,7 +150,7 @@
           <label class="block mb-1 font-medium text-gray-700">Status</label>
           <select v-model="viewFilters.status" @change="fetchAttendance" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
             <option value="">All Statuses</option>
-            <option v-for="status in attendanceStatuses" :key="status" :value="status">{{ status }}</option>
+            <option v-for="status in attendanceStatuses" :key="status" :value="status">{{ status.charAt(0).toUpperCase() + status.slice(1) }}</option>
           </select>
         </div>
       </div>
@@ -179,7 +179,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(record.date) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusBadgeClass(record.status)">
-                  {{ record.status }}
+                  {{ record.status.charAt(0).toUpperCase() + record.status.slice(1) }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.notes || "N/A" }}</td>
@@ -312,7 +312,7 @@ const classes = ref([]);
 const students = ref([]);
 const subjects = ref([]);
 const showAttendanceModal = ref(false);
-const attendanceStatuses = ref(["Present", "Absent", "Late", "Excused"]);
+const attendanceStatuses = ref(["present", "absent", "late"]);
 
 const filters = ref({
   class_id: "",
@@ -394,7 +394,7 @@ const lineChartData = computed(() => {
       const weekNum = Math.ceil((date.getDate() + date.getDay()) / 7);
       return `Week ${weekNum} ${year}` === week;
     });
-    return records.filter((r) => r.status === "Late").length;
+    return records.filter((r) => r.status === "late").length;
   });
 
   return {
@@ -411,16 +411,16 @@ const lineChartData = computed(() => {
 });
 
 const pieChartData = computed(() => {
-  const statuses = ["Present", "Absent", "Late", "Excused"];
+  const statuses = ["present", "absent", "late"];
   const data = statuses.map((status) => attendanceRecords.value.filter((r) => r.status === status).length);
 
   return {
-    labels: statuses,
+    labels: statuses.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
     datasets: [
       {
         label: "Status Distribution",
         data,
-        backgroundColor: ["#22c55e", "#ef4444", "#facc15", "#3b82f6"],
+        backgroundColor: ["#22c55e", "#ef4444", "#facc15"],
       },
     ],
   };
@@ -468,7 +468,7 @@ const fetchAttendance = async () => {
   try {
     const params = { ...filters.value, ...viewFilters.value };
     const res = await apiClient.get("/attendance", { params });
-    attendanceRecords.value = res.data.data || [];
+    attendanceRecords.value = res.data.attendances || [];
     error.value = null;
   } catch (err) {
     error.value = `Failed to load attendance records: ${err.response?.data?.message || err.message}`;
@@ -481,12 +481,12 @@ const fetchAttendance = async () => {
 // Computed properties
 const modalFilteredStudents = computed(() => {
   if (!newAttendance.value.class_id) return [];
-  return students.value.filter((student) => student.class_id === newAttendance.value.class_id);
+  return students.value.filter((student) => student.current_class_id === newAttendance.value.class_id);
 });
 
 const filteredStudents = computed(() => {
   if (!filters.value.class_id) return students.value;
-  return students.value.filter((student) => student.class_id === filters.value.class_id);
+  return students.value.filter((student) => student.current_class_id === filters.value.class_id);
 });
 
 const canSubmit = computed(() => {
@@ -519,9 +519,9 @@ const resetAttendanceForm = () => {
   studentAttendance.value = {};
   studentAttendanceNotes.value = {};
   if (newAttendance.value.class_id) {
-    const currentStudents = students.value.filter((student) => student.class_id === newAttendance.value.class_id);
+    const currentStudents = students.value.filter((student) => student.current_class_id === newAttendance.value.class_id);
     currentStudents.forEach((student) => {
-      studentAttendance.value[student.user_id] = "Present";
+      studentAttendance.value[student.user_id] = "present";
       studentAttendanceNotes.value[student.user_id] = "";
     });
   }
@@ -531,14 +531,14 @@ const onClassChange = () => {
   studentAttendance.value = {};
   studentAttendanceNotes.value = {};
   modalFilteredStudents.value.forEach((student) => {
-    studentAttendance.value[student.user_id] = "Present";
+    studentAttendance.value[student.user_id] = "present";
     studentAttendanceNotes.value[student.user_id] = "";
   });
 };
 
 const markAllPresent = () => {
   modalFilteredStudents.value.forEach((student) => {
-    studentAttendance.value[student.user_id] = "Present";
+    studentAttendance.value[student.user_id] = "present";
     studentAttendanceNotes.value[student.user_id] = "";
   });
 };
@@ -556,11 +556,9 @@ const submitAttendance = async () => {
       date: newAttendance.value.date,
       status: studentAttendance.value[student.user_id],
       notes: studentAttendanceNotes.value[student.user_id] || null,
-      recorded_by: localStorage.getItem("user_id") || null,
-      recorded_at: new Date().toISOString(),
     }));
 
-    await apiClient.post("/attendance", payloads);
+    await Promise.all(payloads.map(p => apiClient.post("/attendance", p)));
     alert("Attendance saved successfully!");
     showAttendanceModal.value = false;
     await fetchAttendance();
@@ -572,7 +570,7 @@ const submitAttendance = async () => {
 
 // Helper functions
 const getAttendanceCount = (studentId, status) => {
-  return attendanceRecords.value.filter((r) => r.student_id === studentId && r.status === status).length;
+  return attendanceRecords.value.filter((r) => r.student_id === studentId && r.status === status.toLowerCase()).length;
 };
 
 const getTotalDays = (studentId) => {
@@ -587,20 +585,18 @@ const getAttendancePercentage = (studentId) => {
 
 const getStatusColor = (status) => {
   const colors = {
-    Present: "#22c55e",
-    Absent: "#ef4444",
-    Late: "#facc15",
-    Excused: "#3b82f6",
+    present: "#22c55e",
+    absent: "#ef4444",
+    late: "#facc15",
   };
   return colors[status] || "#6b7280";
 };
 
 const getStatusBadgeClass = (status) => {
   const classes = {
-    Present: "bg-green-100 text-green-800",
-    Absent: "bg-red-100 text-red-800",
-    Late: "bg-yellow-100 text-yellow-800",
-    Excused: "bg-blue-100 text-blue-800",
+    present: "bg-green-100 text-green-800",
+    absent: "bg-red-100 text-red-800",
+    late: "bg-yellow-100 text-yellow-800",
   };
   return classes[status] || "bg-gray-100 text-gray-800";
 };
