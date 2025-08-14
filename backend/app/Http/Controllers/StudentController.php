@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\StudentImport;
 
 class StudentController extends BaseController
 {
@@ -249,4 +251,21 @@ class StudentController extends BaseController
         $presentRecords = $attendanceRecords->where('status', 'present')->count();
         return round(($presentRecords / $totalRecords) * 100, 2);
     }
+
+    public function import(Request $request)
+    {
+        $this->authorize('create', Student::class);
+
+        $request->validate([
+            'file' => 'required|mimes:csv,xlsx,xls|max:2048'
+        ]);
+
+        try {
+            Excel::import(new StudentImport, $request->file('file'));
+            return $this->successResponse(null, 'Student data imported successfully.');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Import failed: ' . $e->getMessage(), 500);
+        }
+    }
+
 }

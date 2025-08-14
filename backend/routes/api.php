@@ -16,15 +16,20 @@ use App\Http\Controllers\ClassController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\ClassSubjectController;
-
-
-
-
-
-
-
 use App\Http\Controllers\Teacher\AttendanceController;
 
+
+
+
+
+
+
+
+
+
+
+Route::middleware('auth:sanctum')
+    ->post('/students/import', [StudentController::class, 'import']);
 // Attendance routes for admin and teachers
 // Route::middleware(['auth:sanctum', 'role:admin,teacher'])->group(function () {
     Route::get('/attendance', [AttendanceController::class, 'index']);
