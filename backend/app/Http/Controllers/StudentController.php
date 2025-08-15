@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Student;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\StudentImport;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class StudentController extends BaseController
 {
@@ -251,21 +252,79 @@ class StudentController extends BaseController
         $presentRecords = $attendanceRecords->where('status', 'present')->count();
         return round(($presentRecords / $totalRecords) * 100, 2);
     }
+       
+        public function importStudents(Request $request)
+        {
+            $request->validate([
+                'file' => 'required|file|mimes:csv,xlsx',
+            ]);
 
-    public function import(Request $request)
-    {
-        $this->authorize('create', Student::class);
+            $file = $request->file('file');
+            $extension = $file->getClientOriginalExtension();
 
-        $request->validate([
-            'file' => 'required|mimes:csv,xlsx,xls|max:2048'
-        ]);
+            $rows = Excel::toArray([], $file)[0]; // first sheet
 
-        try {
-            Excel::import(new StudentImport, $request->file('file'));
-            return $this->successResponse(null, 'Student data imported successfully.');
-        } catch (\Exception $e) {
-            return $this->errorResponse('Import failed: ' . $e->getMessage(), 500);
+            $header = array_map('strtolower', $rows[0]);
+            unset($rows[0]); // remove header
+
+            $total = 0;
+            $successful = 0;
+            $failed = 0;
+            $errors = [];
+
+            foreach ($rows as $index => $row) {
+                $total++;
+
+                try {
+                    $data = array_combine($header, $row);
+
+                    // Skip if username or email already exists
+                    if (User::where('username', $data['username'])->exists() ||
+                        User::where('email', $data['email'])->exists()) {
+                        $failed++;
+                        $errors["row_" . ($index+1)] = "Username or email already exists";
+                        continue;
+                    }
+
+                    // Create user
+                    $user = User::create([
+                        'username' => $data['username'],
+                        'email' => $data['email'],
+                        'password_hash' => bcrypt('student123'), // Default password
+                        'role' => 'student',
+                        'first_name' => $data['first_name'],
+                        'last_name' => $data['last_name'],
+                        'is_active' => true,
+                    ]);
+
+                    // Create student profile
+                    Student::create([
+                        'user_id' => $user->id,
+                        'student_code' => $data['student_code'],
+                        'date_of_birth' => !empty($data['date_of_birth']) ? Carbon::parse($data['date_of_birth']) : null,
+                        'gender' => $data['gender'] ?? null,
+                        'address' => $data['address'] ?? null,
+                        'parent_name' => $data['parent_name'] ?? null,
+                        'parent_phone' => $data['parent_phone'] ?? null,
+                        'enrollment_date' => !empty($data['enrollment_date']) ? Carbon::parse($data['enrollment_date']) : now(),
+                        'current_class_id' => $data['current_class_id'] ?? null,
+                    ]);
+
+                    $successful++;
+
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors["row_" . ($index+1)] = $e->getMessage();
+                }
+            }
+
+            return response()->json([
+                'message' => 'Import completed',
+                'total_records' => $total,
+                'successful_records' => $successful,
+                'failed_records' => $failed,
+                'errors' => $errors
+            ]);
         }
-    }
 
 }
