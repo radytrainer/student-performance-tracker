@@ -19,12 +19,31 @@
 
       <!-- Filters Section -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <h2 class="text-xl font-semibold text-slate-900 mb-4">Filter Records</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-slate-900">Filter Records</h2>
+          <button 
+            @click="openAddStudentModal" 
+            class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+          >
+            ➕ Add Student
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">Class</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Class 1</label>
             <select 
               v-model="viewFilters.class_id" 
+              @change="fetchAttendance" 
+              class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="">All Classes</option>
+              <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Class 2</label>
+            <select 
+              v-model="viewFilters.class_id2" 
               @change="fetchAttendance" 
               class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
@@ -117,8 +136,17 @@
               <tr v-for="record in attendanceRecords" :key="record.id" class="hover:bg-slate-50 transition-colors">
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-sm font-medium text-slate-600">
-                      {{ (record.student?.user?.first_name || 'N')[0] }}{{ (record.student?.user?.last_name || 'A')[0] }}
+                    <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200">
+                      <img 
+                        v-if="record.student?.user?.profile_picture"
+                        :src="getImageUrl(record.student.user.profile_picture)"
+                        :alt="record.student?.user?.first_name"
+                        class="w-full h-full object-cover"
+                        @error="handleImageError"
+                      />
+                      <div v-else class="w-full h-full flex items-center justify-center text-sm font-medium text-slate-600">
+                        {{ (record.student?.user?.first_name || 'N')[0] }}{{ (record.student?.user?.last_name || 'A')[0] }}
+                      </div>
                     </div>
                     <div>
                       <p class="font-medium text-slate-900">
@@ -198,8 +226,17 @@
                   class="border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
                 >
                   <div class="flex items-center gap-3 mb-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm">
-                      {{ (student.user?.first_name || 'N')[0] }}{{ (student.user?.last_name || 'A')[0] }}
+                    <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200">
+                      <img 
+                        v-if="student.user?.profile_picture"
+                        :src="getImageUrl(student.user.profile_picture)"
+                        :alt="student.user?.first_name"
+                        class="w-full h-full object-cover"
+                        @error="handleImageError"
+                      />
+                      <div v-else class="w-full h-full flex items-center justify-center text-sm font-medium text-slate-600">
+                        {{ (student.user?.first_name || 'N')[0] }}{{ (student.user?.last_name || 'A')[0] }}
+                      </div>
                     </div>
                     <div>
                       <p class="font-medium text-slate-900">
@@ -267,6 +304,86 @@
           </div>
         </div>
       </div>
+
+      <!-- Add Student Modal -->
+      <div v-if="showAddStudentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl">
+          <div class="p-6 border-b border-slate-200">
+            <h3 class="text-2xl font-bold text-slate-900">Add New Student</h3>
+            <p class="text-slate-600 mt-1">Add a new student to a class</p>
+          </div>
+          
+          <form @submit.prevent="submitAddStudent" class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">First Name *</label>
+              <input 
+                v-model="newStudent.first_name" 
+                type="text" 
+                class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                required
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">Last Name *</label>
+              <input 
+                v-model="newStudent.last_name" 
+                type="text" 
+                class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                required
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">Email *</label>
+              <input 
+                v-model="newStudent.email" 
+                type="email" 
+                class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                required
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">Class *</label>
+              <select 
+                v-model="newStudent.class_id" 
+                class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                required
+              >
+                <option value="">Select Class</option>
+                <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">Admission Number</label>
+              <input 
+                v-model="newStudent.admission_number" 
+                type="text" 
+                class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+              />
+            </div>
+            
+            <div class="flex gap-3 pt-4 border-t border-slate-200">
+              <button 
+                type="submit" 
+                :disabled="!canAddStudent"
+                class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-medium transition-colors"
+              >
+                Add Student
+              </button>
+              <button 
+                type="button" 
+                @click="closeAddStudentModal"
+                class="px-6 py-3 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -326,6 +443,20 @@ const canSubmit = computed(() => {
 });
 
 // Methods
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  // Handle both relative and absolute URLs
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+  return `http://localhost:8000/storage/${imagePath}`;
+};
+
+const handleImageError = (event) => {
+  event.target.style.display = 'none';
+  event.target.parentElement.querySelector('.fallback-initials').style.display = 'flex';
+};
+
 const fetchAll = async () => {
   loading.value = true;
   try {
@@ -333,7 +464,7 @@ const fetchAll = async () => {
       apiClient.get("/classes"),
       apiClient.get("/students"),
     ]);
-    classes.value = cls.data.data || [];
+     classes.value = cls.data.data || [];
     students.value = stu.data.data || [];
     await fetchAttendance();
   } catch (err) {
