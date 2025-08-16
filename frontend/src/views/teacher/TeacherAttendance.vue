@@ -28,22 +28,11 @@
             ➕ Add Student
           </button>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">Class 1</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Class</label>
             <select 
               v-model="viewFilters.class_id" 
-              @change="fetchAttendance" 
-              class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            >
-              <option value="">All Classes</option>
-              <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">Class 2</label>
-            <select 
-              v-model="viewFilters.class_id2" 
               @change="fetchAttendance" 
               class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
@@ -59,7 +48,7 @@
               class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="">All Students</option>
-              <option v-for="student in students" :key="student.user_id" :value="student.user_id">
+              <option v-for="student in filteredStudents" :key="student.user_id" :value="student.user_id">
                 {{ student.user?.first_name || "N/A" }} {{ student.user?.last_name || "" }}
               </option>
             </select>
@@ -411,6 +400,7 @@ const attendanceRecords = ref([]);
 const classes = ref([]);
 const students = ref([]);
 const showAttendanceModal = ref(false);
+const showAddStudentModal = ref(false);
 const attendanceStatuses = ref(["present", "absent", "late"]);
 
 const viewFilters = ref({
@@ -425,6 +415,14 @@ const newAttendance = ref({
   date: new Date().toISOString().split("T")[0],
 });
 
+const newStudent = ref({
+  first_name: "",
+  last_name: "",
+  email: "",
+  class_id: "",
+  admission_number: "",
+});
+
 const studentAttendance = ref({});
 const studentAttendanceNotes = ref({});
 
@@ -434,12 +432,24 @@ const modalFilteredStudents = computed(() => {
   return students.value.filter(student => student.current_class_id === newAttendance.value.class_id);
 });
 
+const filteredStudents = computed(() => {
+  if (!viewFilters.value.class_id) return students.value;
+  return students.value.filter(student => student.current_class_id === viewFilters.value.class_id);
+});
+
 const canSubmit = computed(() => {
   if (!newAttendance.value.class_id || !newAttendance.value.date) return false;
   if (modalFilteredStudents.value.length === 0) return false;
   return modalFilteredStudents.value.every(student => 
     studentAttendance.value[student.user_id] && studentAttendance.value[student.user_id] !== ""
   );
+});
+
+const canAddStudent = computed(() => {
+  return newStudent.value.first_name && 
+         newStudent.value.last_name && 
+         newStudent.value.email && 
+         newStudent.value.class_id;
 });
 
 // Methods
