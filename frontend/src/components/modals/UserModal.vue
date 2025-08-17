@@ -132,7 +132,7 @@
         </div>
 
         <!-- School Selection -->
-        <div v-if="true">
+        <div v-if="showSchoolSelection">
           <label class="block text-sm font-medium text-gray-700 mb-1">
             School *
           </label>
@@ -232,7 +232,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { superAdminAPI } from '@/api/superAdmin'
+
 import { adminAPI } from '@/api/admin'
 
 const props = defineProps({
@@ -266,12 +266,7 @@ const schools = ref([])
 
 // Show school selection for super admin or when no school is pre-assigned
 const showSchoolSelection = computed(() => {
-  console.log('showSchoolSelection check:', {
-    isSuperAdmin: isSuperAdmin.value,
-    schoolsLength: schools.value.length,
-    schools: schools.value
-  })
-  return isSuperAdmin.value || (schools.value.length > 0)
+  return isSuperAdmin.value || schools.value.length > 0
 })
 
 // Watch for user prop changes to populate form
@@ -351,38 +346,14 @@ const setErrors = (newErrors) => {
 // Load schools based on user permissions
 const loadSchools = async () => {
   try {
-    const { user } = useAuth()
-    console.log('loadSchools called')
-    console.log('Current user:', user.value)
-    console.log('isSuperAdmin computed:', isSuperAdmin.value)
-    console.log('User is_super_admin field:', user.value?.is_super_admin)
-    
-    // Check both the computed property and direct field access
-    const isSuper = isSuperAdmin.value || user.value?.is_super_admin
-    console.log('Final isSuper check:', isSuper)
-    
-    if (isSuper) {
-      // Super admin can see all schools from database
-      console.log('Loading schools for super admin...')
-      const response = await superAdminAPI.getSchools()
-      console.log('Schools API response:', response.data)
-      schools.value = response.data.data?.data || response.data.data || []
-      console.log('Schools loaded from database:', schools.value)
+    const res = await fetch('/api/schools', { headers: { 'Accept': 'application/json' } })
+    if (res.ok) {
+      const data = await res.json()
+      schools.value = data.data || []
     } else {
-      // For testing: load schools even for regular users
-      console.log('Not super admin, but loading schools for testing...')
-      try {
-        const response = await superAdminAPI.getSchools()
-        schools.value = response.data.data?.data || response.data.data || []
-        console.log('Schools loaded for testing:', schools.value)
-      } catch (error) {
-        // Minimal fallback if API completely fails
-        schools.value = []
-        console.log('API failed, no schools loaded')
-      }
+      schools.value = []
     }
   } catch (error) {
-    console.error('Error loading schools:', error)
     schools.value = []
   }
 }

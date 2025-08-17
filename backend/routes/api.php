@@ -41,18 +41,8 @@ Route::middleware('web')->group(function () {
     Route::get('/auth/social/{provider}/callback', [AuthController::class, 'handleProviderCallback']);
 });
 
-// Temporary public access for testing user management
-Route::get('/users', [UserController::class, 'index']);
-Route::get('/users/{id}', [UserController::class, 'show']);
-Route::get('/students-users', [UserController::class, 'students']);
+// User routes are protected below under auth:sanctum
 
-Route::delete('/users/{id}', [UserController::class, 'destroy']);
-Route::post('/users', [UserController::class, 'store']);
-Route::put('/users/{id}', [UserController::class, 'update']);
-Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
-
-// Active users endpoint for sidebar (public access for now)
-Route::get('/active-users', [UserController::class, 'index']);
 
 // Simple test route
 Route::get('/test', function () {
@@ -75,6 +65,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/students', [StudentController::class, 'index']);
     Route::get('/grades/assessment-types', [GradeController::class, 'assessmentTypes']);
     Route::get('/my-class-subjects', [ClassSubjectController::class, 'myClassSubjects']);
+
+    // Active users endpoint for sidebar (protected)
+    Route::get('/active-users', [UserController::class, 'index']);
+
+    // User Management (protected)
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/users', [UserController::class, 'index']);
+        Route::get('/users/{id}', [UserController::class, 'show']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::put('/users/{id}', [UserController::class, 'update']);
+        Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
+        Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    });
 
     // Auth routes
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -147,6 +150,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
         Route::get('admin/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
         Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
+    });
+
+    // Super Admin routes
+    Route::prefix('super-admin')->group(function () {
+        Route::get('/schools', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'index']);
+        Route::post('/schools', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'store']);
+        Route::get('/schools/{school}', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'show']);
+        Route::put('/schools/{school}', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'update']);
+        Route::delete('/schools/{school}', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'destroy']);
+        Route::post('/schools/{school}/sub-admins', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'createSubAdmin']);
+        Route::get('/schools/{school}/sub-admins', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'getSubAdmins']);
+        Route::get('/stats', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'getStats']);
     });
 
     // Teacher only routes
