@@ -11,10 +11,10 @@ export default {
     return apiClient.post('/students', studentData)
   },
   updateStudent(id, studentData) {
-    return apiClient.put(`/students/${id}`, studentData)
+    return apiClient.put(`/users/${id}`, studentData)
   },
   deleteStudent(id) {
-    return apiClient.delete(`/students/${id}`)
+    return apiClient.delete(`/users/${id}`)
   },
   getStudentDashboard(studentId) {
     return apiClient.get(`/students/${studentId}/dashboard`)
