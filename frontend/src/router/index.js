@@ -190,6 +190,16 @@ const routes = [
     }
   },
   {
+    path: '/teacher/import',
+    name: 'TeacherImport',
+    component: () => import('@/views/teacher/TeacherImport.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'teacher',
+      title: 'Import Data'
+    }
+  },
+  {
     path: '/teacher/feedback-forms',
     name: 'TeacherFeedbackForms',
     component: () => import('@/views/teacher/FeedbackForms.vue'),
