@@ -147,45 +147,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
         Route::get('admin/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
         Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
-<<<<<<< HEAD
-    });
-
-    // Super Admin Routes - Only for admin@school.com
-    Route::middleware(['auth:sanctum'])->prefix('super-admin')->group(function () {
-        Route::apiResource('schools', App\Http\Controllers\SuperAdmin\SchoolController::class);
-        Route::post('schools/{school}/sub-admins', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'createSubAdmin']);
-        Route::get('schools/{school}/sub-admins', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'getSubAdmins']);
-        Route::get('stats', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'getStats']);
-    });
-
-    // Admin routes (restricted by school for sub-admins)
-    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
-        // Future Admin routes (controllers need to be created)
-        // Route::get('admin/settings', 'Admin\SettingsController@index');
-        // Route::put('admin/settings', 'Admin\SettingsController@update');
-        // Route::get('admin/settings/{key}', 'Admin\SettingsController@show');
-
-        // Route::get('admin/reports/overview', 'Admin\ReportsController@overview');
-        // Route::get('admin/reports/students', 'Admin\ReportsController@students');
-        // Route::get('admin/reports/teachers', 'Admin\ReportsController@teachers');
-        // Route::get('admin/reports/performance', 'Admin\ReportsController@performance');
-        // Route::get('admin/reports/attendance', 'Admin\ReportsController@attendance');
-
-        // Route::get('admin/audit-logs', 'Admin\AuditLogController@index');
-        // Route::get('admin/audit-logs/{log}', 'Admin\AuditLogController@show');
-
-        // Route::get('admin/data-imports', 'Admin\DataImportController@index');
-        // Route::get('admin/data-imports/{import}', 'Admin\DataImportController@show');
-        // Route::delete('admin/data-imports/{import}', 'Admin\DataImportController@destroy');
-
-        // Route::apiResource('admin/classes', 'Admin\ClassController');
-        // Route::post('admin/classes/{class}/assign-teacher', 'Admin\ClassController@assignTeacher');
-        // Route::post('admin/classes/{class}/enroll-student', 'Admin\ClassController@enrollStudent');
-
-        // Route::apiResource('admin/subjects', 'Admin\SubjectController');
-        // Route::post('admin/subjects/{subject}/assign-teachers', 'Admin\SubjectController@assignTeachers');
-=======
->>>>>>> main
     });
 
     // Teacher only routes
