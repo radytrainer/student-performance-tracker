@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/subjects', [SubjectController::class, 'index']);
     Route::get('/terms', [TermController::class, 'index']);
     Route::get('/students', [StudentController::class, 'index']);
+    Route::post('/students', [StudentController::class, 'store']);
     Route::get('/grades/assessment-types', [GradeController::class, 'assessmentTypes']);
     Route::get('/my-class-subjects', [ClassSubjectController::class, 'myClassSubjects']);
 
