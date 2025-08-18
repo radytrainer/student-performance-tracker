@@ -108,6 +108,11 @@ export const adminAPI = {
   },
 
   // Subject Management
+  // Lightweight subjects list for import (admin or teacher)
+  getSubjectsForImport: async () => {
+    return await api.get('/admin/import/subjects-list')
+  },
+
   getSubjects: async (params = {}) => {
     return await api.get('/admin/subjects', { params })
   },
@@ -138,6 +143,11 @@ export const adminAPI = {
 
   getSubjectStats: async () => {
     return await api.get('/admin/subjects-stats')
+  },
+
+  // Teacher helpers
+  getTeacherClasses: async () => {
+    return await api.get('/teacher/feedback-classes')
   },
 
   // Term Management

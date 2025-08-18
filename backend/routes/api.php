@@ -150,6 +150,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
         Route::post('admin/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
         Route::get('admin/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
+        Route::get('admin/import/subjects-list', [App\Http\Controllers\Admin\DataImportController::class, 'getSubjectsList']);
         Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
         Route::get('admin/import/uploads', [App\Http\Controllers\Admin\DataImportController::class, 'listUploads']);
         Route::delete('admin/import/uploads/{id}', [App\Http\Controllers\Admin\DataImportController::class, 'deleteUpload']);

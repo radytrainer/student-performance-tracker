@@ -107,6 +107,15 @@
                 <p class="text-xs text-gray-500 mt-1">Students without a specified class will be assigned to this class</p>
               </div>
 
+              <!-- Optional Subjects Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Assign Subjects to Class (optional)</label>
+                <select multiple v-model="subjectIds" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[110px]">
+                  <option v-for="sub in subjects" :key="sub.id" :value="sub.id">{{ sub.subject_name }}</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">If selected, these subjects will be added to the chosen class</p>
+              </div>
+
               <!-- Import Button -->
               <button
                 @click="importStudents"
@@ -219,9 +228,14 @@
                       {{ formatDate(file.uploaded_at) }}
                     </div>
                   </div>
-                  <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800 text-sm">
-                    <i class="fas fa-trash mr-1"></i> Delete
-                  </button>
+                  <div class="flex items-center gap-3">
+                    <button @click="importFromUpload(file)" class="text-blue-600 hover:text-blue-800 text-sm">
+                      <i class="fas fa-upload mr-1"></i> Import with selected class
+                    </button>
+                    <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800 text-sm">
+                      <i class="fas fa-trash mr-1"></i> Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -306,6 +320,10 @@ const loadingHistory = ref(false)
 const importResults = ref(null)
 const fileOnly = ref(false)
 
+// Subjects
+const subjects = ref([])
+const subjectIds = ref([])
+
 // Uploaded files state
 const uploadedFiles = ref([])
 const uploadsMeta = ref(null)
@@ -377,6 +395,15 @@ const loadClasses = async () => {
     classes.value = response.data.data.data || response.data.data || []
   } catch (err) {
     console.error('Error loading classes:', err)
+  }
+}
+
+const loadSubjects = async () => {
+  try {
+    const response = await adminAPI.getSubjectsForImport()
+    subjects.value = response.data.data || []
+  } catch (err) {
+    console.error('Error loading subjects:', err)
   }
 }
 
@@ -473,6 +500,9 @@ const importStudents = async () => {
     if (sheetName.value) {
     formData.append('sheet_name', sheetName.value)
     }
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
 
     const response = await adminAPI.importStudents(formData)
 
@@ -536,8 +566,46 @@ const uploadFileOnly = async () => {
   }
 }
 
+const importFromUpload = async (file) => {
+  if (!defaultClassId.value) {
+    error.value = 'Please select a Default Class before importing'
+    return
+  }
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+
+    const formData = new FormData()
+    formData.append('uploaded_file_id', file.id)
+    formData.append('default_class_id', defaultClassId.value)
+    if (sheetName.value) formData.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
+
+    const response = await adminAPI.importStudents(formData)
+    importResults.value = response.data.data
+    showSuccessMessage(response.data.message)
+
+    // refresh lists for real-time UI
+    await Promise.all([loadImportHistory(), loadClasses()])
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
+    console.error('Import from uploaded file error:', err)
+  } finally {
+    importing.value = false
+  }
+}
+
 onMounted(() => {
   loadClasses()
+  loadSubjects()
   loadImportHistory()
   loadUploadedFiles(1)
 })

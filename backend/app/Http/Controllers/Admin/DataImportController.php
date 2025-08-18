@@ -26,7 +26,7 @@ class DataImportController extends Controller
      */
     public function __construct()
     {
-        $this->middleware(['auth:sanctum', 'role:admin']);
+        $this->middleware(['auth:sanctum', 'role:admin,teacher']);
     }
 
     /**
@@ -36,8 +36,13 @@ class DataImportController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:csv,xlsx,xls|max:5120',
-                'default_class_id' => 'required|exists:classes,id'
+                'file' => 'required_without:uploaded_file_id|file|mimes:csv,xlsx,xls|max:5120',
+                'uploaded_file_id' => 'required_without:file|exists:uploaded_files,id',
+                'default_class_id' => 'required|exists:classes,id',
+                'sheet_name' => 'nullable|string',
+                'subject_ids' => 'array',
+                'subject_ids.*' => 'exists:subjects,id',
+                'create_class_subjects' => 'boolean'
             ]);
 
             if ($validator->fails()) {
@@ -48,11 +53,25 @@ class DataImportController extends Controller
                 ], 422);
             }
 
-            $file = $request->file('file');
             $defaultClassId = $request->default_class_id;
+            $sheetName = $request->get('sheet_name');
 
-            // Read file data (CSV or Excel)
-            $csvData = $this->readUploadedFile($file);
+            // Determine source: uploaded file or new upload
+            $csvData = [];
+            if ($request->filled('uploaded_file_id')) {
+                $upload = UploadedFile::findOrFail($request->uploaded_file_id);
+                $path = storage_path('app/public/' . $upload->stored_path);
+                $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+                if (in_array($ext, ['xlsx', 'xls'])) {
+                    $csvData = $this->readExcelFromPath($path, $sheetName);
+                } else {
+                    $csvData = $this->readCsvFromPath($path);
+                }
+            } else {
+                $file = $request->file('file');
+                // Read file data (CSV or Excel)
+                $csvData = $this->readUploadedFile($file);
+            }
             
             if (empty($csvData)) {
                 return response()->json([
@@ -91,7 +110,7 @@ class DataImportController extends Controller
                     
                     // Generate email if not provided
                     if (empty($row['email'])) {
-                        $row['email'] = strtolower($row['first_name'] . '.' . $row['last_name'] . '@student.school.com');
+                        $row['email'] = strtolower(($row['first_name'] ?? 'student') . '.' . ($row['last_name'] ?? Str::random(4)) . '@student.school.com');
                     }
 
                     // Check if email already exists
@@ -103,8 +122,8 @@ class DataImportController extends Controller
 
                     // Create user account
                     $user = User::create([
-                        'first_name' => $row['first_name'],
-                        'last_name' => $row['last_name'],
+                        'first_name' => $row['first_name'] ?? 'Student',
+                        'last_name' => $row['last_name'] ?? 'User',
                         'email' => $row['email'],
                         'username' => $row['email'],
                         'password_hash' => Hash::make('password123'), // Default password
@@ -140,6 +159,19 @@ class DataImportController extends Controller
                 } catch (\Exception $e) {
                     $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
                     $errorCount++;
+                }
+            }
+
+            // Optionally assign selected subjects to the class (ensures class has these subjects)
+            if ($request->has('subject_ids') && is_array($request->subject_ids) && $defaultClassId) {
+                foreach ($request->subject_ids as $subjectId) {
+                    if (!\App\Models\ClassSubject::where('class_id', $defaultClassId)->where('subject_id', $subjectId)->exists()) {
+                        \App\Models\ClassSubject::create([
+                            'class_id' => $defaultClassId,
+                            'subject_id' => $subjectId,
+                            'teacher_id' => null,
+                        ]);
+                    }
                 }
             }
 
@@ -235,6 +267,26 @@ class DataImportController extends Controller
         }
     }
  
+    /**
+     * List subjects for import (for admin and teacher)
+     */
+    public function getSubjectsList(Request $request): JsonResponse
+    {
+        try {
+            $subjects = \App\Models\Subject::orderBy('subject_name')->get(['id','subject_name']);
+            return response()->json([
+                'success' => true,
+                'data' => $subjects
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting subjects list: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get subjects list'
+            ], 500);
+        }
+    }
+
     /**
       * Get import template
       */
@@ -381,10 +433,15 @@ class DataImportController extends Controller
      */
     private function readCsvFile($file): array
     {
+        return $this->readCsvFromPath($file->getRealPath());
+    }
+
+    private function readCsvFromPath(string $path): array
+    {
         $data = [];
         $headers = [];
 
-        if (($handle = fopen($file->getRealPath(), 'r')) !== false) {
+        if (($handle = fopen($path, 'r')) !== false) {
             $isFirstRow = true;
             
             while (($row = fgetcsv($handle, 1000, ',')) !== false) {
@@ -412,7 +469,12 @@ class DataImportController extends Controller
      */
     private function readExcelFile($file, ?string $sheetName = null): array
     {
-        $spreadsheet = IOFactory::load($file->getRealPath());
+        return $this->readExcelFromPath($file->getRealPath(), $sheetName);
+    }
+
+    private function readExcelFromPath(string $path, ?string $sheetName = null): array
+    {
+        $spreadsheet = IOFactory::load($path);
         $sheet = $sheetName ? $spreadsheet->getSheetByName($sheetName) : $spreadsheet->getActiveSheet();
         if (!$sheet) {
             // fallback to first sheet if not found
