@@ -29,7 +29,7 @@ use App\Http\Controllers\TeacherImportController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-
+Route::get('admin/stats', [App\Http\Controllers\Admin\DashboardController::class, 'stats']);
 // Public routes (no authentication required)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -111,8 +111,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/attendance/export', [AttendanceController::class, 'export']);
     Route::get('/attendance/stats', [AttendanceController::class, 'getStats']);
 
+    
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
+
+         // Dashboard Stats
         // User Management
         Route::apiResource('admin/users', UserController::class);
         Route::put('admin/users/{id}', [UserController::class, 'update']);
