@@ -34,6 +34,16 @@ const routes = [
       title: 'Super Admin Dashboard'
     }
   },
+  {
+    path: '/super-admin/import',
+    name: 'SuperAdminImport',
+    component: () => import('@/views/admin/AdminImport.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresPermission: 'super_admin.manage_schools',
+      title: 'Data Import'
+    }
+  },
 
   // Admin routes
   {

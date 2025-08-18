@@ -1,6 +1,6 @@
 <template>
   <div class="p-6">
-    <div v-if="!hasPermission('admin.manage_users')" class="text-center py-12">
+    <div v-if="!(hasPermission('admin.manage_users') || hasPermission('super_admin.manage_schools'))" class="text-center py-12">
       <h2 class="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
       <p class="text-gray-600">You don't have permission to import data.</p>
     </div>
@@ -79,6 +79,18 @@
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
+              </div>
+
+              <!-- Optional Sheet Name (for Excel) -->
+              <div v-if="selectedFile && (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls'))">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sheet Name (optional)</label>
+                <input
+                  v-model="sheetName"
+                  type="text"
+                  placeholder="e.g., Students or Sheet1"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p class="text-xs text-gray-500 mt-1">If left empty, the first/active sheet will be used</p>
               </div>
 
               <!-- Default Class Selection -->
@@ -246,6 +258,7 @@ const { hasPermission } = useAuth()
 // State
 const selectedFile = ref(null)
 const defaultClassId = ref('')
+const sheetName = ref('')
 const classes = ref([])
 const importing = ref(false)
 const isDragOver = ref(false)
@@ -369,18 +382,22 @@ const importStudents = async () => {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
     formData.append('default_class_id', defaultClassId.value)
-    
-    const response = await adminAPI.importStudents(formData)
-    
+    if (sheetName.value) {
+      formData.append('sheet_name', sheetName.value)
+  }
+  
+  const response = await adminAPI.importStudents(formData)
+
     importResults.value = response.data.data
     showSuccessMessage(response.data.message)
     
     // Clear form
     selectedFile.value = null
     defaultClassId.value = ''
+    sheetName.value = ''
     
-    // Refresh history
-    await loadImportHistory()
+    // Refresh lists
+    await Promise.all([loadImportHistory(), loadClasses()])
     
   } catch (err) {
     if (err?.response?.status === 422 && err.response.data?.errors) {

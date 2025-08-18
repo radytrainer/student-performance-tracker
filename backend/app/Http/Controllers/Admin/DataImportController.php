@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\JsonResponse;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class DataImportController extends Controller
 {
@@ -47,8 +49,8 @@ class DataImportController extends Controller
             $file = $request->file('file');
             $defaultClassId = $request->default_class_id;
 
-            // Read CSV data
-            $csvData = $this->readCsvFile($file);
+            // Read file data (CSV or Excel)
+            $csvData = $this->readUploadedFile($file);
             
             if (empty($csvData)) {
                 return response()->json([
@@ -109,17 +111,27 @@ class DataImportController extends Controller
                     ]);
 
                     // Create student profile
-                    Student::create([
+                    $student = Student::create([
                         'user_id' => $user->id,
                         'student_code' => $studentCode,
-                        'date_of_birth' => $row['date_of_birth'],
-                        'gender' => $row['gender'],
+                        'date_of_birth' => $row['date_of_birth'] ?? null,
+                        'gender' => $row['gender'] ?? null,
                         'address' => $row['address'] ?? null,
                         'parent_name' => $row['parent_name'] ?? null,
                         'parent_phone' => $row['parent_phone'] ?? null,
                         'current_class_id' => $row['class_id'] ?? $defaultClassId,
                         'enrollment_date' => now()
                     ]);
+
+                    // Create enrollment record for real-time class membership tracking
+                    if ($student->current_class_id) {
+                        \App\Models\StudentClass::create([
+                            'student_id' => $student->user_id,
+                            'class_id' => $student->current_class_id,
+                            'enrollment_date' => now(),
+                            'status' => 'active',
+                        ]);
+                    }
 
                     $successCount++;
 
@@ -247,6 +259,20 @@ class DataImportController extends Controller
     }
 
     /**
+     * Read an uploaded file (CSV or Excel) and return row data as associative arrays
+     */
+    private function readUploadedFile($file): array
+    {
+        $ext = strtolower($file->getClientOriginalExtension());
+        if (in_array($ext, ['xlsx', 'xls'])) {
+            $sheetName = request()->get('sheet_name');
+            return $this->readExcelFile($file, $sheetName);
+        }
+        // default to CSV
+        return $this->readCsvFile($file);
+    }
+
+    /**
      * Read CSV file and return data
      */
     private function readCsvFile($file): array
@@ -259,13 +285,15 @@ class DataImportController extends Controller
             
             while (($row = fgetcsv($handle, 1000, ',')) !== false) {
                 if ($isFirstRow) {
-                    $headers = array_map('trim', $row);
+                    $rawHeaders = array_map('trim', $row);
+                    $headers = $this->canonicalizeHeaders($rawHeaders);
                     $isFirstRow = false;
                     continue;
                 }
 
                 if (count($row) === count($headers)) {
-                    $data[] = array_combine($headers, array_map('trim', $row));
+                    $assoc = array_combine($headers, array_map('trim', $row));
+                    $data[] = $this->normalizeRow($assoc);
                 }
             }
             
@@ -273,6 +301,98 @@ class DataImportController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * Read Excel file and return data
+     */
+    private function readExcelFile($file, ?string $sheetName = null): array
+    {
+        $spreadsheet = IOFactory::load($file->getRealPath());
+        $sheet = $sheetName ? $spreadsheet->getSheetByName($sheetName) : $spreadsheet->getActiveSheet();
+        if (!$sheet) {
+            // fallback to first sheet if not found
+            $sheet = $spreadsheet->getSheet(0);
+        }
+        $rows = $sheet->toArray(null, true, true, false); // rows as [ [cells...] ]
+
+        if (empty($rows)) {
+            return [];
+        }
+
+        $rawHeaders = array_map(fn($h) => trim((string) $h), array_shift($rows));
+        $headers = $this->canonicalizeHeaders($rawHeaders);
+        $data = [];
+        foreach ($rows as $row) {
+            if (count($row) === 0 || count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0) {
+                continue; // skip empty rows
+            }
+            // pad/truncate to headers length
+            $row = array_slice(array_pad($row, count($headers), ''), 0, count($headers));
+            $assoc = array_combine($headers, array_map(fn($v) => is_string($v) ? trim($v) : $v, $row));
+            $data[] = $this->normalizeRow($assoc);
+        }
+        return $data;
+    }
+
+    /**
+     * Normalize a single row (date formats, gender casing, etc.)
+     */
+    private function normalizeRow(array $row): array
+    {
+        // Normalize gender to lowercase if provided
+        if (isset($row['gender']) && is_string($row['gender'])) {
+            $row['gender'] = strtolower(trim($row['gender']));
+        }
+
+        // Normalize date_of_birth (handle Excel serial dates)
+        if (isset($row['date_of_birth']) && $row['date_of_birth'] !== null && $row['date_of_birth'] !== '') {
+            $dob = $row['date_of_birth'];
+            try {
+                if (is_numeric($dob)) {
+                    $dt = ExcelDate::excelToDateTimeObject($dob);
+                    $row['date_of_birth'] = $dt->format('Y-m-d');
+                } else {
+                    // try to parse common formats
+                    $ts = strtotime((string) $dob);
+                    if ($ts !== false) {
+                        $row['date_of_birth'] = date('Y-m-d', $ts);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // leave as-is; validation later may catch issues
+            }
+        }
+
+        return $row;
+    }
+
+    /**
+     * Convert provided headers to canonical snake_case lowercase keys
+     */
+    private function canonicalizeHeaders(array $headers): array
+    {
+        return array_map(function ($h) {
+            $h = trim((string) $h);
+            $h = strtolower($h);
+            // replace common separators with underscore
+            $h = str_replace([' ', '-', '.', '__'], ['_', '_', '_', '_'], $h);
+            // collapse multiple underscores
+            $h = preg_replace('/_+/', '_', $h);
+            // common synonyms
+            $map = [
+                'firstname' => 'first_name',
+                'lastname' => 'last_name',
+                'first_name' => 'first_name',
+                'last_name' => 'last_name',
+                'email_address' => 'email',
+                'dob' => 'date_of_birth',
+                'dateofbirth' => 'date_of_birth',
+                'sex' => 'gender',
+                'class' => 'class_id',
+            ];
+            return $map[$h] ?? $h;
+        }, $headers);
     }
 
     /**
