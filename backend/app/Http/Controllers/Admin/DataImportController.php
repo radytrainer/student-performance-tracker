@@ -199,6 +199,19 @@ class DataImportController extends Controller
             $path = $file->storeAs('imports/uploads', $safeName, ['disk' => 'public']);
             $url = asset('storage/' . $path);
 
+            // Persist metadata for real-time availability
+            $uploaded = UploadedFile::create([
+                'user_id' => auth()->id(),
+                'school_id' => auth()->user()->school_id ?? null,
+                'label' => $request->get('label'),
+                'original_name' => $original,
+                'stored_path' => $path,
+                'mime_type' => $file->getClientMimeType(),
+                'size_bytes' => $file->getSize(),
+                'url' => $url,
+                'uploaded_at' => now(),
+            ]);
+
             Log::info('File uploaded for storage', [
                 'admin_id' => auth()->id(),
                 'file_name' => $original,
@@ -210,12 +223,7 @@ class DataImportController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'File uploaded successfully',
-                'data' => [
-                    'file_name' => $original,
-                    'stored_as' => $path,
-                    'url' => $url,
-                    'label' => $request->get('label')
-                ]
+                'data' => $uploaded
             ]);
         } catch (\Exception $e) {
             Log::error('Error uploading file: ' . $e->getMessage());
@@ -283,24 +291,29 @@ class DataImportController extends Controller
     public function getImportHistory(): JsonResponse
     {
         try {
-            // This would typically come from a dedicated imports table
-            // For now, return mock data
-            $history = [
-                [
-                    'id' => 1,
-                    'file_name' => 'students_batch_1.csv',
-                    'type' => 'students',
-                    'records_imported' => 25,
-                    'records_failed' => 2,
-                    'imported_by' => auth()->user()->first_name . ' ' . auth()->user()->last_name,
-                    'imported_at' => now()->subDays(2),
-                    'status' => 'completed'
-                ]
-            ];
+            // Return recent uploaded files as history for now
+            $uploads = UploadedFile::query()
+                ->orderByDesc('uploaded_at')
+                ->limit(25)
+                ->get()
+                ->map(function ($u) {
+                    return [
+                        'id' => $u->id,
+                        'file_name' => $u->original_name,
+                        'type' => 'file',
+                        'records_imported' => 0,
+                        'records_failed' => 0,
+                        'imported_by' => $u->user?->first_name . ' ' . $u->user?->last_name,
+                        'imported_at' => $u->uploaded_at,
+                        'status' => 'uploaded',
+                        'url' => $u->url,
+                        'size_bytes' => $u->size_bytes,
+                    ];
+                });
 
             return response()->json([
                 'success' => true,
-                'data' => $history
+                'data' => $uploads
             ]);
 
         } catch (\Exception $e) {

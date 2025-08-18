@@ -205,16 +205,20 @@
                   <div class="flex-1">
                     <div class="flex items-center">
                       <i class="fas fa-file-import text-blue-600 mr-2"></i>
-                      <h4 class="font-medium text-gray-900">{{ import_record.file_name }}</h4>
+                      <h4 class="font-medium text-gray-900">
+                        <a v-if="import_record.url" :href="import_record.url" target="_blank" class="text-blue-600 hover:underline">{{ import_record.file_name }}</a>
+                        <span v-else>{{ import_record.file_name }}</span>
+                      </h4>
                     </div>
                     <div class="mt-1 text-sm text-gray-600">
-                      <span class="text-green-600">{{ import_record.records_imported }} imported</span>
+                      <span v-if="import_record.records_imported !== undefined" class="text-green-600">{{ import_record.records_imported }} imported</span>
                       <span v-if="import_record.records_failed > 0" class="text-red-600 ml-2">
                         {{ import_record.records_failed }} failed
                       </span>
+                      <span v-if="import_record.size_bytes" class="ml-2">• {{ (import_record.size_bytes/1024).toFixed(1) }} KB</span>
                     </div>
                     <div class="mt-1 text-xs text-gray-500">
-                      {{ formatDate(import_record.imported_at) }} by {{ import_record.imported_by }}
+                      {{ formatDate(import_record.imported_at) }}<span v-if="import_record.imported_by"> by {{ import_record.imported_by }}</span>
                     </div>
                   </div>
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
