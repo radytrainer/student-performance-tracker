@@ -150,7 +150,7 @@ const formatDate = (d) => (d ? new Date(d).toLocaleString() : '')
 const loadClasses = async () => {
   try {
     const res = await teacherAPI.getClasses()
-    classes.value = res.data?.data ?? res.data ?? []
+    classes.value = res.data?.classes ?? res.data?.data ?? res.data ?? []
   } catch (err) {
     console.error(err)
     error.value = 'Failed to load classes'

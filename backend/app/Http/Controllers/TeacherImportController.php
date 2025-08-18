@@ -19,6 +19,8 @@ class TeacherImportController extends Controller
         $validator = Validator::make($request->all(), [
             'file' => 'required|file|mimes:csv,txt,xlsx,xls',
             'default_class_id' => 'nullable|exists:classes,id',
+            'subject_ids' => 'array',
+            'subject_ids.*' => 'exists:subjects,id',
         ]);
 
         if ($validator->fails()) {
@@ -38,6 +40,19 @@ class TeacherImportController extends Controller
             $importData = $this->processFile($file, $extension);
 
             $results = $this->importStudentsData($importData, $defaultClassId, $user);
+
+            // Optionally assign selected subjects to the class
+            if ($request->has('subject_ids') && is_array($request->subject_ids) && $defaultClassId) {
+                foreach ($request->subject_ids as $subjectId) {
+                    if (!\App\Models\ClassSubject::where('class_id', $defaultClassId)->where('subject_id', $subjectId)->exists()) {
+                        \App\Models\ClassSubject::create([
+                            'class_id' => $defaultClassId,
+                            'subject_id' => $subjectId,
+                            'teacher_id' => null,
+                        ]);
+                    }
+                }
+            }
 
             // Save import record
             DataImport::create([
@@ -123,7 +138,7 @@ class TeacherImportController extends Controller
                         'is_active' => true,
                     ]);
 
-                    Student::create([
+                    $student = Student::create([
                         'user_id' => $user->id,
                         'student_code' => $row['student_code'],
                         'date_of_birth' => isset($row['date_of_birth']) ? Carbon::parse($row['date_of_birth']) : null,
@@ -134,6 +149,16 @@ class TeacherImportController extends Controller
                         'enrollment_date' => isset($row['enrollment_date']) ? Carbon::parse($row['enrollment_date']) : now(),
                         'current_class_id' => $row['current_class_id'] ?? $defaultClassId,
                     ]);
+
+                    // Create enrollment record for real-time class membership tracking
+                    if ($student->current_class_id) {
+                        \App\Models\StudentClass::create([
+                            'student_id' => $student->user_id,
+                            'class_id' => $student->current_class_id,
+                            'enrollment_date' => now(),
+                            'status' => 'active',
+                        ]);
+                    }
                 });
 
                 $results['successful']++;
