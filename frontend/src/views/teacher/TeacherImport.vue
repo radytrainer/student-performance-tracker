@@ -335,5 +335,7 @@ const importFromUpload = async (f) => {
 onMounted(() => {
   loadClasses()
   loadImportHistory()
+  loadUploads()
+  loadSubjects()
 })
 </script>
