@@ -118,12 +118,34 @@
                   Importing...
                 </span>
                 <span v-else class="flex items-center">
-                  <i class="fas fa-upload mr-2"></i>
-                  Import Students
+                <i class="fas fa-upload mr-2"></i>
+                Import Students
                 </span>
-              </button>
-            </div>
-          </div>
+                </button>
+
+                    <!-- Or upload file only -->
+               <div class="pt-2">
+                 <label class="inline-flex items-center">
+                   <input type="checkbox" v-model="fileOnly" class="mr-2">
+                   <span class="text-sm text-gray-700">Upload file only (store without processing)</span>
+                 </label>
+               </div>
+               <button
+                 @click="uploadFileOnly"
+                 :disabled="!selectedFile || importing"
+                 class="w-full mt-2 bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+               >
+                 <span v-if="importing && fileOnly" class="flex items-center">
+                   <i class="fas fa-spinner fa-spin mr-2"></i>
+                   Uploading...
+                 </span>
+                 <span v-else class="flex items-center">
+                   <i class="fas fa-file-upload mr-2"></i>
+                   Upload File Only
+                 </span>
+               </button>
+             </div>
+           </div>
 
           <!-- Template Download -->
           <div class="bg-white rounded-lg shadow p-6">
@@ -267,6 +289,7 @@ const error = ref('')
 const importHistory = ref([])
 const loadingHistory = ref(false)
 const importResults = ref(null)
+const fileOnly = ref(false)
 
 // Methods
 const handleFileSelect = (event) => {
@@ -383,10 +406,10 @@ const importStudents = async () => {
     formData.append('file', selectedFile.value)
     formData.append('default_class_id', defaultClassId.value)
     if (sheetName.value) {
-      formData.append('sheet_name', sheetName.value)
-  }
-  
-  const response = await adminAPI.importStudents(formData)
+    formData.append('sheet_name', sheetName.value)
+    }
+
+    const response = await adminAPI.importStudents(formData)
 
     importResults.value = response.data.data
     showSuccessMessage(response.data.message)
@@ -407,6 +430,39 @@ const importStudents = async () => {
       error.value = err.response?.data?.message || 'Failed to import students'
     }
     console.error('Import error:', err)
+  } finally {
+    importing.value = false
+  }
+}
+
+const uploadFileOnly = async () => {
+  try {
+    importing.value = true
+    error.value = ''
+    successMessage.value = ''
+
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    // optional label could be filename without extension
+    formData.append('label', selectedFile.value?.name || '')
+
+    const response = await adminAPI.uploadFileOnly(formData)
+    showSuccessMessage(response.data.message)
+
+    // Clear selections
+    selectedFile.value = null
+    defaultClassId.value = ''
+    sheetName.value = ''
+    fileOnly.value = false
+
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to upload file'
+    }
+    console.error('Upload file error:', err)
   } finally {
     importing.value = false
   }

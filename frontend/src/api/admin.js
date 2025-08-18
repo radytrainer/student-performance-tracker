@@ -172,9 +172,13 @@ export const adminAPI = {
   },
 
   getImportTemplate: async (type = 'students') => {
-    return await api.get('/admin/import/template', { params: { type } })
+  return await api.get('/admin/import/template', { params: { type } })
   },
 
+  uploadFileOnly: async (formData) => {
+  return await api.post('/admin/import/upload-file', formData)
+  },
+ 
   getImportHistory: async () => {
     return await api.get('/admin/import/history')
   }

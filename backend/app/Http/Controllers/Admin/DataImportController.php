@@ -16,6 +16,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use App\Models\UploadedFile;
 
 class DataImportController extends Controller
 {
@@ -34,7 +35,7 @@ class DataImportController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:csv,xlsx,xls|max:2048',
+                'file' => 'required|file|mimes:csv,xlsx,xls|max:5120',
                 'default_class_id' => 'required|exists:classes,id'
             ]);
 
@@ -173,8 +174,61 @@ class DataImportController extends Controller
     }
 
     /**
-     * Get import template
-     */
+    * Upload any file and store it without parsing
+    */
+    public function uploadFile(Request $request): JsonResponse
+    {
+    try {
+    $validator = Validator::make($request->all(), [
+                'file' => 'required|file|max:10240', // allow up to 10MB any type
+                'label' => 'nullable|string|max:255',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $file = $request->file('file');
+            $original = $file->getClientOriginalName();
+            $safeName = time() . '_' . Str::random(8) . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $original);
+
+            $path = $file->storeAs('imports/uploads', $safeName, ['disk' => 'public']);
+            $url = asset('storage/' . $path);
+
+            Log::info('File uploaded for storage', [
+                'admin_id' => auth()->id(),
+                'file_name' => $original,
+                'stored_as' => $path,
+                'label' => $request->get('label'),
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded successfully',
+                'data' => [
+                    'file_name' => $original,
+                    'stored_as' => $path,
+                    'url' => $url,
+                    'label' => $request->get('label')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error uploading file: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload file'
+            ], 500);
+        }
+    }
+ 
+    /**
+      * Get import template
+      */
     public function getTemplate(Request $request): JsonResponse
     {
         try {

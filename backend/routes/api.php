@@ -148,6 +148,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Data Import
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
+        Route::post('admin/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
         Route::get('admin/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
         Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
     });
