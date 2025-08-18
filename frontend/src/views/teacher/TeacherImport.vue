@@ -223,15 +223,15 @@
             <p class="text-lg font-semibold">{{ importResult.total }}</p>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-500">Successfully Imported</p>
+            <p class="text-sm font-medium text-gray-500">Successfully Imported file</p>
             <p class="text-lg font-semibold text-green-600">{{ importResult.success }}</p>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-500">Skipped</p>
+            <p class="text-sm font-medium text-gray-500">Skipped the import</p>
             <p class="text-lg font-semibold text-yellow-600">{{ importResult.skipped }}</p>
           </div>
           <div>
-            <p class="text-sm font-medium text-gray-500">Failed</p>
+            <p class="text-sm font-medium text-gray-500">Failed import</p>
             <p class="text-lg font-semibold text-red-600">{{ importResult.failed }}</p>
           </div>
         </div>
@@ -252,15 +252,13 @@
           @click="startNewImport"
           class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          Start New Import
+          Start New Import file
         </button>
       </div>
     </div>
-
-    <!-- Import history -->
     <div class="mt-8">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold text-gray-700">Recent Imports</h3>
+        <h3 class="text-lg font-semibold text-gray-700">Recent Imports file</h3>
         <button 
           @click="refreshHistory"
           class="text-sm text-blue-600 hover:text-blue-800 flex items-center focus:outline-none"
