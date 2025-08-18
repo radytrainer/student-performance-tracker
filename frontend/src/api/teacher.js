@@ -35,4 +35,8 @@ export const teacherAPI = {
   getImportTemplate(type = 'students') {
     return apiClient.get('/teacher/import/template', { params: { type } })
   },
+
+  async getImportHistory() {
+    return apiClient.get('/teacher/import-history')
+  }
 }
