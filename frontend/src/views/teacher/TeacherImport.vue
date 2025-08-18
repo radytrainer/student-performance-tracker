@@ -2,7 +2,6 @@
   <div class="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-md">
     <h2 class="text-2xl font-bold mb-6 text-gray-800">Student Data Import</h2>
 
-    <!-- Stepper -->
     <div class="mb-8">
       <div class="flex items-center">
         <div v-for="(step, index) in steps" :key="index" class="flex items-center">
@@ -32,7 +31,6 @@
       </div>
     </div>
 
-    <!-- Step 1: File Upload -->
     <div v-show="currentStep === 0" class="bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 transition-all duration-300">
       <div class="text-center">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,7 +75,7 @@
       </div>
     </div>
 
-    <!-- Step 2: Data Preview -->
+
     <div v-show="currentStep === 1" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
       <h3 class="text-lg font-medium text-gray-900 mb-4">Data Preview</h3>
       
@@ -129,7 +127,6 @@
       </div>
     </div>
 
-    <!-- Step 3: Import Settings -->
     <div v-show="currentStep === 2" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
       <h3 class="text-lg font-medium text-gray-900 mb-4">Import Settings</h3>
       
@@ -368,8 +365,7 @@ export default {
         sendNotifications: true,
         name: ""
       },
-      
-      // Import progress
+
       importStatus: null, // null, 'processing', 'success', 'error'
       progress: 0,
       importResult: null,
@@ -400,11 +396,8 @@ export default {
       
       this.previewLoading = true;
       try {
-        // Simulate API call to get preview data
-        // In a real app, you would send the file to your backend for parsing
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock data - replace with actual API response
         this.previewHeaders = ['ID', 'Name', 'Email', 'Class'];
         this.previewData = [
           ['001', 'John Doe', 'john@example.com', 'Grade 10'],
