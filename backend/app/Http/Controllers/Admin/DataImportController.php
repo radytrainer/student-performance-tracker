@@ -38,7 +38,7 @@ class DataImportController extends Controller
             $validator = Validator::make($request->all(), [
                 'file' => 'required_without:uploaded_file_id|file|mimes:csv,xlsx,xls|max:5120',
                 'uploaded_file_id' => 'required_without:file|exists:uploaded_files,id',
-                'default_class_id' => 'required|exists:classes,id',
+                'default_class_id' => 'nullable|exists:classes,id',
                 'sheet_name' => 'nullable|string',
                 'subject_ids' => 'array',
                 'subject_ids.*' => 'exists:subjects,id',

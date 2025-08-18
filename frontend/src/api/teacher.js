@@ -11,8 +11,8 @@ export const teacherAPI = {
     return apiClient.get('/teacher/import-history')
   },
   importStudents(formData) {
-    // Minimal teacher import route
-    return apiClient.post('/teacher/import-students', formData)
+    // Use unified teacher import endpoint (same behavior as admin import)
+    return apiClient.post('/teacher/import/students', formData)
   },
 
   // Advanced import workflow using admin endpoints (teachers are allowed)
