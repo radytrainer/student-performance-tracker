@@ -6,7 +6,7 @@ const apiClient = axios.create({
   withCredentials: true, // Important for CSRF cookies
   headers: {
     'Accept': 'application/json',
-    'Content-Type': 'application/json',
+    // DO NOT set Content-Type globally; let Axios infer it (multipart/form-data for FormData)
     'X-Requested-With': 'XMLHttpRequest'
   }
 })
