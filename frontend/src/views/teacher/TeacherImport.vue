@@ -113,97 +113,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-<<<<<<< HEAD
-import { adminAPI } from '@/api/admin'
-
-const file = ref(null)
-const classId = ref('')
-const sheet = ref('')
-const subjectIds = ref([])
-const subjects = ref([])
-const classes = ref([])
-const files = ref([])
-const loading = ref(false)
-const busy = ref(false)
-const err = ref('')
-const ok = ref('')
-
-const onFile = (e) => { file.value = e.target.files[0] }
-const formatDate = (d) => new Date(d).toLocaleString()
-
-const loadClasses = async () => {
-  try {
-    const res = await adminAPI.getTeacherClasses()
-    classes.value = res.data.data || res.data.classes || []
-  } catch {}
-}
-
-const loadUploads = async () => {
-  try {
-    loading.value = true
-    const res = await adminAPI.getUploadedFiles({ page: 1, per_page: 10 })
-    const payload = res.data.data
-    files.value = payload.data || payload
-  } finally { loading.value = false }
-}
-
-const loadSubjects = async () => {
-  try {
-    const res = await adminAPI.getSubjectsForImport()
-    subjects.value = res.data.data || []
-  } catch {}
-}
-
-const importNew = async () => {
-  try {
-    busy.value = true; err.value = ''; ok.value = ''
-    const fd = new FormData()
-    fd.append('file', file.value)
-    fd.append('default_class_id', classId.value)
-    if (sheet.value) fd.append('sheet_name', sheet.value)
-    if (subjectIds.value?.length) subjectIds.value.forEach(id => fd.append('subject_ids[]', id))
-    const r = await adminAPI.importStudents(fd)
-    ok.value = r.data.message
-    await Promise.all([loadUploads()])
-  } catch (e) {
-    err.value = e?.response?.data?.message || 'Failed to import'
-  } finally { busy.value = false }
-}
-
-const importFromUpload = async (f) => {
-  try {
-    busy.value = true; err.value = ''; ok.value = ''
-    const fd = new FormData()
-    fd.append('uploaded_file_id', f.id)
-    fd.append('default_class_id', classId.value)
-    if (sheet.value) fd.append('sheet_name', sheet.value)
-    if (subjectIds.value?.length) subjectIds.value.forEach(id => fd.append('subject_ids[]', id))
-    const r = await adminAPI.importStudents(fd)
-    ok.value = r.data.message
-    await Promise.all([loadUploads()])
-  } catch (e) {
-    err.value = e?.response?.data?.message || 'Failed to import'
-  } finally { busy.value = false }
-}
-
-const uploadOnly = async () => {
-  try {
-    busy.value = true; err.value = ''; ok.value = ''
-    const fd = new FormData(); fd.append('file', file.value); fd.append('label', file.value?.name || '')
-    const r = await adminAPI.uploadFileOnly(fd)
-    ok.value = r.data.message
-    file.value = null; sheet.value=''; subjectIds.value=[]
-    await loadUploads()
-  } catch (e) { err.value = e?.response?.data?.message || 'Failed to upload' } finally { busy.value = false }
-}
-
-onMounted(async () => {
-  await loadClasses()
-  await Promise.all([loadSubjects(), loadUploads()])
-})
-</script>
-=======
-import dayjs from 'dayjs'
 import { teacherAPI } from '@/api/teacher'
 
 const selectedFile = ref(null)
@@ -235,7 +144,7 @@ const prettyJson = (raw) => {
   } catch { return raw }
 }
 
-const formatDate = (d) => (d ? dayjs(d).format('YYYY-MM-DD HH:mm') : '')
+const formatDate = (d) => (d ? new Date(d).toLocaleString() : '')
 
 // Load classes
 const loadClasses = async () => {
@@ -308,4 +217,3 @@ onMounted(() => {
   loadImportHistory()
 })
 </script>
->>>>>>> bf4b2c6db87471116d22298aeeae4ad535998573
