@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use App\Models\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class DataImportController extends Controller
 {
@@ -284,32 +285,68 @@ class DataImportController extends Controller
             ], 500);
         }
     }
+    
+    /**
+    * Paginated list of uploaded files
+    */
+    public function listUploads(Request $request): JsonResponse
+    {
+    try {
+    $perPage = (int) $request->get('per_page', 10);
+    $uploads = UploadedFile::query()
+    ->orderByDesc('uploaded_at')
+    ->paginate($perPage);
+
+    return response()->json([
+    'success' => true,
+    'data' => $uploads
+    ]);
+    } catch (\Exception $e) {
+    Log::error('Error listing uploads: ' . $e->getMessage());
+    return response()->json([
+    'success' => false,
+    'message' => 'Failed to list uploads'
+    ], 500);
+    }
+    }
 
     /**
-     * Get import history
-     */
-    public function getImportHistory(): JsonResponse
+     * Delete an uploaded file (record + storage)
+    */
+    public function deleteUpload(int $id): JsonResponse
     {
-        try {
-            // Return recent uploaded files as history for now
-            $uploads = UploadedFile::query()
-                ->orderByDesc('uploaded_at')
-                ->limit(25)
-                ->get()
-                ->map(function ($u) {
-                    return [
-                        'id' => $u->id,
-                        'file_name' => $u->original_name,
-                        'type' => 'file',
-                        'records_imported' => 0,
-                        'records_failed' => 0,
-                        'imported_by' => $u->user?->first_name . ' ' . $u->user?->last_name,
-                        'imported_at' => $u->uploaded_at,
-                        'status' => 'uploaded',
-                        'url' => $u->url,
-                        'size_bytes' => $u->size_bytes,
-                    ];
-                });
+    try {
+            $upload = UploadedFile::findOrFail($id);
+        // Remove file from storage
+    if ($upload->stored_path) {
+        Storage::disk('public')->delete($upload->stored_path);
+    }
+    $upload->delete();
+
+        return response()->json([
+                'success' => true,
+                'message' => 'Upload deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting upload: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete upload'
+            ], 500);
+        }
+    }
+
+    /**
+      * Get import history
+      */
+     public function getImportHistory(): JsonResponse
+     {
+         try {
+             // Keep quick history endpoint for UI refresh buttons: recent 25
+             $uploads = UploadedFile::query()
+                 ->orderByDesc('uploaded_at')
+                 ->limit(25)
+                 ->get();
 
             return response()->json([
                 'success' => true,

@@ -181,5 +181,13 @@ export const adminAPI = {
  
   getImportHistory: async () => {
     return await api.get('/admin/import/history')
+  },
+
+  getUploadedFiles: async (params = {}) => {
+    return await api.get('/admin/import/uploads', { params })
+  },
+
+  deleteUploadedFile: async (id) => {
+    return await api.delete(`/admin/import/uploads/${id}`)
   }
 }

@@ -181,24 +181,24 @@
           </div>
         </div>
 
-        <!-- Import History -->
+        <!-- Uploaded Files -->
         <div class="space-y-6">
           <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Import History</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Uploaded Files</h3>
             
-            <div v-if="loadingHistory" class="flex justify-center py-8">
+            <div v-if="loadingUploads" class="flex justify-center py-8">
               <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
             
-            <div v-else-if="importHistory.length === 0" class="text-center py-8">
+            <div v-else-if="uploadedFiles.length === 0" class="text-center py-8">
               <i class="fas fa-history text-gray-400 text-3xl mb-3"></i>
-              <p class="text-gray-500">No import history yet</p>
+              <p class="text-gray-500">No uploaded files yet</p>
             </div>
             
             <div v-else class="space-y-3">
               <div
-                v-for="import_record in importHistory"
-                :key="import_record.id"
+                v-for="file in uploadedFiles"
+                :key="file.id"
                 class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
               >
                 <div class="flex items-center justify-between">
@@ -206,35 +206,46 @@
                     <div class="flex items-center">
                       <i class="fas fa-file-import text-blue-600 mr-2"></i>
                       <h4 class="font-medium text-gray-900">
-                        <a v-if="import_record.url" :href="import_record.url" target="_blank" class="text-blue-600 hover:underline">{{ import_record.file_name }}</a>
-                        <span v-else>{{ import_record.file_name }}</span>
+                        <a v-if="file.url" :href="file.url" target="_blank" class="text-blue-600 hover:underline">{{ file.original_name }}</a>
+                        <span v-else>{{ file.original_name }}</span>
                       </h4>
                     </div>
                     <div class="mt-1 text-sm text-gray-600">
-                      <span v-if="import_record.records_imported !== undefined" class="text-green-600">{{ import_record.records_imported }} imported</span>
-                      <span v-if="import_record.records_failed > 0" class="text-red-600 ml-2">
-                        {{ import_record.records_failed }} failed
-                      </span>
-                      <span v-if="import_record.size_bytes" class="ml-2">• {{ (import_record.size_bytes/1024).toFixed(1) }} KB</span>
+                      <span v-if="file.size_bytes" class="ml-0">{{ (file.size_bytes/1024).toFixed(1) }} KB</span>
+                      <span v-if="file.mime_type" class="ml-2">• {{ file.mime_type }}</span>
+                      <span v-if="file.label" class="ml-2">• {{ file.label }}</span>
                     </div>
                     <div class="mt-1 text-xs text-gray-500">
-                      {{ formatDate(import_record.imported_at) }}<span v-if="import_record.imported_by"> by {{ import_record.imported_by }}</span>
+                      {{ formatDate(file.uploaded_at) }}
                     </div>
                   </div>
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        :class="getStatusClass(import_record.status)">
-                    {{ capitalizeFirst(import_record.status) }}
-                  </span>
+                  <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800 text-sm">
+                    <i class="fas fa-trash mr-1"></i> Delete
+                  </button>
                 </div>
               </div>
             </div>
 
+            <div class="flex justify-between items-center mt-4" v-if="uploadsMeta">
+              <button
+                @click="prevUploadsPage"
+                :disabled="uploadsMeta.current_page <= 1"
+                class="px-3 py-1 border rounded disabled:opacity-50"
+              >Prev</button>
+              <div class="text-sm text-gray-600">Page {{ uploadsMeta.current_page }} of {{ uploadsMeta.last_page }}</div>
+              <button
+                @click="nextUploadsPage"
+                :disabled="uploadsMeta.current_page >= uploadsMeta.last_page"
+                class="px-3 py-1 border rounded disabled:opacity-50"
+              >Next</button>
+            </div>
+
             <button
-              @click="loadImportHistory"
+              @click="reloadUploads"
               class="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm transition-colors"
             >
               <i class="fas fa-refresh mr-1"></i>
-              Refresh History
+              Refresh Uploaded Files
             </button>
           </div>
 
@@ -290,10 +301,17 @@ const importing = ref(false)
 const isDragOver = ref(false)
 const successMessage = ref('')
 const error = ref('')
-const importHistory = ref([])
+const importHistory = ref([]) // kept for last import stats if needed
 const loadingHistory = ref(false)
 const importResults = ref(null)
 const fileOnly = ref(false)
+
+// Uploaded files state
+const uploadedFiles = ref([])
+const uploadsMeta = ref(null)
+const loadingUploads = ref(false)
+let uploadsPage = 1
+const uploadsPerPage = 10
 
 // Methods
 const handleFileSelect = (event) => {
@@ -374,6 +392,49 @@ const loadImportHistory = async () => {
   }
 }
 
+const loadUploadedFiles = async (page = 1) => {
+  try {
+    loadingUploads.value = true
+    const response = await adminAPI.getUploadedFiles({ page, per_page: uploadsPerPage })
+    const payload = response.data.data
+    // If backend returns a paginator object under data, handle that
+    uploadedFiles.value = payload.data || payload
+    uploadsMeta.value = payload.data ? payload : null
+    uploadsPage = uploadsMeta.value ? uploadsMeta.value.current_page : page
+  } catch (err) {
+    console.error('Error loading uploaded files:', err)
+  } finally {
+    loadingUploads.value = false
+  }
+}
+
+const prevUploadsPage = async () => {
+  if (uploadsMeta.value && uploadsMeta.value.current_page > 1) {
+    await loadUploadedFiles(uploadsMeta.value.current_page - 1)
+  }
+}
+
+const nextUploadsPage = async () => {
+  if (uploadsMeta.value && uploadsMeta.value.current_page < uploadsMeta.value.last_page) {
+    await loadUploadedFiles(uploadsMeta.value.current_page + 1)
+  }
+}
+
+const reloadUploads = async () => {
+  await loadUploadedFiles(uploadsPage)
+}
+
+const confirmDelete = async (file) => {
+  if (!confirm(`Delete ${file.original_name}?`)) return
+  try {
+    await adminAPI.deleteUploadedFile(file.id)
+    showSuccessMessage('File deleted')
+    await loadUploadedFiles(uploadsMeta.value?.current_page || 1)
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to delete file'
+  }
+}
+
 const downloadTemplate = async () => {
   try {
     const response = await adminAPI.getImportTemplate('students')
@@ -424,7 +485,7 @@ const importStudents = async () => {
     sheetName.value = ''
     
     // Refresh lists
-    await Promise.all([loadImportHistory(), loadClasses()])
+    await Promise.all([loadImportHistory(), loadClasses(), loadUploadedFiles(1)])
     
   } catch (err) {
     if (err?.response?.status === 422 && err.response.data?.errors) {
@@ -459,6 +520,9 @@ const uploadFileOnly = async () => {
     sheetName.value = ''
     fileOnly.value = false
 
+    // Refresh uploads list
+    await loadUploadedFiles(1)
+
   } catch (err) {
     if (err?.response?.status === 422 && err.response.data?.errors) {
       const details = Object.values(err.response.data.errors).flat().join('; ')
@@ -475,5 +539,6 @@ const uploadFileOnly = async () => {
 onMounted(() => {
   loadClasses()
   loadImportHistory()
+  loadUploadedFiles(1)
 })
 </script>
