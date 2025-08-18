@@ -383,7 +383,12 @@ const importStudents = async () => {
     await loadImportHistory()
     
   } catch (err) {
-    error.value = err.response?.data?.message || 'Failed to import students'
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
     console.error('Import error:', err)
   } finally {
     importing.value = false

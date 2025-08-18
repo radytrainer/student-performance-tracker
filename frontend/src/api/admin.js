@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    // Let Axios set the appropriate Content-Type per request (JSON or multipart)
     'Accept': 'application/json'
   }
 })
@@ -167,11 +167,8 @@ export const adminAPI = {
 
   // Data Import
   importStudents: async (formData) => {
-    return await api.post('/admin/import/students', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    // Do not set Content-Type manually; Axios will include the correct boundary
+    return await api.post('/admin/import/students', formData)
   },
 
   getImportTemplate: async (type = 'students') => {
