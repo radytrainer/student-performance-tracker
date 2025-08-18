@@ -149,12 +149,40 @@
       </div>
     </div>
   </div>
+
+  <!-- Errors modal -->
+  <div v-if="showErrors" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold">Import errors</h3>
+        <button @click="showErrors=false" class="text-gray-600 hover:text-gray-800">✕</button>
+      </div>
+      <div class="max-h-80 overflow-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left border-b">
+              <th class="py-2 pr-3">Row</th>
+              <th class="py-2">Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(e,i) in errorsList" :key="i" class="border-b">
+              <td class="py-2 pr-3">{{ e.row ?? '-' }}</td>
+              <td class="py-2">{{ e.message ?? e }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-3 text-right">
+        <button @click="showErrors=false" class="bg-blue-600 text-white px-4 py-2 rounded">Close</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { teacherAPI } from '@/api/teacher'
-
 const selectedFile = ref(null)
 const defaultClassId = ref('')
 const subjectIds = ref([])
@@ -167,6 +195,8 @@ const importHistory = ref([])
 const loadingHistory = ref(false)
 const uploads = ref([])
 const loadingUploads = ref(false)
+const showErrors = ref(false)
+const errorsList = ref([])
 
 // File select
 const handleFileSelect = (e) => { selectedFile.value = e.target.files[0] }
@@ -267,9 +297,15 @@ const importStudents = async () => {
 
     const res = await teacherAPI.importStudents(formData)
 
+    const errs = res.data?.data?.errors || res.data?.errors || []
     successMessage.value = res.data.message || 'Import completed successfully'
-    if (res.data.errors && res.data.errors.length > 0) {
-      successMessage.value += `, but with ${res.data.errors.length} errors`
+    if (errs.length > 0) {
+      successMessage.value += `, but with ${errs.length} errors`
+      errorsList.value = errs
+      showErrors.value = true
+    } else {
+      errorsList.value = []
+      showErrors.value = false
     }
     
     // Clear form
@@ -325,7 +361,9 @@ const importFromUpload = async (f) => {
     if (defaultClassId.value) fd.append('default_class_id', defaultClassId.value)
     if (subjectIds.value?.length) subjectIds.value.forEach(id => fd.append('subject_ids[]', id))
     const r = await teacherAPI.importStudentsFromUpload(fd)
+    const errs = r.data?.data?.errors || r.data?.errors || []
     successMessage.value = r.data?.message || 'Import completed'
+    if (errs.length) { errorsList.value = errs; showErrors.value = true } else { errorsList.value = []; showErrors.value = false }
     await Promise.all([loadImportHistory(), loadUploads()])
   } catch (err) {
     console.error(err)
@@ -341,4 +379,27 @@ onMounted(() => {
   loadUploads()
   loadSubjects()
 })
+
+// Download CSV template built from backend template metadata
+const downloadTemplate = async () => {
+  try {
+    const res = await teacherAPI.getImportTemplate('students')
+    const tpl = res.data?.data || res.data
+    const headers = tpl?.headers || []
+    const sample = (tpl?.sample_data && tpl.sample_data[0]) ? tpl.sample_data[0] : {}
+    const row = headers.map(h => (sample[h] ?? '')).join(',')
+    const csv = headers.join(',') + '\n' + row + '\n'
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'student_import_template.csv'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error(err)
+  }
+}
 </script>
