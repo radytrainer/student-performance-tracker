@@ -128,7 +128,8 @@ class DataImportController extends Controller
                         'username' => $row['email'],
                         'password_hash' => Hash::make('password123'), // Default password
                         'role' => 'student',
-                        'is_active' => true
+                        'is_active' => true,
+                        'school_id' => auth()->user()->school_id ?? null,
                     ]);
 
                     // Create student profile

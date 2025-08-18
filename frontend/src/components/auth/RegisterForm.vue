@@ -511,35 +511,20 @@ const availableRoles = [
 const availableSchools = ref([]);
 const isLoadingSchools = ref(false);
 
-// Fetch schools from API
+// Fetch schools from API (use axios client to call backend directly)
+import apiClient from '@/api/axiosConfig'
 const fetchSchools = async () => {
   isLoadingSchools.value = true;
   try {
-    // Use the public schools API for registration
-    const response = await fetch("/api/schools", {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    if (response.ok) {
-      const result = await response.json();
-      const schools = result.data || [];
-      availableSchools.value = schools;
-    } else {
-      // If API call fails but gets a response, still try to use empty array
-      availableSchools.value = [];
-    }
+    const response = await apiClient.get('/schools')
+    const result = response.data || {}
+    const schools = result.data || []
+    availableSchools.value = schools
   } catch (error) {
-    console.error("Failed to fetch schools:", error);
-    // Minimal fallback - in production, all schools should come from database
-    availableSchools.value = [
-      { id: 1, name: "Lincoln High School" },
-      { id: 2, name: "Washington Elementary" },
-      { id: 3, name: "Roosevelt Academy" },
-    ];
+    console.error('Failed to fetch schools:', error)
+    availableSchools.value = []
   } finally {
-    isLoadingSchools.value = false;
+    isLoadingSchools.value = false
   }
 };
 
