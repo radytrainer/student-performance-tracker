@@ -17,19 +17,19 @@ export const teacherAPI = {
 
   // Advanced import workflow using admin endpoints (teachers are allowed)
   uploadFileOnly(formData) {
-    return apiClient.post('/admin/import/upload-file', formData)
+    return apiClient.post('/teacher/import/upload-file', formData)
   },
   getUploadedFiles(params = {}) {
-    return apiClient.get('/admin/import/uploads', { params })
+    return apiClient.get('/teacher/import/uploads', { params })
   },
   deleteUploadedFile(id) {
-    return apiClient.delete(`/admin/import/uploads/${id}`)
+    return apiClient.delete(`/teacher/import/uploads/${id}`)
   },
   getSubjectsForImport() {
-    return apiClient.get('/admin/import/subjects-list')
+    return apiClient.get('/teacher/import/subjects-list')
   },
   importStudentsFromUpload(formData) {
     // Supports uploaded_file_id, default_class_id, sheet_name, subject_ids[]
-    return apiClient.post('/admin/import/students', formData)
+    return apiClient.post('/teacher/import/students', formData)
   },
 }

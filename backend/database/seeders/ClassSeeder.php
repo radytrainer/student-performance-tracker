@@ -21,23 +21,35 @@ class ClassSeeder extends Seeder
             [
                 'class_name' => '9th Grade - Section A',
                 'academic_year' => '2024-2025',
-                'class_teacher_id' => $teachers->where('teacher_code', 'TCH001')->first()->user_id,
+                'class_teacher_id' => optional($teachers->where('teacher_code', 'TCH001')->first())->user_id,
                 'room_number' => 'Room 101',
                 'schedule' => 'Monday-Friday 8:00 AM - 3:00 PM',
+                'school_id' => 1,
             ],
             [
                 'class_name' => '9th Grade - Section B',
                 'academic_year' => '2024-2025',
-                'class_teacher_id' => $teachers->where('teacher_code', 'TCH002')->first()->user_id,
+                'class_teacher_id' => optional($teachers->where('teacher_code', 'TCH002')->first())->user_id,
                 'room_number' => 'Room 102',
                 'schedule' => 'Monday-Friday 8:00 AM - 3:00 PM',
+                'school_id' => 1,
             ],
             [
                 'class_name' => '10th Grade - Section A',
                 'academic_year' => '2024-2025',
-                'class_teacher_id' => $teachers->where('teacher_code', 'TCH003')->first()->user_id,
+                'class_teacher_id' => optional($teachers->where('teacher_code', 'TCH003')->first())->user_id,
                 'room_number' => 'Room 201',
                 'schedule' => 'Monday-Friday 8:00 AM - 3:00 PM',
+                'school_id' => 1,
+            ],
+            // Class for requested test teacher
+            [
+                'class_name' => 'Data Import 101',
+                'academic_year' => '2024-2025',
+                'class_teacher_id' => optional($teachers->where('teacher_code', 'TCH010')->first())->user_id,
+                'room_number' => 'Lab 5',
+                'schedule' => 'Tue/Thu 10:00 AM - 11:30 AM',
+                'school_id' => 1,
             ],
         ];
 
