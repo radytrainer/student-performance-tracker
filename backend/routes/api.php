@@ -1,5 +1,7 @@
 <?php
 
+
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -87,7 +89,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/profile/image', [ProfileImageController::class, 'upload']);
     Route::put('/profile/image', [ProfileImageController::class, 'update']);
     Route::delete('/profile/image', [ProfileImageController::class, 'delete']);
-    
+
     // Student Attendance routes
     Route::get('/student/my-attendance', [App\Http\Controllers\Student\AttendanceController::class, 'index']);
 
@@ -123,7 +125,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/students/bulk-action', [App\Http\Controllers\Admin\StudentController::class, 'bulkAction']);
         Route::get('admin/classes/{classId}/students', [App\Http\Controllers\Admin\StudentController::class, 'getByClass']);
 
-        // Class Management  
+        // Class Management
         Route::apiResource('admin/classes', App\Http\Controllers\Admin\ClassController::class);
         Route::post('admin/classes/{class}/assign-teacher', [App\Http\Controllers\Admin\ClassController::class, 'assignTeacher']);
         Route::get('admin/teachers/available', [App\Http\Controllers\Admin\ClassController::class, 'getAvailableTeachers']);
@@ -161,7 +163,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('teacher/survey-templates', [FeedbackFormController::class, 'getSurveyTemplates']);
         Route::post('teacher/create-from-template', [FeedbackFormController::class, 'createFromTemplate']);
         Route::post('teacher/schedule-survey', [FeedbackFormController::class, 'scheduleSurvey']);
-        
+
         // Teacher Dashboard
         Route::get('/teacher/dashboard-students', [App\Http\Controllers\Teacher\DashboardController::class, 'students']);
     });
