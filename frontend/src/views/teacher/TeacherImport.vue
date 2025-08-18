@@ -6,7 +6,7 @@
     <div class="bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300">
       <div class="flex items-center space-x-4">
         <label class="block">
-          <span class="sr-only">Choose file</span>
+          <span class="sr-only">Choose file Excel or CSV </span>
           <input
             type="file"
             @change="handleFileUpload"
