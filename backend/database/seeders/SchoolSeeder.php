@@ -6,6 +6,9 @@ use App\Models\School;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
 class SchoolSeeder extends Seeder
 {
     /**
@@ -13,6 +16,11 @@ class SchoolSeeder extends Seeder
      */
     public function run(): void
     {
+        // Replace existing schools to ensure the canonical list is present
+        Schema::disableForeignKeyConstraints();
+        DB::table('schools')->truncate();
+        Schema::enableForeignKeyConstraints();
+
         $schools = [
             [
                 'name' => "Passerelles Numeriques Cambodia (PNC)",
