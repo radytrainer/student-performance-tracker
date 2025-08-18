@@ -1,15 +1,19 @@
-import axios from 'axios'
+// src/api/teacher.js
+import apiClient from './axiosConfig'
 
-export const teacherAPI = {
-  getClasses() {
-    return axios.get('/api/classes')
-  },
-  getImportHistory() {
-    return axios.get('/api/teacher/import-history')
-  },
-  importStudents(formData) {
-    return axios.post('/api/teacher/import-students', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+export default {
+  async importStudents(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    return apiClient.post('/teacher/import-students', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     })
   },
+
+  async getImportHistory() {
+    return apiClient.get('/teacher/import-history')
+  }
 }
