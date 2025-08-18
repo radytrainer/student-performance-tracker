@@ -161,6 +161,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('teacher/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
         Route::post('teacher/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
         Route::get('teacher/import/subjects-list', [App\Http\Controllers\Admin\DataImportController::class, 'getSubjectsList']);
+        Route::get('teacher/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
         Route::get('teacher/import/uploads', [App\Http\Controllers\Admin\DataImportController::class, 'listUploads']);
         Route::delete('teacher/import/uploads/{id}', [App\Http\Controllers\Admin\DataImportController::class, 'deleteUpload']);
     });

@@ -32,4 +32,7 @@ export const teacherAPI = {
     // Supports uploaded_file_id, default_class_id, sheet_name, subject_ids[]
     return apiClient.post('/teacher/import/students', formData)
   },
+  getImportTemplate(type = 'students') {
+    return apiClient.get('/teacher/import/template', { params: { type } })
+  },
 }

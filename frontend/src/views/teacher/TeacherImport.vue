@@ -87,8 +87,11 @@
           </div>
 
           <!-- Template hint -->
-          <div class="text-xs text-gray-500">
-            Required headers: <code>first_name,last_name,username,email,student_code,date_of_birth,gender,address,parent_name,parent_phone,enrollment_date,current_class_id</code>
+          <div class="text-xs text-gray-500 flex items-center justify-between">
+            <div>
+              Required headers: <code>first_name,last_name,username,email,student_code,date_of_birth,gender,address,parent_name,parent_phone,enrollment_date,current_class_id</code>
+            </div>
+            <button @click="downloadTemplate" class="text-blue-600 hover:underline text-sm">Download CSV Template</button>
           </div>
         </div>
 
