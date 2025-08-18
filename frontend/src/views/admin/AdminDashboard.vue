@@ -165,7 +165,7 @@
           </div>
           <h3 class="text-xl font-bold text-gray-900">User Overview</h3>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div v-for="userType in userTypes" :key="userType.type" class="p-4 bg-gray-50 rounded-xl">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
@@ -197,83 +197,38 @@ import {
   Users, TrendingUp, AlertTriangle, BarChart3, PieChart, Activity, BookOpen, Shield, Database
 } from 'lucide-vue-next'
 
-// --- Admin Data ---
+// Admin Data
 const adminData = ref({
   totalUsers: 0,
   totalStudents: 0,
   totalTeachers: 0,
   totalAdmins: 0,
-  activeCourses: 0,
   totalClasses: 0,
-  totalAttendance: 0,
-  userGrowth: [],
-  coursePerformance: [],
-  activity: []
+  totalSubjects: 0,
+  totalAttendance: 0
 })
 
-// --- Fetch from API ---
-const fetchAdminStats = async () => {
+// Fetch API
+const fetchAdminData = async () => {
   try {
     const res = await fetch('http://127.0.0.1:8000/api/admin/stats')
     const data = await res.json()
-    adminData.value = {
-      totalUsers: data.totalUsers || 0,
-      totalStudents: data.totalStudents || 0,
-      totalTeachers: data.totalTeachers || 0,
-      totalAdmins: data.totalAdmins || 0,
-      activeCourses: data.activeCourses || 0,
-      totalClasses: data.totalClasses || 0,
-      totalAttendance: data.totalAttendance || 0,
-      userGrowth: data.userGrowth || [],
-      coursePerformance: data.coursePerformance || [],
-      activity: data.activity || []
-    }
+    adminData.value = data
+    updateCharts()
   } catch (error) {
-    console.error('Failed to fetch admin stats:', error)
+    console.error('Error fetching admin data:', error)
   }
 }
 
-// --- KPI Boxes ---
+// KPI Data
 const kpiData = computed(() => [
-  {
-    title: 'Total Users',
-    value: adminData.value.totalUsers.toLocaleString(),
-    icon: Users,
-    gradient: 'from-blue-500 to-blue-600',
-    textColor: 'text-blue-600',
-    badgeColor: 'bg-blue-100 text-blue-700',
-    change: '+12%'
-  },
-  {
-    title: 'Active Courses',
-    value: adminData.value.activeCourses,
-    icon: BookOpen,
-    gradient: 'from-green-500 to-green-600',
-    textColor: 'text-green-600',
-    badgeColor: 'bg-green-100 text-green-700',
-    change: '+8%'
-  },
-  {
-    title: 'Total Classes',
-    value: adminData.value.totalClasses,
-    icon: BarChart3,
-    gradient: 'from-purple-500 to-purple-600',
-    textColor: 'text-purple-600',
-    badgeColor: 'bg-purple-100 text-purple-700',
-    change: '+0%'
-  },
-  {
-    title: 'Total Attendance',
-    value: adminData.value.totalAttendance,
-    icon: Activity,
-    gradient: 'from-orange-500 to-orange-600',
-    textColor: 'text-orange-600',
-    badgeColor: 'bg-orange-100 text-orange-700',
-    change: '+5%'
-  }
+  { title: 'Total Users', value: adminData.value.totalUsers.toLocaleString(), icon: Users, gradient: 'from-blue-500 to-blue-600', textColor: 'text-blue-600', badgeColor: 'bg-blue-100 text-blue-700', change: '+12%' },
+  { title: 'Total Classes', value: adminData.value.totalClasses, icon: BookOpen, gradient: 'from-green-500 to-green-600', textColor: 'text-green-600', badgeColor: 'bg-green-100 text-green-700', change: '+8%' },
+  { title: 'Total Subjects', value: adminData.value.totalSubjects, icon: BarChart3, gradient: 'from-purple-500 to-purple-600', textColor: 'text-purple-600', badgeColor: 'bg-purple-100 text-purple-700', change: '+0%' },
+  { title: 'Total Attendance', value: adminData.value.totalAttendance, icon: Activity, gradient: 'from-orange-500 to-orange-600', textColor: 'text-orange-600', badgeColor: 'bg-orange-100 text-orange-700', change: '+5%' }
 ])
 
-// --- Other Data ---
+// System Health
 const systemHealth = ref([
   { name: 'CPU Usage', value: '45%', percentage: 45, status: 'good' },
   { name: 'Memory Usage', value: '67%', percentage: 67, status: 'warning' },
@@ -281,92 +236,106 @@ const systemHealth = ref([
   { name: 'Network', value: '12%', percentage: 12, status: 'good' },
   { name: 'Database', value: '89%', percentage: 89, status: 'warning' }
 ])
+
+// System Alerts
 const systemAlerts = ref([
   { id: 1, title: 'High Server Load', description: 'Server CPU usage is above 85%', severity: 'high', time: '5 min ago' },
   { id: 2, title: 'Database Backup Completed', description: 'Daily backup completed successfully', severity: 'low', time: '1 hour ago' },
   { id: 3, title: 'New User Registrations Spike', description: '50+ new registrations in the last hour', severity: 'medium', time: '2 hours ago' }
 ])
+
+// User Types
 const userTypes = computed(() => [
   { type: 'students', label: 'Students', count: adminData.value.totalStudents, active: Math.floor(adminData.value.totalStudents * 0.85), icon: Users },
   { type: 'teachers', label: 'Teachers', count: adminData.value.totalTeachers, active: Math.floor(adminData.value.totalTeachers * 0.92), icon: BookOpen },
   { type: 'admins', label: 'Administrators', count: adminData.value.totalAdmins, active: Math.floor(adminData.value.totalAdmins * 0.95), icon: Shield }
 ])
+
 const totalUsers = computed(() => adminData.value.totalUsers)
 
-// --- Helper functions ---
+// Status & Severity Helpers
 const getStatusColor = (status) => {
-  switch (status) {
-    case 'good': return 'bg-green-500'
-    case 'warning': return 'bg-yellow-500'
-    case 'critical': return 'bg-red-500'
-    default: return 'bg-gray-500'
-  }
+  switch (status) { case 'good': return 'bg-green-500'; case 'warning': return 'bg-yellow-500'; case 'critical': return 'bg-red-500'; default: return 'bg-gray-500' }
 }
+
 const getSeverityStyles = (severity) => {
-  switch (severity) {
-    case 'high': return 'bg-red-50 border-red-500'
-    case 'medium': return 'bg-yellow-50 border-yellow-500'
-    case 'low': return 'bg-blue-50 border-blue-500'
-    default: return 'bg-gray-50 border-gray-500'
-  }
+  switch (severity) { case 'high': return 'bg-red-50 border-red-500'; case 'medium': return 'bg-yellow-50 border-yellow-500'; case 'low': return 'bg-blue-50 border-blue-500'; default: return 'bg-gray-50 border-gray-500' }
 }
 
-// --- Charts ---
-import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables)
-
+// Chart Refs
 const userGrowthChart = ref(null)
 const coursePerformanceChart = ref(null)
 const userDistributionChart = ref(null)
 const activityChart = ref(null)
-
 let userGrowthChartInstance = null
 let coursePerformanceChartInstance = null
 let userDistributionChartInstance = null
 let activityChartInstance = null
 
-const createCharts = () => {
-  // User Growth
+// Chart Creation Functions
+const createUserGrowthChart = async () => {
+  if (!userGrowthChart.value) return
+  const { Chart, registerables } = await import('chart.js')
+  Chart.register(...registerables)
   if (userGrowthChartInstance) userGrowthChartInstance.destroy()
-  userGrowthChartInstance = new Chart(userGrowthChart.value, {
+  const ctx = userGrowthChart.value.getContext('2d')
+  userGrowthChartInstance = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels: adminData.value.userGrowth.map(i => i.month),
-      datasets: [{ label: 'Users', data: adminData.value.userGrowth.map(i => i.count), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)' }]
-    }
-  })
-  // Course Performance
-  if (coursePerformanceChartInstance) coursePerformanceChartInstance.destroy()
-  coursePerformanceChartInstance = new Chart(coursePerformanceChart.value, {
-    type: 'bar',
-    data: {
-      labels: adminData.value.coursePerformance.map(i => i.course),
-      datasets: [{ label: 'Average Grade', data: adminData.value.coursePerformance.map(i => i.avg), backgroundColor: '#10b981' }]
-    }
-  })
-  // User Distribution
-  if (userDistributionChartInstance) userDistributionChartInstance.destroy()
-  userDistributionChartInstance = new Chart(userDistributionChart.value, {
-    type: 'pie',
-    data: {
-      labels: ['Students', 'Teachers', 'Admins'],
-      datasets: [{ data: [adminData.value.totalStudents, adminData.value.totalTeachers, adminData.value.totalAdmins], backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'] }]
-    }
-  })
-  // Activity
-  if (activityChartInstance) activityChartInstance.destroy()
-  activityChartInstance = new Chart(activityChart.value, {
-    type: 'line',
-    data: {
-      labels: adminData.value.activity.map(i => i.date),
-      datasets: [{ label: 'Daily Active Users', data: adminData.value.activity.map(i => i.count), borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.2)' }]
-    }
+    data: { labels: adminData.value.userGrowth?.labels || [], datasets: adminData.value.userGrowth?.datasets || [] },
+    options: { responsive: true, maintainAspectRatio: false }
   })
 }
 
-onMounted(async () => {
-  await fetchAdminStats()
-  nextTick(() => createCharts())
+const createCoursePerformanceChart = async () => {
+  if (!coursePerformanceChart.value) return
+  const { Chart, registerables } = await import('chart.js')
+  Chart.register(...registerables)
+  if (coursePerformanceChartInstance) coursePerformanceChartInstance.destroy()
+  const ctx = coursePerformanceChart.value.getContext('2d')
+  coursePerformanceChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: adminData.value.coursePerformance || {},
+    options: { responsive: true, maintainAspectRatio: false }
+  })
+}
+
+const createUserDistributionChart = async () => {
+  if (!userDistributionChart.value) return
+  const { Chart, registerables } = await import('chart.js')
+  Chart.register(...registerables)
+  if (userDistributionChartInstance) userDistributionChartInstance.destroy()
+  const ctx = userDistributionChart.value.getContext('2d')
+  userDistributionChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Students', 'Teachers', 'Administrators'],
+      datasets: [{ data: [adminData.value.totalStudents, adminData.value.totalTeachers, adminData.value.totalAdmins], backgroundColor: ['#3b82f6','#10b981','#8b5cf6'], borderColor: '#fff', borderWidth: 4 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%' }
+  })
+}
+
+const createActivityChart = async () => {
+  if (!activityChart.value) return
+  const { Chart, registerables } = await import('chart.js')
+  Chart.register(...registerables)
+  if (activityChartInstance) activityChartInstance.destroy()
+  const ctx = activityChart.value.getContext('2d')
+  activityChartInstance = new Chart(ctx, { type: 'line', data: adminData.value.activity || {}, options: { responsive: true, maintainAspectRatio: false } })
+}
+
+const updateCharts = async () => {
+  await nextTick()
+  setTimeout(() => {
+    createUserGrowthChart()
+    createCoursePerformanceChart()
+    createUserDistributionChart()
+    createActivityChart()
+  }, 100)
+}
+
+onMounted(() => {
+  fetchAdminData()
 })
 </script>
 
