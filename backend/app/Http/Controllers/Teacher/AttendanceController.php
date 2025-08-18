@@ -104,7 +104,15 @@ class AttendanceController extends Controller
     {
         try {
             $teacherId = Auth::id();
-            $classes = Classes::where('teacher_id', $teacherId)->get();
+            $schoolId = Auth::user()->school_id;
+            $query = Classes::query();
+            // Filter by class teacher column name
+            $query->where('class_teacher_id', $teacherId);
+            // Restrict to teacher's school if available
+            if ($schoolId) {
+                $query->where('school_id', $schoolId);
+            }
+            $classes = $query->orderBy('class_name')->get();
 
             return response()->json([
                 'success' => true,

@@ -146,7 +146,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/terms/{term}/set-current', [App\Http\Controllers\Admin\TermController::class, 'setCurrent']);
         Route::get('admin/terms/current', [App\Http\Controllers\Admin\TermController::class, 'getCurrent']);
 
-        // Data Import
+        // Data Import (admin paths)
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
         Route::post('admin/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
         Route::get('admin/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
@@ -154,6 +154,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
         Route::get('admin/import/uploads', [App\Http\Controllers\Admin\DataImportController::class, 'listUploads']);
         Route::delete('admin/import/uploads/{id}', [App\Http\Controllers\Admin\DataImportController::class, 'deleteUpload']);
+    });
+
+    // Teacher routes for import and uploads (use same controller with role check)
+    Route::middleware(['role:teacher'])->group(function () {
+        Route::post('teacher/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
+        Route::post('teacher/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
+        Route::get('teacher/import/subjects-list', [App\Http\Controllers\Admin\DataImportController::class, 'getSubjectsList']);
+        Route::get('teacher/import/uploads', [App\Http\Controllers\Admin\DataImportController::class, 'listUploads']);
+        Route::delete('teacher/import/uploads/{id}', [App\Http\Controllers\Admin\DataImportController::class, 'deleteUpload']);
     });
 
     // Super Admin routes
