@@ -136,7 +136,6 @@ class StudentController extends BaseController
     /**
      * Update the specified student
      */
-
     public function update(Request $request, $id)
     {
         $user = $this->getCurrentUser();
@@ -174,7 +173,6 @@ class StudentController extends BaseController
             }
 
             $request->validate($rules);
-
             $student->update($request->only(array_keys($rules)));
             $student->load(['user', 'currentClass']);
 
@@ -252,7 +250,7 @@ class StudentController extends BaseController
         $presentRecords = $attendanceRecords->where('status', 'present')->count();
         return round(($presentRecords / $totalRecords) * 100, 2);
     }
-       
+
         public function importStudents(Request $request)
         {
             $request->validate([

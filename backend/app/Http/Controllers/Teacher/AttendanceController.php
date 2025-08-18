@@ -68,7 +68,7 @@ class AttendanceController extends Controller
             // If $id is 'class-date', handle it differently
             if (strpos($id, '-') !== false) {
                 list($classId, $date) = explode('-', $id);
-                
+
                 $attendances = Attendance::with(['student.user', 'class'])
                     ->where('class_id', $classId)
                     ->where('date', $date)
@@ -188,7 +188,7 @@ class AttendanceController extends Controller
             $student = Student::where('user_id', $validated['student_id'])
                 ->where('current_class_id', $validated['class_id'])
                 ->first();
-                
+
             if (!$student) {
                 return response()->json([
                     'success' => false,
@@ -207,7 +207,7 @@ class AttendanceController extends Controller
                     'status' => $validated['status'],
                     'notes' => $validated['notes'] ?? null
                 ]);
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Attendance updated successfully!',
