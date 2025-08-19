@@ -406,7 +406,7 @@ const exportToPDF = async () => {
     pdf.text(`Class: ${localStorage.getItem('class_name') || 'All Classes'}`, 40, 110);
     pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 40, 110, { align: 'right' });
 
-    // Capture table
+  
     const canvas = await html2canvas(tableRef.value, {
       scale: 2,
       logging: false,
