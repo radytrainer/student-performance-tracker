@@ -87,7 +87,7 @@
           <div class="flex flex-wrap items-center gap-4">
             <div class="relative">
               <select v-model="filters.status" class="border rounded-lg p-2 pl-10 pr-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">All Statuses</option>
+                <option value="">All Statuses for attendance</option>
                 <option value="present">Present</option>
                 <option value="absent">Absent</option>
                 <option value="late">Late</option>
