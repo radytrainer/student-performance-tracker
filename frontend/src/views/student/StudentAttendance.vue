@@ -423,7 +423,7 @@ const exportToPDF = async () => {
     pdf.addImage(imgData, 'PNG', 40, tableY, imgWidth, imgHeight);
 
     
-    const footerY = tableY + imgHeight + 20; // 20px below table
+    const footerY = tableY + imgHeight + 20; 
     
     pdf.setFontSize(10);
     pdf.setTextColor(100);
