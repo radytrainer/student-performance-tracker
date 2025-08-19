@@ -83,7 +83,6 @@
           <FullCalendar :options="calendarOptions" />
         </div>
 
-        <!-- Filters and Export -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-xl shadow">
           <div class="flex flex-wrap items-center gap-4">
             <div class="relative">
