@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">Students</h1>
+          <h1 class="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">Student</h1>
           <p class="text-sm sm:text-base text-gray-600">Manage and view all student profiles</p>
         </div>
         <button
