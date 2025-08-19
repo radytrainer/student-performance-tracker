@@ -195,7 +195,7 @@
                 </td>
               </tr>
               <tr v-if="filteredAttendance.length === 0">
-                <td colspan="4" class="px-6 py-4 text-center text-gray-500">No attendance records found</td>
+                <td colspan="4" class="px-6 py-4 text-center text-gray-500">No attendance records found in here</td>
               </tr>
             </tbody>
           </table>
