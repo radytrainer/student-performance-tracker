@@ -434,7 +434,7 @@ const exportToPDF = async () => {
     pdf.text("- Late arrivals marked after 8:15 AM", 40, footerY + 30);
     pdf.text("- Report discrepancies to office within 24 hours", 40, footerY + 45);
     
-    // School footer
+    
     pdf.text(`© ${new Date().getFullYear()} passerelles numériques cambodia`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 
     // Save PDF
