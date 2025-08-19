@@ -81,7 +81,7 @@
   
         </div>
 
-        <!-- Calendar View -->
+    
         <div class="bg-white p-6 mb-6 rounded-xl shadow">
           <h2 class="text-xl font-bold text-gray-800 mb-4">Calendar View</h2>
           <FullCalendar :options="calendarOptions" />
