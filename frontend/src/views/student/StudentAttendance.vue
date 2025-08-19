@@ -230,7 +230,7 @@ apiClient.interceptors.request.use(config => {
   return config
 })
 
-// Data
+
 const attendance = ref([])
 const loading = ref(true)
 const error = ref(null)
