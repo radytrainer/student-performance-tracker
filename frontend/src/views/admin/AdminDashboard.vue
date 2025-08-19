@@ -263,7 +263,7 @@ const kpiData = computed(() => [
     change: '+0%'
   },
   {
-    title: 'Total Attendance',
+    title: 'Total Attendances',
     value: adminData.value.totalAttendance,
     icon: Activity,
     gradient: 'from-orange-500 to-orange-600',
