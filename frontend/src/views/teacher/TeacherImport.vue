@@ -334,7 +334,7 @@
 </template>
 
 <script>
-import teacherApi from "@/api/teacher";
+import { teacherAPI as teacherApi } from "@/api/teacher";
 
 export default {
   name: "TeacherImport",
