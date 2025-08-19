@@ -386,7 +386,7 @@ const exportToPDF = async () => {
       return;
     }
 
-    // Create PDF
+    
     const pdf = new jsPDF('p', 'pt', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
