@@ -5,7 +5,7 @@
       <div class="flex justify-between items-center mb-6">
         <div class="mb-6">
           <h1 class="text-3xl font-bold text-gray-800">Attendance</h1>
-          <p class="text-gray-600 mt-1">View your attendance</p>
+          <p class="text-gray-600 mt-1">View your attendance recode</p>
         </div>
       </div>
 
