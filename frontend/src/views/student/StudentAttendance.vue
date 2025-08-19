@@ -273,7 +273,7 @@ const calendarOptions = ref({
         present: '#34D399', 
         absent: '#F87171',  
         late: '#FBBF24'     
-      }[record.status] || '#9CA3AF' // default gray
+      }[record.status] || '#9CA3AF' 
     }))
   })
 })
