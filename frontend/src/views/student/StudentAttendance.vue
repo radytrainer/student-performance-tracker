@@ -270,9 +270,9 @@ const calendarOptions = ref({
       title: capitalizeFirstLetter(record.status) + (record.subject_name ? ` - ${record.subject_name}` : ''),
       date: record.date,
       color: {
-        present: '#34D399', // green
-        absent: '#F87171',  // red
-        late: '#FBBF24'     // yellow
+        present: '#34D399', 
+        absent: '#F87171',  
+        late: '#FBBF24'     
       }[record.status] || '#9CA3AF' // default gray
     }))
   })
