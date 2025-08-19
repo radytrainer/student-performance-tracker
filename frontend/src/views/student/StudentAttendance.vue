@@ -397,7 +397,6 @@ const exportToPDF = async () => {
     pdf.text("www.passerellesnumeriques.org | BP 511 St. 371 Phum Tropeang Chhuk , City ZIP | +855 23 99 55 00 |", pageWidth / 2, 30, { align: 'center' });
     pdf.text("passerelles numériques cambodia", pageWidth / 2, 45, { align: 'center' });
 
-    // Title
     pdf.setFontSize(18);
     pdf.setTextColor(40);
     pdf.text("Student Attendance Report", pageWidth / 2, 80, { align: 'center' });
