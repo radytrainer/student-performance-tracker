@@ -241,7 +241,7 @@ const filters = ref({
 })
 const tableRef = ref(null) // Reference to the table element
 
-// Fetch attendance data
+
 const fetchAttendance = async () => {
   loading.value = true
   error.value = null
