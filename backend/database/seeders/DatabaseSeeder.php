@@ -14,7 +14,8 @@ class DatabaseSeeder extends Seeder
     {
         // Run seeders in proper order to maintain referential integrity
         $this->call([
-            UserSeeder::class,           // Create users first (admin, teachers, students)
+            SchoolSeeder::class,         // Create schools first
+            UserSeeder::class,           // Create users (assign to schools)
             SubjectSeeder::class,        // Create subjects
             TermSeeder::class,           // Create academic terms
             ClassSeeder::class,          // Create classes and assign students

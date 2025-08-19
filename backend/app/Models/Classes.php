@@ -17,9 +17,15 @@ class Classes extends Model
         'class_teacher_id',
         'room_number',
         'schedule',
+        'school_id',
     ];
 
     // Relationships
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class);
+    }
+
     public function classTeacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class, 'class_teacher_id', 'user_id');
@@ -43,5 +49,11 @@ class Classes extends Model
     public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class, 'class_id');
+    }
+
+    // Scopes for school-based isolation
+    public function scopeForSchool($query, $schoolId)
+    {
+        return $query->where('school_id', $schoolId);
     }
 }

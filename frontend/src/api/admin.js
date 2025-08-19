@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    // Let Axios set the appropriate Content-Type per request (JSON or multipart)
     'Accept': 'application/json'
   }
 })
@@ -108,6 +108,11 @@ export const adminAPI = {
   },
 
   // Subject Management
+  // Lightweight subjects list for import (admin or teacher)
+  getSubjectsForImport: async () => {
+    return await api.get('/admin/import/subjects-list')
+  },
+
   getSubjects: async (params = {}) => {
     return await api.get('/admin/subjects', { params })
   },
@@ -140,6 +145,11 @@ export const adminAPI = {
     return await api.get('/admin/subjects-stats')
   },
 
+  // Teacher helpers
+  getTeacherClasses: async () => {
+    return await api.get('/teacher/feedback-classes')
+  },
+
   // Term Management
   getTerms: async (params = {}) => {
     return await api.get('/admin/terms', { params })
@@ -167,18 +177,27 @@ export const adminAPI = {
 
   // Data Import
   importStudents: async (formData) => {
-    return await api.post('/admin/import/students', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    // Do not set Content-Type manually; Axios will include the correct boundary
+    return await api.post('/admin/import/students', formData)
   },
 
   getImportTemplate: async (type = 'students') => {
-    return await api.get('/admin/import/template', { params: { type } })
+  return await api.get('/admin/import/template', { params: { type } })
   },
 
+  uploadFileOnly: async (formData) => {
+  return await api.post('/admin/import/upload-file', formData)
+  },
+ 
   getImportHistory: async () => {
     return await api.get('/admin/import/history')
+  },
+
+  getUploadedFiles: async (params = {}) => {
+    return await api.get('/admin/import/uploads', { params })
+  },
+
+  deleteUploadedFile: async (id) => {
+    return await api.delete(`/admin/import/uploads/${id}`)
   }
 }

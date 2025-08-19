@@ -435,6 +435,17 @@ import {
   Plus, Search, Briefcase, Phone, Calendar, Edit, Trash2,
   Users, RotateCcw, X, AlertTriangle
 } from 'lucide-vue-next'
+import studentsAPI from '@/api/students'
+
+// Add type declaration for import.meta.env
+declare global {
+  interface ImportMeta {
+    env: {
+      VITE_API_BASE_URL?: string;
+      [key: string]: string | undefined;
+    };
+  }
+}
 
 type Role = 'Student' | 'Graduate' | 'Alumni'
 type Status = 'Active' | 'Inactive'
@@ -665,30 +676,50 @@ async function confirmDelete() {
   }
 }
 
-function addStudent() {
-  if (!newStudent.name.trim() || !newStudent.email.trim() || !newStudent.role || !newStudent.status) return
-  const student: Student = {
-    id: Date.now(),
-    name: newStudent.name.trim(),
-    email: newStudent.email.trim(),
-    phone: newStudent.phone.trim(),
-    role: newStudent.role as Role,
-    status: newStudent.status as Status,
-    createdAt: new Date().toISOString().split('T')[0],
-    profileImage: ''
+async function addStudent() {
+  if (!newStudent.name.trim() || !newStudent.email.trim()) return
+
+  try {
+    const [firstName, ...restNames] = newStudent.name.trim().split(' ')
+    const lastName = restNames.join(' ') || 'Student'
+    
+    // Generate username and student code
+    const username = newStudent.email.trim().split('@')[0] + Math.floor(Math.random() * 1000)
+    const studentCode = 'STU' + Date.now().toString().slice(-6)
+    
+    const studentData = {
+      first_name: firstName,
+      last_name: lastName,
+      username: username,
+      email: newStudent.email.trim(),
+      student_code: studentCode,
+      enrollment_date: new Date().toISOString().split('T')[0],
+      parent_phone: newStudent.phone?.trim() || '',
+      is_active: true
+    }
+
+    await studentsAPI.createStudent(studentData)
+    
+    // Refresh the students list from server
+    await loadStudents()
+
+    // Reset form
+    newStudent.name = ''
+    newStudent.email = ''
+    newStudent.phone = ''
+    newStudent.role = '' as any
+    newStudent.status = '' as any
+    newStudent.createdAt = ''
+    newStudent.profileImage = ''
+
+    showAddModal.value = false
+    
+    // Show success message
+    alert('Student added successfully!')
+  } catch (error) {
+    console.error('Error adding student:', error)
+    alert('Failed to add student. Please try again.')
   }
-
-  students.value.unshift(student)
-
-  newStudent.name = ''
-  newStudent.email = ''
-  newStudent.phone = ''
-  newStudent.role = '' as any
-  newStudent.status = '' as any
-  newStudent.createdAt = ''
-  newStudent.profileImage = ''
-
-  showAddModal.value = false
 }
 
 function clearFilters() {
@@ -696,8 +727,6 @@ function clearFilters() {
   selectedRole.value = ''
   sortBy.value = 'name'
 }
-
-import studentsAPI from '@/api/students'
 
 async function loadStudents() {
   loading.value = true

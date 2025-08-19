@@ -17,8 +17,11 @@ export default {
   async register(userData) {
     const registrationData = {
       ...userData,
+      // Backend expects school_id
+      school_id: userData.school,
       password_confirmation: userData.password
     }
+    delete registrationData.school
     const response = await apiClient.post('/auth/register', registrationData)
     const token = response.data.token
     if (token) {

@@ -104,7 +104,18 @@ class AttendanceController extends Controller
     {
         try {
             $teacherId = Auth::id();
-            $classes = Classes::where('teacher_id', $teacherId)->get();
+            $schoolId = Auth::user()->school_id;
+            // Classes where the user is the class teacher OR teaches a subject in the class
+            $classes = Classes::query()
+                ->when($schoolId, fn($q) => $q->where('school_id', $schoolId))
+                ->where(function ($q) use ($teacherId) {
+                    $q->where('class_teacher_id', $teacherId)
+                      ->orWhereHas('classSubjects', function ($sq) use ($teacherId) {
+                          $sq->where('teacher_id', $teacherId);
+                      });
+                })
+                ->orderBy('class_name')
+                ->get();
 
             return response()->json([
                 'success' => true,
