@@ -239,7 +239,7 @@ const filters = ref({
   subject: '',
   date: ''
 })
-const tableRef = ref(null) // Reference to the table element
+const tableRef = ref(null) 
 
 
 const fetchAttendance = async () => {
