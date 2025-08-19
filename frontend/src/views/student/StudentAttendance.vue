@@ -256,7 +256,7 @@ const fetchAttendance = async () => {
   }
 }
 
-// Calendar Configuration
+
 const calendarOptions = ref({
   plugins: [dayGridPlugin],
   initialView: 'dayGridMonth',
