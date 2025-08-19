@@ -278,7 +278,7 @@ const calendarOptions = ref({
   })
 })
 
-// Computed properties
+
 const summary = computed(() => {
   const stats = { present: 0, absent: 0, late: 0, total: 0 }
   attendance.value.forEach(record => {
