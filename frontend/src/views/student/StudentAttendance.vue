@@ -22,7 +22,6 @@
       </div>
 
       <div v-if="!loading && !error">
-        <!-- Attendance Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-green-100 p-4 rounded-2xl shadow flex items-start">
             <div class="bg-green-200 p-3 rounded-full mr-3">
