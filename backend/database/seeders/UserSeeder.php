@@ -25,6 +25,7 @@ class UserSeeder extends Seeder
             'first_name' => 'System',
             'last_name' => 'Administrator',
             'is_active' => true,
+            'school_id' => 1,
         ]);
 
         // Teacher Users
@@ -39,6 +40,7 @@ class UserSeeder extends Seeder
                 'qualification' => 'M. English',
                 'specialization' => 'Algebra, Calculus',
                 'hire_date' => '2025-07-15',
+                'school_id' => 1,
             ],
             [
                 'username' => 'sinh.ern',
@@ -50,6 +52,7 @@ class UserSeeder extends Seeder
                 'qualification' => 'M.Sc. Backend, B.Ed.',
                 'specialization' => 'PHP, Laravel',
                 'hire_date' => '2025-02-22',
+                'school_id' => 1,
             ],
             [
                 'username' => 'panhapich.rin',
@@ -61,6 +64,20 @@ class UserSeeder extends Seeder
                 'qualification' => 'M.A. English Literature',
                 'specialization' => 'Literature, Creative Writing',
                 'hire_date' => '2025-06-10',
+                'school_id' => 1,
+            ],
+            // Test user requested
+            [
+                'username' => 'sinh.teacher',
+                'email' => 'sinh.teacher@gmail.com',
+                'first_name' => 'Sinh',
+                'last_name' => 'Teacher',
+                'teacher_code' => 'TCH010',
+                'department' => 'Computer Science',
+                'qualification' => 'M.Ed. CS',
+                'specialization' => 'Data Import',
+                'hire_date' => '2025-08-01',
+                'school_id' => 1,
             ],
         ];
 
@@ -73,6 +90,7 @@ class UserSeeder extends Seeder
                 'first_name' => $teacherData['first_name'],
                 'last_name' => $teacherData['last_name'],
                 'is_active' => true,
+                'school_id' => $teacherData['school_id'] ?? null,
             ]);
 
             Teacher::create([

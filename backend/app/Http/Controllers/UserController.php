@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Traits\SchoolIsolation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -10,6 +11,7 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    use SchoolIsolation;
     public function __construct()
     {
         // Temporarily disable auth middleware for testing
@@ -18,7 +20,12 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::query()->with(['school', 'student', 'teacher']);
+
+        // Apply school isolation for admins (but not super admins)
+        if (auth()->user() && auth()->user()->role === 'admin' && !auth()->user()->is_super_admin) {
+            $query = $this->applyUserSchoolIsolation($query);
+        }
 
         // Search functionality
         if ($request->has('search') && !empty($request->search)) {
@@ -65,6 +72,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
             'role' => ['required', Rule::in(['admin', 'teacher', 'student'])],
+            'school_id' => 'nullable|exists:schools,id',
             'first_name' => 'required|string',
             'last_name' => 'required|string',
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -81,6 +89,21 @@ class UserController extends Controller
         $validated['password_hash'] = Hash::make($validated['password']);
         unset($validated['password']);
 
+        // Handle school assignment based on user permissions
+        $currentUser = auth()->user();
+        
+        if ($currentUser) {
+            if ($currentUser->is_super_admin) {
+                // Super admin can assign any school or leave it null
+                if (!isset($validated['school_id']) || empty($validated['school_id'])) {
+                    $validated['school_id'] = null;
+                }
+            } else {
+                // Regular admin can only assign users to their own school
+                $validated['school_id'] = $currentUser->school_id;
+            }
+        }
+
         $user = User::create($validated);
 
         return response()->json($user, 201);
@@ -89,6 +112,12 @@ class UserController extends Controller
     public function show(string $id)
     {
         $user = User::findOrFail($id);
+        
+        // Check school isolation
+        if (auth()->user() && !$this->canAccessBySchool($user)) {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+        
         $user->profile_picture = $user->profile_picture ? asset('storage/' . $user->profile_picture) : null;
         return response()->json($user);
     }
@@ -103,6 +132,7 @@ class UserController extends Controller
             'first_name' => 'sometimes|required|string',
             'last_name' => 'sometimes|required|string',
             'role' => ['sometimes', 'required', Rule::in(['admin', 'teacher', 'student'])],
+            'school_id' => 'nullable|exists:schools,id',
             'password' => 'nullable|string|min:6',
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
@@ -117,6 +147,17 @@ class UserController extends Controller
         if (!empty($validated['password'])) {
             $validated['password_hash'] = Hash::make($validated['password']);
             unset($validated['password']);
+        }
+
+        // Handle school assignment for updates (similar to create)
+        $currentUser = auth()->user();
+        
+        if ($currentUser && isset($validated['school_id'])) {
+            if (!$currentUser->is_super_admin) {
+                // Regular admin can only assign users to their own school
+                $validated['school_id'] = $currentUser->school_id;
+            }
+            // Super admin can change to any school (validation already handled above)
         }
 
         $user->update($validated);

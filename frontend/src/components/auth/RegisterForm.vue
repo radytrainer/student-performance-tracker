@@ -511,43 +511,20 @@ const availableRoles = [
 const availableSchools = ref([]);
 const isLoadingSchools = ref(false);
 
-// Fetch schools from API
+// Fetch schools from API (use axios client to call backend directly)
+import apiClient from '@/api/axiosConfig'
 const fetchSchools = async () => {
   isLoadingSchools.value = true;
   try {
-    // Replace with your actual API endpoint
-    const response = await fetch("/api/schools");
-    if (response.ok) {
-      const schools = await response.json();
-      availableSchools.value = schools;
-    } else {
-      // Fallback to static data if API fails
-      availableSchools.value = [
-        { id: "1", name: "Passerelles Numeriques Cambodia (PNC)" },
-        { id: "2", name: "Pour un Sourire d'Enfant (PSE)" },
-        { id: "3", name: "Royal University of Phnom Penh (RUPP)" },
-        { id: "4", name: "Institute of Technology of Cambodia (ITC)" },
-        { id: "5", name: "American University of Phnom Penh (AUPP)" },
-        { id: "6", name: "Western University (Cambodia)" },
-        { id: "7", name: "Asia Euro University" },
-        { id: "8", name: "Norton University" },
-      ];
-    }
+    const response = await apiClient.get('/schools')
+    const result = response.data || {}
+    const schools = result.data || []
+    availableSchools.value = schools
   } catch (error) {
-    console.error("Failed to fetch schools:", error);
-    // Fallback to static data on error
-    availableSchools.value = [
-      { id: "1", name: "Passerelles Numeriques Cambodia (PNC)" },
-      { id: "2", name: "Pour un Sourire d'Enfant (PSE)" },
-      { id: "3", name: "Royal University of Phnom Penh (RUPP)" },
-      { id: "4", name: "Institute of Technology of Cambodia (ITC)" },
-      { id: "5", name: "American University of Phnom Penh (AUPP)" },
-      { id: "6", name: "Western University (Cambodia)" },
-      { id: "7", name: "Asia Euro University" },
-      { id: "8", name: "Norton University" },
-    ];
+    console.error('Failed to fetch schools:', error)
+    availableSchools.value = []
   } finally {
-    isLoadingSchools.value = false;
+    isLoadingSchools.value = false
   }
 };
 

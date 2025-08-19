@@ -29,10 +29,11 @@ use App\Http\Controllers\TeacherImportController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-
+Route::get('admin/stats', [App\Http\Controllers\Admin\DashboardController::class, 'stats']);
 // Public routes (no authentication required)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
+Route::get('/schools', [App\Http\Controllers\PublicSchoolController::class, 'index']); // Public schools for registration
 
 // Social Authentication routes (need web middleware for session)
 Route::middleware('web')->group(function () {
@@ -40,18 +41,8 @@ Route::middleware('web')->group(function () {
     Route::get('/auth/social/{provider}/callback', [AuthController::class, 'handleProviderCallback']);
 });
 
-// Temporary public access for testing user management
-Route::get('/users', [UserController::class, 'index']);
-Route::get('/users/{id}', [UserController::class, 'show']);
-Route::get('/students-users', [UserController::class, 'students']);
+// User routes are protected below under auth:sanctum
 
-Route::delete('/users/{id}', [UserController::class, 'destroy']);
-Route::post('/users', [UserController::class, 'store']);
-Route::put('/users/{id}', [UserController::class, 'update']);
-Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
-
-// Active users endpoint for sidebar (public access for now)
-Route::get('/active-users', [UserController::class, 'index']);
 
 // Simple test route
 Route::get('/test', function () {
@@ -75,6 +66,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/students', [StudentController::class, 'store']);
     Route::get('/grades/assessment-types', [GradeController::class, 'assessmentTypes']);
     Route::get('/my-class-subjects', [ClassSubjectController::class, 'myClassSubjects']);
+
+    // Active users endpoint for sidebar (protected)
+    Route::get('/active-users', [UserController::class, 'index']);
+
+    // User Management (protected)
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/users', [UserController::class, 'index']);
+        Route::get('/users/{id}', [UserController::class, 'show']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::put('/users/{id}', [UserController::class, 'update']);
+        Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
+        Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    });
 
     // Auth routes
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -107,8 +111,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/attendance/export', [AttendanceController::class, 'export']);
     Route::get('/attendance/stats', [AttendanceController::class, 'getStats']);
 
+    
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
+
+         // Dashboard Stats
         // User Management
         Route::apiResource('admin/users', UserController::class);
         Route::put('admin/users/{id}', [UserController::class, 'update']);
@@ -143,10 +150,36 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/terms/{term}/set-current', [App\Http\Controllers\Admin\TermController::class, 'setCurrent']);
         Route::get('admin/terms/current', [App\Http\Controllers\Admin\TermController::class, 'getCurrent']);
 
-        // Data Import
+        // Data Import (admin paths)
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
+        Route::post('admin/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
         Route::get('admin/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
+        Route::get('admin/import/subjects-list', [App\Http\Controllers\Admin\DataImportController::class, 'getSubjectsList']);
         Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
+        Route::get('admin/import/uploads', [App\Http\Controllers\Admin\DataImportController::class, 'listUploads']);
+        Route::delete('admin/import/uploads/{id}', [App\Http\Controllers\Admin\DataImportController::class, 'deleteUpload']);
+    });
+
+    // Teacher routes for import and uploads (use same controller with role check)
+    Route::middleware(['role:teacher'])->group(function () {
+        Route::post('teacher/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
+        Route::post('teacher/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
+        Route::get('teacher/import/subjects-list', [App\Http\Controllers\Admin\DataImportController::class, 'getSubjectsList']);
+        Route::get('teacher/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
+        Route::get('teacher/import/uploads', [App\Http\Controllers\Admin\DataImportController::class, 'listUploads']);
+        Route::delete('teacher/import/uploads/{id}', [App\Http\Controllers\Admin\DataImportController::class, 'deleteUpload']);
+    });
+
+    // Super Admin routes
+    Route::prefix('super-admin')->group(function () {
+        Route::get('/schools', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'index']);
+        Route::post('/schools', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'store']);
+        Route::get('/schools/{school}', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'show']);
+        Route::put('/schools/{school}', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'update']);
+        Route::delete('/schools/{school}', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'destroy']);
+        Route::post('/schools/{school}/sub-admins', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'createSubAdmin']);
+        Route::get('/schools/{school}/sub-admins', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'getSubAdmins']);
+        Route::get('/stats', [App\Http\Controllers\SuperAdmin\SchoolController::class, 'getStats']);
     });
 
     // Teacher only routes
