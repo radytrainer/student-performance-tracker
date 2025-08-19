@@ -245,7 +245,7 @@ const kpiData = computed(() => [
     change: '+12%'
   },
   {
-    title: 'Active Courses',
+    title: 'Total Subjects',
     value: adminData.value.activeCourses,
     icon: BookOpen,
     gradient: 'from-green-500 to-green-600',
