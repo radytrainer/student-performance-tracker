@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-screen bg-gray-50">
-    <!-- Main Content -->
+
     <div class="flex-1 overflow-auto p-6">
       <!-- Header -->
       <div class="flex justify-between items-center mb-6">
