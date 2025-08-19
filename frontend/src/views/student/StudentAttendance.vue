@@ -221,7 +221,7 @@ const apiClient = axios.create({
   }
 })
 
-// Add authorization header
+
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('auth_token')
   if (token) {
