@@ -80,7 +80,7 @@
                 <LoginForm
                   v-if="isSignIn"
                   :errors="signInErrors"
-                  :is-loading="authStore.isLoading"
+                  :is-loding="authStore.isLoading"
                   :initial-data="signInData"
                   :auth-error="authStore.error"
                   @submit="handleSignIn"
@@ -261,6 +261,8 @@ const handleRegister = async (formData) => {
       date_of_birth: formData.date_of_birth,
       city: formData.city,
       country: formData.country,
+      // School selection (RegisterForm emits selected school's id)
+      school: formData.school,
     };
 
     await authStore.register(userData);

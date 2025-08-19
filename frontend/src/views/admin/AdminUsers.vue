@@ -64,6 +64,25 @@
               <option value="teacher">Teacher</option>
               <option value="student">Student</option>
             </select>
+            <select
+              v-if="false"
+              v-model="classFilter"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              @change="applyFilters"
+            >
+              <option value="">All Classes</option>
+              <option 
+                v-for="classItem in classes || []" 
+                :key="classItem?.id" 
+                :value="classItem?.id"
+              >
+                {{ classItem?.class_name }}
+              </option>
+            </select>
+            <!-- Temporarily disabled class filter -->
+            <div class="text-sm text-gray-500 px-4 py-2">
+              Class filter temporarily disabled
+            </div>
           </div>
           <div class="flex items-center space-x-3">
             <!-- Bulk Actions -->
@@ -516,8 +535,12 @@ const allUsers = ref([]) // Store all users for local filtering
 const pagination = ref(null)
 const searchQuery = ref('')
 const roleFilter = ref('')
+const classFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
+
+// Classes data
+const classes = ref([])
 
 // Modal states
 const showUserModal = ref(false)
@@ -570,6 +593,20 @@ const filteredUsers = computed(() => {
   // Apply role filter
   if (roleFilter.value) {
     filtered = filtered.filter(user => user.role === roleFilter.value)
+  }
+
+  // Apply class filter
+  if (classFilter.value) {
+    filtered = filtered.filter(user => {
+      if (user.role === 'student' && user.student) {
+        return user.student.current_class_id === parseInt(classFilter.value)
+      } else if (user.role === 'teacher' && user.teacher) {
+        // Check if teacher is assigned to the selected class
+        return user.teacher.classes && Array.isArray(user.teacher.classes) && 
+               user.teacher.classes.some(cls => cls?.id === parseInt(classFilter.value))
+      }
+      return false
+    })
   }
 
   return filtered
@@ -703,6 +740,19 @@ const applyFilters = () => {
   currentPage.value = 1
   searchQuery.value = '' // Clear search when changing filters
   loadUsers()
+}
+
+const loadClasses = async () => {
+  try {
+    console.log('Loading classes...')
+    const response = await adminAPI.getClasses()
+    console.log('Classes API response:', response.data)
+    classes.value = response.data.data || response.data || []
+    console.log('Classes set to:', classes.value)
+  } catch (err) {
+    console.error('Error loading classes:', err)
+    classes.value = [] // Ensure classes is always an array
+  }
 }
 
 const changePage = (page) => {
@@ -973,12 +1023,17 @@ const bulkDeactivate = async () => {
 }
 
 // Watch for search/filter changes to reset pagination
-watch([searchQuery, roleFilter], () => {
+watch([searchQuery, roleFilter, classFilter], () => {
   currentPage.value = 1
   selectedUsers.value = [] // Clear selection when filtering
 })
 
-onMounted(() => {
-  loadUsers()
+onMounted(async () => {
+  try {
+    await loadUsers()
+    // await loadClasses() // Temporarily disabled
+  } catch (error) {
+    console.error('Error during component initialization:', error)
+  }
 })
 </script>

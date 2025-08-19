@@ -146,22 +146,39 @@
               <input id="import-type-overwrite" v-model="importSettings.type" type="radio" value="overwrite" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
               <label for="import-type-overwrite" class="ml-3 block text-sm font-medium text-gray-700">Overwrite all records</label>
             </div>
+            <button @click="clearFile" class="text-gray-400 hover:text-gray-600">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-        </div>
-        
-        <div>
-          <label for="duplicate-handling" class="block text-sm font-medium text-gray-700">Duplicate Handling</label>
-          <select id="duplicate-handling" v-model="importSettings.duplicateHandling" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-            <option value="skip">Skip duplicates</option>
-            <option value="update">Update duplicates</option>
-            <option value="create">Create new records</option>
-          </select>
-        </div>
-        
-        <div>
-          <div class="flex items-center">
-            <input id="send-notifications" v-model="importSettings.sendNotifications" type="checkbox" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
-            <label for="send-notifications" class="ml-2 block text-sm text-gray-700">Send welcome notifications to new students</label>
+
+          <!-- Default Class -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Class (optional)</label>
+            <select v-model="defaultClassId" class="w-full border rounded p-2 text-sm">
+              <option value="">Select class</option>
+              <option v-for="cls in classes" :key="cls.id" :value="cls.id">
+                {{ cls.class_name }}
+              </option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500">
+              If your file has <code>current_class_id</code> column, that value will be used.
+              Otherwise this default class will be applied to every row.
+            </p>
+          </div>
+
+          <!-- Import Btn -->
+          <button
+            @click="importStudents"
+            :disabled="!selectedFile || importing"
+            class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            <span v-if="importing"><i class="fas fa-spinner fa-spin mr-2"></i> Importing...</span>
+            <span v-else><i class="fas fa-upload mr-2"></i> Import Students</span>
+          </button>
+
+          <!-- Template hint -->
+          <div class="text-xs text-gray-500">
+            Required headers: <code>first_name,last_name,username,email,student_code,date_of_birth,gender,address,parent_name,parent_phone,enrollment_date,current_class_id</code>
           </div>
         </div>
         
@@ -243,6 +260,8 @@
               Row {{ error.row }}: {{ error.message }}
             </li>
           </ul>
+
+          <button @click="loadImportHistory" class="mt-4 text-blue-600 hover:underline">Refresh</button>
         </div>
       </div>
       
@@ -331,267 +350,141 @@
       </div>
     </div>
   </div>
+
+  <!-- Errors modal -->
+  <div v-if="showErrors" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold">Import errors</h3>
+        <button @click="showErrors=false" class="text-gray-600 hover:text-gray-800">✕</button>
+      </div>
+      <div class="max-h-80 overflow-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left border-b">
+              <th class="py-2 pr-3">Row</th>
+              <th class="py-2">Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(e,i) in errorsList" :key="i" class="border-b">
+              <td class="py-2 pr-3">{{ e.row ?? '-' }}</td>
+              <td class="py-2">{{ e.message ?? e }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-3 text-right">
+        <button @click="showErrors=false" class="bg-blue-600 text-white px-4 py-2 rounded">Close</button>
+      </div>
+    </div>
+  </div>
 </template>
 
-<script>
-import teacherApi from "@/api/teacher";
+<script setup>
+import { ref, onMounted } from 'vue'
+import dayjs from 'dayjs'
+import { teacherAPI } from '@/api/teacher'
 
-export default {
-  name: "TeacherImport",
-  data() {
-    return {
-      // Stepper
-      currentStep: 0,
-      steps: [
-        { label: "Upload File", completed: false },
-        { label: "Data Preview", completed: false },
-        { label: "Settings", completed: false },
-        { label: "Import", completed: false }
-      ],
-      
-      // File handling
-      file: null,
-      previewLoading: false,
-      previewHeaders: [],
-      previewData: [],
-      totalRows: 0,
-      
-      // Import settings
-      importSettings: {
-        type: "add",
-        duplicateHandling: "skip",
-        sendNotifications: true,
-        name: ""
-      },
+const selectedFile = ref(null)
+const defaultClassId = ref('')
+const classes = ref([])
+const importing = ref(false)
+const successMessage = ref('')
+const error = ref('')
+const importHistory = ref([])
+const loadingHistory = ref(false)
 
-      importStatus: null, // null, 'processing', 'success', 'error'
-      progress: 0,
-      importResult: null,
-      
-      // History
-      history: [],
-      historyLoading: false,
-      
-      // Simulated progress interval
-      progressInterval: null
-    };
-  },
-  methods: {
-    // File handling
-    handleFileUpload(event) {
-      this.file = event.target.files[0];
-      this.loadPreview();
-    },
-    
-    removeFile() {
-      this.file = null;
-      this.previewHeaders = [];
-      this.previewData = [];
-    },
-    
-    async loadPreview() {
-      if (!this.file) return;
-      
-      this.previewLoading = true;
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        this.previewHeaders = ['ID', 'Name', 'Email', 'Class'];
-        this.previewData = [
-          ['001', 'John Doe', 'john@example.com', 'Grade 10'],
-          ['002', 'Jane Smith', 'jane@example.com', 'Grade 11'],
-          ['003', 'Bob Johnson', 'bob@example.com', 'Grade 9'],
-          ['004', 'Alice Williams', 'alice@example.com', 'Grade 12'],
-          ['005', 'Charlie Brown', 'charlie@example.com', 'Grade 10']
-        ];
-        this.totalRows = 125; // Mock total rows
-        
-      } catch (error) {
-        console.error("Error loading preview:", error);
-        this.error = "Failed to load file preview";
-      } finally {
-        this.previewLoading = false;
-      }
-    },
-    
-    // Stepper navigation
-    nextStep() {
-      if (this.currentStep < this.steps.length - 1) {
-        this.currentStep++;
-      }
-    },
-    
-    prevStep() {
-      if (this.currentStep > 0) {
-        this.currentStep--;
-      }
-    },
-    
-    goToStep(index) {
-      if (index < this.currentStep) {
-        this.currentStep = index;
-      }
-    },
-    
-    // Import process
-    async confirmImport() {
-      this.importStatus = 'processing';
-      this.progress = 0;
-      this.nextStep();
-      
-      // Start progress simulation
-      this.progressInterval = setInterval(() => {
-        if (this.progress < 90) {
-          this.progress += Math.floor(Math.random() * 10) + 1;
-          if (this.progress > 90) this.progress = 90;
-        }
-      }, 500);
-      
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Clear interval and set to 100%
-        clearInterval(this.progressInterval);
-        this.progress = 100;
-        
-        // Mock result - replace with actual API response
-        this.importResult = {
-          total: 125,
-          success: 120,
-          skipped: 3,
-          failed: 2,
-          errors: [
-            { row: 23, message: "Invalid email format" },
-            { row: 56, message: "Missing required field: name" }
-          ]
-        };
-        
-        this.importStatus = 'success';
-        await this.fetchHistory();
-        
-      } catch (error) {
-        clearInterval(this.progressInterval);
-        this.importStatus = 'error';
-        this.importResult = {
-          error: error.message || "Import failed"
-        };
-      }
-    },
-    
-    startNewImport() {
-      this.currentStep = 0;
-      this.file = null;
-      this.previewHeaders = [];
-      this.previewData = [];
-      this.importSettings = {
-        type: "add",
-        duplicateHandling: "skip",
-        sendNotifications: true,
-        name: ""
-      };
-      this.importStatus = null;
-      this.progress = 0;
-      this.importResult = null;
-    },
-    
-    // History
-    async fetchHistory() {
-      this.historyLoading = true;
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Mock data - replace with actual API response
-        this.history = [
-          {
-            id: 1,
-            created_at: new Date(),
-            name: "Fall 2023 Enrollment",
-            import_type: "add",
-            records_processed: 120,
-            status: "completed"
-          },
-          {
-            id: 2,
-            created_at: new Date(Date.now() - 86400000),
-            name: "Student Updates",
-            import_type: "update",
-            records_processed: 45,
-            status: "completed"
-          },
-          {
-            id: 3,
-            created_at: new Date(Date.now() - 172800000),
-            name: "",
-            import_type: "overwrite",
-            records_processed: 0,
-            status: "failed"
-          }
-        ];
-        
-      } catch (error) {
-        console.error("Error fetching history:", error);
-        this.history = [];
-      } finally {
-        this.historyLoading = false;
-      }
-    },
-    
-    async refreshHistory() {
-      await this.fetchHistory();
-    },
-    
-    viewImportDetails(item) {
-      // In a real app, you might navigate to a details view or show a modal
-      alert(`Viewing details for import #${item.id}`);
-    },
-    
-    downloadImportReport(item) {
-      // In a real app, this would download a report file
-      alert(`Downloading report for import #${item.id}`);
-    },
-    
-    // Utility methods
-    formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    },
-    
-    formatFileSize(bytes) {
-      if (bytes === 0) return '0 Bytes';
-      const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i])
-    },
-    
-    formatImportType(type) {
-      const types = {
-        add: 'Add New',
-        update: 'Update',
-        overwrite: 'Overwrite'
-      };
-      return types[type] || type;
-    },
-    
-    getStatusClass(status) {
-      const classes = {
-        completed: 'bg-green-100 text-green-800',
-        processing: 'bg-blue-100 text-blue-800',
-        failed: 'bg-red-100 text-red-800'
-      };
-      return classes[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
-    }
-  },
-  mounted() {
-    this.fetchHistory();
-  },
-  beforeUnmount() {
-    if (this.progressInterval) {
-      clearInterval(this.progressInterval);
-    }
+// File select
+const handleFileSelect = (e) => { selectedFile.value = e.target.files[0] }
+const clearFile = () => { selectedFile.value = null }
+
+// Helpers
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let i = 0
+  while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++ }
+  return `${bytes.toFixed(2)} ${units[i]}`
+}
+
+const prettyJson = (raw) => {
+  try {
+    if (typeof raw === 'string') return JSON.stringify(JSON.parse(raw), null, 2)
+    return JSON.stringify(raw, null, 2)
+  } catch { return raw }
+}
+
+const formatDate = (d) => (d ? dayjs(d).format('YYYY-MM-DD HH:mm') : '')
+
+// Load classes
+const loadClasses = async () => {
+  try {
+    const res = await teacherAPI.getClasses()
+    classes.value = res.data?.data ?? res.data ?? []
+  } catch (err) {
+    console.error(err)
+    error.value = 'Failed to load classes'
   }
-};
+}
+
+// Load history
+const loadImportHistory = async () => {
+  try {
+    loadingHistory.value = true
+    const res = await teacherAPI.getImportHistory()
+    importHistory.value = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
+  } catch (err) {
+    console.error(err)
+    error.value = 'Failed to load import history'
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+// Import
+const importStudents = async () => {
+  if (!selectedFile.value) {
+    error.value = 'Please select a file'
+    return
+  }
+  
+  try {
+    importing.value = true
+    error.value = ''
+    successMessage.value = ''
+
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    if (defaultClassId.value) {
+      formData.append('default_class_id', defaultClassId.value)
+    }
+
+    const res = await teacherAPI.importStudents(formData)
+
+    successMessage.value = res.data.message || 'Import completed successfully'
+    if (res.data.errors && res.data.errors.length > 0) {
+      successMessage.value += `, but with ${res.data.errors.length} errors`
+    }
+    
+    // Clear form
+    selectedFile.value = null
+    defaultClassId.value = ''
+    
+    // Refresh history
+    await loadImportHistory()
+  } catch (err) {
+    console.error(err)
+    error.value = err.response?.data?.message || 
+                 err.response?.data?.error || 
+                 'Import failed. Please check your file and try again.'
+  } finally {
+    importing.value = false
+  }
+}
+
+onMounted(() => {
+  loadClasses()
+  loadImportHistory()
+})
 </script>

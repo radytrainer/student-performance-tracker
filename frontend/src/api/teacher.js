@@ -1,16 +1,39 @@
-// src/api/teacher.js
 import apiClient from './axiosConfig'
 
-export default {
-  async importStudents(file) {
-    const formData = new FormData()
-    formData.append('file', file)
+export const teacherAPI = {
+  // Classes for the current teacher
+  getClasses() {
+    return apiClient.get('/attendance/my-classes')
+  },
 
-    return apiClient.post('/teacher/import-students', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+  // Basic teacher import endpoints
+  getImportHistory() {
+    return apiClient.get('/teacher/import-history')
+  },
+  importStudents(formData) {
+    // Use unified teacher import endpoint (same behavior as admin import)
+    return apiClient.post('/teacher/import/students', formData)
+  },
+
+  // Advanced import workflow using admin endpoints (teachers are allowed)
+  uploadFileOnly(formData) {
+    return apiClient.post('/teacher/import/upload-file', formData)
+  },
+  getUploadedFiles(params = {}) {
+    return apiClient.get('/teacher/import/uploads', { params })
+  },
+  deleteUploadedFile(id) {
+    return apiClient.delete(`/teacher/import/uploads/${id}`)
+  },
+  getSubjectsForImport() {
+    return apiClient.get('/teacher/import/subjects-list')
+  },
+  importStudentsFromUpload(formData) {
+    // Supports uploaded_file_id, default_class_id, sheet_name, subject_ids[]
+    return apiClient.post('/teacher/import/students', formData)
+  },
+  getImportTemplate(type = 'students') {
+    return apiClient.get('/teacher/import/template', { params: { type } })
   },
 
   async getImportHistory() {
