@@ -418,7 +418,7 @@ const exportToPDF = async () => {
     const imgWidth = pageWidth - 80;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    // Table position
+    
     const tableY = 130;
     pdf.addImage(imgData, 'PNG', 40, tableY, imgWidth, imgHeight);
 
