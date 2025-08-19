@@ -428,7 +428,6 @@ const exportToPDF = async () => {
     pdf.setFontSize(10);
     pdf.setTextColor(100);
     
-    // Footer notes
     pdf.text("Notes:", 40, footerY);
     pdf.text("- Absences require parental note within 3 days", 40, footerY + 15);
     pdf.text("- Late arrivals marked after 8:15 AM", 40, footerY + 30);
