@@ -206,7 +206,7 @@
 </template>
 
 <script setup>
-// Vue + Axios
+
 import { ref, computed, onMounted, nextTick } from 'vue'
 import axios from 'axios'
 import jsPDF from 'jspdf'
