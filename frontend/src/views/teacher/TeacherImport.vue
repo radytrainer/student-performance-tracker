@@ -295,15 +295,10 @@
   </div>
 </template>
 
-<<<<<<< HEAD
 <script setup>
 import { ref, onMounted } from 'vue'
 // import dayjs from 'dayjs' // Not installed, using native Date
 import { teacherAPI } from '@/api/teacher'
-=======
-<script>
-import { teacherAPI as teacherApi } from "@/api/teacher";
->>>>>>> main
 
 // State
 const selectedFile = ref(null)
@@ -330,35 +325,6 @@ const loadingUploads = ref(false)
 let uploadsPage = 1
 const uploadsPerPage = 10
 
-<<<<<<< HEAD
-const prettyJson = (raw) => {
-  try {
-    if (typeof raw === 'string') return JSON.stringify(JSON.parse(raw), null, 2)
-    return JSON.stringify(raw, null, 2)
-  } catch { return raw }
-}
-
-const formatDate = (d) => {
-  if (!d) return ''
-  const date = new Date(d)
-  return date.toLocaleString('en-CA', { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit', 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  }).replace(',', '')
-}
-
-// Load classes
-const loadClasses = async () => {
-  try {
-    const res = await teacherAPI.getClasses()
-    classes.value = res.data?.data ?? res.data ?? []
-  } catch (err) {
-    console.error(err)
-    error.value = 'Failed to load classes'
-=======
 // Methods
 const handleFileSelect = (event) => {
   const file = event.target.files[0]
@@ -426,7 +392,6 @@ const loadSubjects = async () => {
     subjects.value = response.data.data || []
   } catch (err) {
     console.error('Error loading subjects:', err)
->>>>>>> main
   }
 }
 
