@@ -787,11 +787,11 @@ const downloadEditedCsv = () => {
 const uploadEditedCsv = async () => {
   try {
     const csv = toCsv(editorHeaders.value, editorRows.value)
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const file = new File([blob], 'edited_' + editorFileName.value, { type: 'text/csv' })
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const filename = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
     const form = new FormData()
-    form.append('file', file)
-    form.append('label', file.name)
+    form.append('file', blob, filename)
+    form.append('label', filename)
     if (schoolId.value) form.append('school_id', schoolId.value)
     await teacherAPI.uploadFileOnly(form)
     showSuccessMessage('Edited file uploaded')
@@ -806,11 +806,11 @@ const importEditedCsv = async () => {
   try {
     // Upload edited first, then import by id
     const csv = toCsv(editorHeaders.value, editorRows.value)
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const file = new File([blob], 'edited_' + editorFileName.value, { type: 'text/csv' })
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const filename = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
     const form = new FormData()
-    form.append('file', file)
-    form.append('label', file.name)
+    form.append('file', blob, filename)
+    form.append('label', filename)
     if (schoolId.value) form.append('school_id', schoolId.value)
     const resp = await teacherAPI.uploadFileOnly(form)
     // Try to detect id from response; fallback by reloading and taking most recent
