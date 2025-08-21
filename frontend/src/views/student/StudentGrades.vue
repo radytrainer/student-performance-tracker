@@ -1,9 +1,9 @@
 <template>
   <div class="max-w-7xl mx-auto p-2">
-      <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-800">My Grade</h1>
-          <p class="text-gray-600 mt-1">View your grade recode</p>
-        </div>
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-gray-800">My Grade</h1>
+      <p class="text-gray-600 mt-1">View your grade records</p>
+    </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
@@ -35,106 +35,160 @@
 
     <!-- Main Content -->
     <div v-else>
+      <!-- ✅ Wrap Exportable Content -->
+      <div id="grade-export-content">
+        <div class="bg-white shadow-md rounded-lg p-4 mb-4 border">
+          <p><strong>Name:</strong> {{ student.name }}</p>
+          <p><strong>Class:</strong> {{ student.class }}</p>
+          <p><strong>Term:</strong> {{ currentTermName }}</p>
+        </div>
 
+        <h3 class="text-2xl font-bold mb-4 text-center">📊 Performance Summary</h3>
 
-    <!-- ✅ Wrap Exportable Content -->
-    <div id="grade-export-content">
-      <div class="bg-white shadow-md rounded-lg p-4 mb-4 border">
-        <p><strong>Name:</strong> {{ student.name }}</p>
-        <p><strong>Class:</strong> {{ student.class }}</p>
-        <p><strong>Term:</strong> {{ currentTermName }}</p>
+        <!-- Enhanced Performance Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <!-- GPA Card -->
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 shadow border border-blue-200 relative overflow-hidden">
+            <div class="absolute top-4 right-4 text-blue-200 text-4xl">🎯</div>
+            <div class="mb-2">
+              <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">GPA</p>
+              <p class="text-3xl font-bold text-blue-800">{{ gpa.toFixed(2) }}</p>
+            </div>
+            <div class="w-full bg-blue-200 rounded-full h-2.5 mt-2">
+              <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: (gpa / 4 * 100) + '%' }"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Out of 4.0 scale</p>
+          </div>
+
+          <!-- Best Subject Card -->
+          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 shadow border border-green-200 relative overflow-hidden">
+            <div class="absolute top-4 right-4 text-green-200 text-4xl">📈</div>
+            <div class="mb-2">
+              <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">Best Subject</p>
+              <p class="text-xl font-bold text-green-800 truncate">{{ bestSubject.name || '—' }}</p>
+            </div>
+            <p class="text-2xl font-bold text-green-700">{{ bestSubject.score || 0 }}%</p>
+            <p class="text-xs text-gray-500 mt-1">{{ bestSubject.grade || '' }}</p>
+          </div>
+
+          <!-- Weakest Subject Card -->
+          <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-5 shadow border border-red-200 relative overflow-hidden">
+            <div class="absolute top-4 right-4 text-red-200 text-4xl">📉</div>
+            <div class="mb-2">
+              <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">Improvement</p>
+              <p class="text-xl font-bold text-red-800 truncate">{{ weakestSubject.name || '—' }}</p>
+            </div>
+            <p class="text-2xl font-bold text-red-700">{{ weakestSubject.score || 0 }}%</p>
+            <p class="text-xs text-gray-500 mt-1">{{ weakestSubject.grade || '' }}</p>
+          </div>
+
+          <!-- Overall Performance Card -->
+          <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 shadow border border-purple-200 relative overflow-hidden">
+            <div class="absolute top-4 right-4 text-purple-200 text-4xl">📚</div>
+            <div class="mb-2">
+              <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">Overall</p>
+              <p class="text-xl font-bold text-purple-800">{{ overallPerformance.level }}</p>
+            </div>
+            <p class="text-2xl font-bold text-purple-700">{{ overallPerformance.score }}%</p>
+            <p class="text-xs text-gray-500 mt-1">{{ filteredGrades.length }} assessments</p>
+          </div>
+        </div>
+
+        <!-- Subject Performance Breakdown -->
+        <div class="bg-white rounded-xl shadow-md p-5 mb-6 border">
+          <h4 class="text-lg font-semibold text-gray-800 mb-4">Subject Performance Breakdown</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="(subject, index) in subjectPerformance" :key="index" 
+                 class="border rounded-lg p-3 hover:shadow-md transition-shadow">
+              <div class="flex justify-between items-center mb-2">
+                <span class="font-medium text-gray-700">{{ subject.name }}</span>
+                <span class="text-sm font-semibold px-2 py-1 rounded-full" 
+                      :class="gradeColor(subject.grade)">{{ subject.grade }}</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                <div class="h-2.5 rounded-full" 
+                     :class="getScoreColorClass(subject.score)" 
+                     :style="{ width: subject.score + '%' }"></div>
+              </div>
+              <div class="flex justify-between text-xs text-gray-500">
+                <span>{{ subject.score.toFixed(1) }}%</span>
+                <span>{{ subject.count }} assessments</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+          <div class="flex-1">
+            <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">📚 Filter by Subject</label>
+            <select id="subject" v-model="selectedSubject" class="w-full border rounded-lg p-2">
+              <option value="">All Subjects</option>
+              <option v-for="subject in subjectList" :key="subject" :value="subject">{{ subject }}</option>
+            </select>
+          </div>
+
+          <div class="flex-1">
+            <label for="term" class="block text-sm font-medium text-gray-700 mb-1">📅 Filter by Term</label>
+            <select id="term" v-model="selectedTermId" class="w-full border rounded-lg p-2">
+              <option value="">All Terms</option>
+              <option v-for="term in termList" :key="term.id" :value="term.id">{{ term.name }}</option>
+            </select>
+          </div>
+
+          <div class="md:self-end">
+            <button @click="exportToPDF" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export as PDF
+            </button>
+          </div>
+        </div>
+
+        <div v-if="filteredGrades.length === 0" class="text-center text-red-500 mt-6">
+          ❌ No grades found for selected filters.
+        </div>
+
+        <div v-else class="overflow-x-auto rounded-lg shadow">
+          <table class="min-w-full bg-white border">
+            <thead>
+              <tr class="bg-gray-100 text-left text-sm font-semibold text-gray-700">
+                <th class="px-4 py-2">Subject</th>
+                <th class="px-4 py-2">Assessment</th>
+                <th class="px-4 py-2">Score</th>
+                <th class="px-4 py-2">Weightage (%)</th>
+                <th class="px-4 py-2">Grade</th>
+                <th class="px-4 py-2">Remarks</th>
+                <th class="px-4 py-2">Recorded By</th>
+                <th class="px-4 py-2">Recorded At</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="grade in filteredGrades" :key="grade.id" class="border-t hover:bg-gray-50 text-sm">
+                <td class="px-4 py-2">{{ grade.subject }}</td>
+                <td class="px-4 py-2">{{ grade.assessment_type }}</td>
+                <td class="px-4 py-2">
+                  {{ grade.score_obtained }} / {{ grade.max_score }}
+                  <div class="w-full bg-gray-200 h-2 mt-1 rounded">
+                    <div class="h-2 rounded"
+                         :class="getScoreColorClass((grade.score_obtained / grade.max_score) * 100)"
+                         :style="{ width: ((grade.score_obtained / grade.max_score) * 100) + '%' }" />
+                  </div>
+                </td>
+                <td class="px-4 py-2">{{ grade.weightage }}%</td>
+                <td class="px-4 py-2">
+                  <span class="text-xs font-medium px-2 py-1 rounded-full" :class="gradeColor(grade.grade_letter)">
+                    {{ grade.grade_letter }}
+                  </span>
+                </td>
+                <td class="px-4 py-2 italic text-gray-600">{{ grade.remarks || '—' }}</td>
+                <td class="px-4 py-2">{{ grade.recorded_by || 'Unknown' }}</td>
+                <td class="px-4 py-2 text-xs text-gray-500">{{ formatDate(grade.recorded_at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      <h3 class="text-2xl font-bold mb-4 text-center">📊 Performance Summary</h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-        <div class="bg-blue-50 rounded-xl p-5 shadow text-center border border-blue-200">
-          <div class="text-4xl mb-2">🎯</div>
-          <p class="text-gray-500 font-semibold text-sm">GPA</p>
-          <p class="text-2xl font-bold text-blue-800">{{ gpa.toFixed(2) }}</p>
-        </div>
-
-        <div class="bg-green-50 rounded-xl p-5 shadow text-center border border-green-200">
-          <div class="text-4xl mb-2">📈</div>
-          <p class="text-gray-500 font-semibold text-sm">Best Subject</p>
-          <p class="text-xl font-bold text-green-700">{{ bestSubject || '—' }}</p>
-        </div>
-
-        <div class="bg-red-50 rounded-xl p-5 shadow text-center border border-red-200">
-          <div class="text-4xl mb-2">📉</div>
-          <p class="text-gray-500 font-semibold text-sm">Weakest Subject</p>
-          <p class="text-xl font-bold text-red-600">{{ weakestSubject || '—' }}</p>
-        </div>
-      </div>
-
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-        <div class="flex-1">
-          <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">📚 Filter by Subject</label>
-          <select id="subject" v-model="selectedSubject" class="w-full border rounded-lg p-2">
-            <option value="">All Subjects</option>
-            <option v-for="subject in subjectList" :key="subject" :value="subject">{{ subject }}</option>
-          </select>
-        </div>
-
-        <div class="flex-1">
-          <label for="term" class="block text-sm font-medium text-gray-700 mb-1">📅 Filter by Term</label>
-          <select id="term" v-model="selectedTermId" class="w-full border rounded-lg p-2">
-            <option value="">All Terms</option>
-            <option v-for="term in termList" :key="term.id" :value="term.id">{{ term.name }}</option>
-          </select>
-        </div>
-
-        <div class="md:self-end">
-          <button @click="exportToPDF" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-            📤 Export as PDF
-          </button>
-        </div>
-      </div>
-
-      <div v-if="filteredGrades.length === 0" class="text-center text-red-500 mt-6">
-        ❌ No grades found for selected filters.
-      </div>
-
-      <div v-else class="overflow-x-auto rounded-lg shadow">
-        <table class="min-w-full bg-white border">
-          <thead>
-            <tr class="bg-gray-100 text-left text-sm font-semibold text-gray-700">
-              <th class="px-4 py-2">Subject</th>
-              <th class="px-4 py-2">Assessment</th>
-              <th class="px-4 py-2">Score</th>
-              <th class="px-4 py-2">Weightage (%)</th>
-              <th class="px-4 py-2">Grade</th>
-              <th class="px-4 py-2">Remarks</th>
-              <th class="px-4 py-2">Recorded By</th>
-              <th class="px-4 py-2">Recorded At</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="grade in filteredGrades" :key="grade.id" class="border-t hover:bg-gray-50 text-sm">
-              <td class="px-4 py-2">{{ grade.subject }}</td>
-              <td class="px-4 py-2">{{ grade.assessment_type }}</td>
-              <td class="px-4 py-2">
-                {{ grade.score_obtained }} / {{ grade.max_score }}
-                <div class="w-full bg-gray-200 h-2 mt-1 rounded">
-                  <div class="bg-green-500 h-2 rounded"
-                    :style="{ width: ((grade.score_obtained / grade.max_score) * 100) + '%' }" />
-                </div>
-              </td>
-              <td class="px-4 py-2">{{ grade.weightage }}%</td>
-              <td class="px-4 py-2">
-                <span class="text-xs font-medium px-2 py-1 rounded-full" :class="gradeColor(grade.grade_letter)">
-                  {{ grade.grade_letter }}
-                </span>
-              </td>
-              <td class="px-4 py-2 italic text-gray-600">{{ grade.remarks || '—' }}</td>
-              <td class="px-4 py-2">{{ grade.recorded_by || 'Unknown' }}</td>
-              <td class="px-4 py-2 text-xs text-gray-500">{{ formatDate(grade.recorded_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    
     </div> <!-- End Main Content -->
   </div>
 </template>
@@ -142,8 +196,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from "@/stores/auth"
-import gradesAPI from "@/api/grades"
-// import html2pdf from 'html2pdf.js' // TODO: Install html2pdf.js for PDF export
 
 const authStore = useAuthStore()
 
@@ -165,65 +217,6 @@ const termList = [
   { id: 3, name: 'Term 3' },
 ]
 const selectedTermId = ref('')
-// const selectedSubject = ref('')
-
-// Simulated current student ID from auth or route
-const currentStudentId = ref(null)
-
-// Fetch grades
-const fetchGrades = async () => {
-  try {
-    const { data } = await gradeService.getAllGrades()
-    grades.value = data.map(g => ({
-      id: g.id,
-      subject: g.class_subject?.subject?.name || 'Unknown',
-      term_id: g.term_id,
-      assessment_type: g.assessment_type,
-      max_score: g.max_score,
-      score_obtained: g.score_obtained,
-      weightage: g.weightage,
-      grade_letter: g.grade_letter,
-      remarks: g.remarks,
-      recorded_by: g.recorded_by,
-      recorded_at: g.recorded_at,
-    }))
-  } catch (err) {
-    console.error('Failed to fetch grades:', err)
-  }
-}
-
-// Fetch current student info (from token or static ID)
-const fetchStudent = async () => {
-  try {
-    const tokenData = JSON.parse(localStorage.getItem('user')) // or decode JWT token
-    const id = tokenData?.id
-    if (!id) throw new Error('Student ID not found')
-
-    currentStudentId.value = id
-
-    const { data } = await studentService.getStudent(id)
-    student.value = {
-      name: `${data.first_name} ${data.last_name}`,
-      class: data.class?.name || '—'
-    }
-  } catch (err) {
-    console.error('Failed to fetch student info:', err)
-  }
-}
-
-// Call both fetchers on mount
-onMounted(() => {
-  fetchStudent()
-  fetchGrades()
-})
-
-// Computed values
-const currentTermName = computed(() => {
-  const term = termList.find(t => t.id === Number(selectedTermId.value))
-  return term ? term.name : 'All Terms'
-})
-
-// Subject filter
 const selectedSubject = ref('')
 
 // Grade list - loaded from API
@@ -231,103 +224,7 @@ const grades = ref([])
 const gradeSummary = ref(null)
 const studentGPA = ref(0)
 
-const subjectList = computed(() => {
-  const filtered = selectedTermId.value
-    ? grades.value.filter(g => g.term_id === Number(selectedTermId.value))
-    : grades.value
-  return [...new Set(filtered.map(g => g.subject))]
-})
-
-const filteredGrades = computed(() => {
-  let result = grades.value
-  if (selectedTermId.value) {
-    result = result.filter(g => g.term_id === Number(selectedTermId.value))
-  }
-  if (selectedSubject.value) {
-    result = result.filter(g => g.subject === selectedSubject.value)
-  }
-  return result
-})
-
-const gradeColor = (letter) => {
-  return {
-    A: 'bg-green-100 text-green-800',
-    B: 'bg-blue-100 text-blue-800',
-    C: 'bg-yellow-100 text-yellow-800',
-    D: 'bg-orange-100 text-orange-800',
-    F: 'bg-red-100 text-red-800',
-  }[letter] || 'bg-gray-100 text-gray-700'
-}
-
-const formatDate = (str) => new Date(str).toLocaleDateString()
-
-const exportToPDF = () => {
-  const element = document.getElementById('grade-export-content')
-  const options = {
-    margin: 0.5,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-  }
-  html2pdf().from(element).set(options).save()
-}
-
-// GPA + Performance
-const gpa = computed(() => {
-  // Use API GPA if available, otherwise calculate from filtered grades
-  if (studentGPA.value && !selectedTermId.value && !selectedSubject.value) {
-    return studentGPA.value
-  }
-  
-  if (!filteredGrades.value.length) return 0
-  const totalPoints = filteredGrades.value.reduce((sum, g) => {
-    const gradePoint = {
-      A: 4.0, B: 3.0, C: 2.0, D: 1.0, F: 0.0
-    }[g.grade_letter] || 0
-    return sum + gradePoint
-  }, 0)
-  return totalPoints / filteredGrades.value.length
-})
-
-const bestSubject = computed(() => {
-  // Use API summary if available and no filters applied
-  if (gradeSummary.value?.best_subject && !selectedTermId.value && !selectedSubject.value) {
-    return gradeSummary.value.best_subject
-  }
-
-  const subjects = {}
-  filteredGrades.value.forEach(g => {
-    if (!subjects[g.subject]) subjects[g.subject] = []
-    subjects[g.subject].push(g)
-  })
-  const averages = Object.entries(subjects).map(([subject, grades]) => {
-    const total = grades.reduce((s, g) => s + ((g.score_obtained / g.max_score) * 100), 0)
-    return { subject, avg: total / grades.length }
-  })
-  if (!averages.length) return null
-  return averages.sort((a, b) => b.avg - a.avg)[0].subject
-})
-
-const weakestSubject = computed(() => {
-  // Use API summary if available and no filters applied
-  if (gradeSummary.value?.weakest_subject && !selectedTermId.value && !selectedSubject.value) {
-    return gradeSummary.value.weakest_subject
-  }
-
-  const subjects = {}
-  filteredGrades.value.forEach(g => {
-    if (!subjects[g.subject]) subjects[g.subject] = []
-    subjects[g.subject].push(g)
-  })
-  const averages = Object.entries(subjects).map(([subject, grades]) => {
-    const total = grades.reduce((s, g) => s + ((g.score_obtained / g.max_score) * 100), 0)
-    return { subject, avg: total / grades.length }
-  })
-  if (!averages.length) return null
-  return averages.sort((a, b) => a.avg - b.avg)[0].subject
-})
-
-// Mock data for testing (same as ProfileView)
+// Mock data for testing
 const mockGradesData = {
   grades: [
     {
@@ -364,16 +261,191 @@ const mockGradesData = {
       grade_letter: 'B', letter_grade: 'B', grade: 'B',
       remarks: 'Good practical skills', recorded_by: 'Teacher B', recorded_at: '2025-07-18',
       date: '2025-07-18', assessment: 'Lab Test'
+    },
+    {
+      id: 6, subject: 'History', term_id: 2, assessment_type: 'Essay',
+      max_score: 50, score_obtained: 32, score: 32, total: 50, weightage: 25, 
+      grade_letter: 'D', letter_grade: 'D', grade: 'D',
+      remarks: 'Needs more detail', recorded_by: 'Teacher D', recorded_at: '2025-07-22',
+      date: '2025-07-22', assessment: 'Essay'
     }
   ],
   summary: {
     best_subject: 'English',
     weakest_subject: 'Science',
-    total_assessments: 5,
+    total_assessments: 6,
     average_score: 82.6
   },
   gpa: 3.4
 };
+
+// Computed values
+const currentTermName = computed(() => {
+  const term = termList.find(t => t.id === Number(selectedTermId.value))
+  return term ? term.name : 'All Terms'
+})
+
+const subjectList = computed(() => {
+  const filtered = selectedTermId.value
+    ? grades.value.filter(g => g.term_id === Number(selectedTermId.value))
+    : grades.value
+  return [...new Set(filtered.map(g => g.subject))]
+})
+
+const filteredGrades = computed(() => {
+  let result = grades.value
+  if (selectedTermId.value) {
+    result = result.filter(g => g.term_id === Number(selectedTermId.value))
+  }
+  if (selectedSubject.value) {
+    result = result.filter(g => g.subject === selectedSubject.value)
+  }
+  return result
+})
+
+// Calculate subject performance data
+const subjectPerformance = computed(() => {
+  const subjects = {}
+  
+  // Group grades by subject
+  filteredGrades.value.forEach(grade => {
+    if (!subjects[grade.subject]) {
+      subjects[grade.subject] = {
+        name: grade.subject,
+        totalScore: 0,
+        maxScore: 0,
+        count: 0,
+        grades: []
+      }
+    }
+    
+    const percentage = (grade.score_obtained / grade.max_score) * 100
+    subjects[grade.subject].totalScore += percentage
+    subjects[grade.subject].maxScore += 100
+    subjects[grade.subject].count++
+    subjects[grade.subject].grades.push(grade.grade_letter)
+  })
+  
+  // Calculate average score and grade for each subject
+  return Object.values(subjects).map(subject => {
+    const avgScore = subject.totalScore / subject.count
+    const gradeLetters = subject.grades
+    
+    // Calculate average grade (most frequent grade)
+    const gradeCount = {}
+    gradeLetters.forEach(grade => {
+      gradeCount[grade] = (gradeCount[grade] || 0) + 1
+    })
+    
+    let mostFrequentGrade = ''
+    let maxCount = 0
+    for (const grade in gradeCount) {
+      if (gradeCount[grade] > maxCount) {
+        mostFrequentGrade = grade
+        maxCount = gradeCount[grade]
+      }
+    }
+    
+    return {
+      name: subject.name,
+      score: avgScore,
+      grade: mostFrequentGrade,
+      count: subject.count
+    }
+  }).sort((a, b) => b.score - a.score)
+})
+
+// Enhanced GPA calculation
+const gpa = computed(() => {
+  if (!filteredGrades.value.length) return 0
+  
+  // Calculate weighted GPA based on grade distribution
+  const gradePoints = {
+    'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0
+  }
+  
+  let totalWeightedPoints = 0
+  let totalWeight = 0
+  
+  filteredGrades.value.forEach(grade => {
+    const weight = grade.weightage || 1
+    const points = gradePoints[grade.grade_letter] || 0
+    
+    totalWeightedPoints += points * weight
+    totalWeight += weight
+  })
+  
+  return totalWeightedPoints / totalWeight
+})
+
+// Enhanced best subject calculation
+const bestSubject = computed(() => {
+  if (subjectPerformance.value.length === 0) return { name: '', score: 0, grade: '' }
+  
+  const best = subjectPerformance.value[0]
+  return {
+    name: best.name,
+    score: best.score,
+    grade: best.grade
+  }
+})
+
+// Enhanced weakest subject calculation
+const weakestSubject = computed(() => {
+  if (subjectPerformance.value.length === 0) return { name: '', score: 0, grade: '' }
+  
+  const weakest = subjectPerformance.value[subjectPerformance.value.length - 1]
+  return {
+    name: weakest.name,
+    score: weakest.score,
+    grade: weakest.grade
+  }
+})
+
+// Overall performance evaluation
+const overallPerformance = computed(() => {
+  const avgScore = subjectPerformance.value.reduce((sum, subj) => sum + subj.score, 0) / 
+                  (subjectPerformance.value.length || 1)
+  
+  let level = ''
+  if (avgScore >= 90) level = 'Excellent'
+  else if (avgScore >= 80) level = 'Very Good'
+  else if (avgScore >= 70) level = 'Good'
+  else if (avgScore >= 60) level = 'Average'
+  else level = 'Needs Improvement'
+  
+  return {
+    score: avgScore.toFixed(1),
+    level: level
+  }
+})
+
+// Helper functions
+const gradeColor = (letter) => {
+  return {
+    A: 'bg-green-100 text-green-800',
+    B: 'bg-blue-100 text-blue-800',
+    C: 'bg-yellow-100 text-yellow-800',
+    D: 'bg-orange-100 text-orange-800',
+    F: 'bg-red-100 text-red-800',
+  }[letter] || 'bg-gray-100 text-gray-700'
+}
+
+const getScoreColorClass = (score) => {
+  if (score >= 90) return 'bg-green-500'
+  if (score >= 80) return 'bg-blue-500'
+  if (score >= 70) return 'bg-yellow-500'
+  if (score >= 60) return 'bg-orange-500'
+  return 'bg-red-500'
+}
+
+const formatDate = (str) => new Date(str).toLocaleDateString()
+
+const exportToPDF = () => {
+  // Implementation for PDF export would go here
+  console.log('Export to PDF functionality')
+  alert('PDF export would be implemented here with a library like html2pdf.js')
+}
 
 // API Functions
 const fetchStudentData = async () => {
@@ -397,7 +469,7 @@ const fetchStudentData = async () => {
 
     console.log('📊 Fetching grades for student:', student.value.student_id)
 
-    // 🧪 TEMPORARY: Use mock data instead of API calls
+    // Use mock data for demonstration
     console.log('🧪 Using mock data for testing...');
     
     // Simulate API delay
@@ -413,37 +485,6 @@ const fetchStudentData = async () => {
     console.log('📈 Summary:', gradeSummary.value);
     console.log('🎯 GPA:', studentGPA.value);
 
-    /* 
-    // 🔄 REAL API CALLS (commented out for now)
-    const gradesResponse = await gradesAPI.getStudentGrades(student.value.student_id)
-    if (gradesResponse.data.success) {
-      grades.value = gradesResponse.data.grades || []
-      console.log('✅ Loaded', grades.value.length, 'grades')
-    }
-
-    // Fetch grade summary
-    try {
-      const summaryResponse = await gradesAPI.getStudentGradeSummary(student.value.student_id)
-      if (summaryResponse.data.success) {
-        gradeSummary.value = summaryResponse.data.summary
-        console.log('✅ Loaded grade summary:', gradeSummary.value)
-      }
-    } catch (summaryError) {
-      console.warn('Could not fetch grade summary:', summaryError)
-    }
-
-    // Fetch GPA
-    try {
-      const gpaResponse = await gradesAPI.getStudentGPA(student.value.student_id)
-      if (gpaResponse.data.success) {
-        studentGPA.value = gpaResponse.data.gpa
-        console.log('✅ Loaded GPA:', studentGPA.value)
-      }
-    } catch (gpaError) {
-      console.warn('Could not fetch GPA:', gpaError)
-    }
-    */
-
   } catch (err) {
     console.error('Failed to fetch student grades:', err)
     error.value = err.message || 'Failed to load grades data'
@@ -456,5 +497,4 @@ const fetchStudentData = async () => {
 onMounted(() => {
   fetchStudentData()
 })
-
 </script>
