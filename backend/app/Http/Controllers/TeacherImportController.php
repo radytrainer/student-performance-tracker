@@ -20,10 +20,7 @@ class TeacherImportController extends Controller
     {
         // 1) Validate file
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:20480',
-            'default_class_id' => 'nullable|exists:classes,id',
-            'subject_ids' => 'array',
-            'subject_ids.*' => 'exists:subjects,id'
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:20480', // up to 20MB
         ]);
 
         // 2) Save the uploaded file
@@ -56,41 +53,6 @@ class TeacherImportController extends Controller
         }
 
         if (empty($rows)) {
-        try {
-            $file = $request->file('file');
-            $defaultClassId = $request->input('default_class_id');
-            $user = Auth::user();
-
-            $extension = $file->getClientOriginalExtension();
-            $importData = $this->processFile($file, $extension);
-
-            $results = $this->importStudentsData($importData, $defaultClassId, $user);
-
-            // Optionally assign selected subjects to the class
-            if ($request->has('subject_ids') && is_array($request->subject_ids) && $defaultClassId) {
-                foreach ($request->subject_ids as $subjectId) {
-                    if (!\App\Models\ClassSubject::where('class_id', $defaultClassId)->where('subject_id', $subjectId)->exists()) {
-                        \App\Models\ClassSubject::create([
-                            'class_id' => $defaultClassId,
-                            'subject_id' => $subjectId,
-                            'teacher_id' => null,
-                        ]);
-                    }
-                }
-            }
-
-            // Save import record
-            DataImport::create([
-                'user_id' => $user->id,
-                'import_type' => 'students',
-                'file_name' => $file->getClientOriginalName(),
-                'total_records' => $results['total'],
-                'successful_records' => $results['successful'],
-                'failed_records' => $results['failed'],
-                'error_log' => !empty($results['errors']) ? json_encode($results['errors']) : null,
-                'imported_at' => now(),
-            ]);
-
             return response()->json([
                 'message' => 'No data found in the file.',
             ], 422);
@@ -122,28 +84,6 @@ class TeacherImportController extends Controller
                     $data[$key] = is_string($row[$key]) ? trim($row[$key]) : $row[$key];
                 }
             }
-                    $student = Student::create([
-                        'user_id' => $user->id,
-                        'student_code' => $row['student_code'],
-                        'date_of_birth' => isset($row['date_of_birth']) ? Carbon::parse($row['date_of_birth']) : null,
-                        'gender' => $row['gender'] ?? null,
-                        'address' => $row['address'] ?? null,
-                        'parent_name' => $row['parent_name'] ?? null,
-                        'parent_phone' => $row['parent_phone'] ?? null,
-                        'enrollment_date' => isset($row['enrollment_date']) ? Carbon::parse($row['enrollment_date']) : now(),
-                        'current_class_id' => $row['current_class_id'] ?? $defaultClassId,
-                    ]);
-
-                    // Create enrollment record for real-time class membership tracking
-                    if ($student->current_class_id) {
-                        \App\Models\StudentClass::create([
-                            'student_id' => $student->user_id,
-                            'class_id' => $student->current_class_id,
-                            'enrollment_date' => now(),
-                            'status' => 'active',
-                        ]);
-                    }
-                });
 
             // Normalize / coerce values
             if (isset($data['gender'])) {

@@ -221,7 +221,7 @@ const fetchAdminStats = async () => {
       totalStudents: data.totalStudents || 0,
       totalTeachers: data.totalTeachers || 0,
       totalAdmins: data.totalAdmins || 0,
-      activeCourses: data.activeCourses || 0,
+      activeCourses: data.totalSubjects || 0,
       totalClasses: data.totalClasses || 0,
       totalAttendance: data.totalAttendance || 0,
       userGrowth: data.userGrowth || [],
