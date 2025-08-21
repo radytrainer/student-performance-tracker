@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Classes;
+use App\Models\Subject;
+use App\Models\UploadedFile as UploadedFileModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Str;
@@ -22,7 +25,8 @@ class DataImportController extends Controller
      */
     public function __construct()
     {
-        $this->middleware(['auth:sanctum', 'role:admin']);
+        // Allow both admin and teacher to use these endpoints
+        $this->middleware(['auth:sanctum', 'role:admin,teacher']);
     }
 
     /**
@@ -31,8 +35,10 @@ class DataImportController extends Controller
     public function importStudents(Request $request): JsonResponse
     {
         try {
+            // Support either direct file upload or previously uploaded file by ID
             $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:csv,xlsx,xls|max:2048',
+                'file' => 'nullable|file|mimes:csv,xlsx,xls|max:2048',
+                'uploaded_file_id' => 'nullable|exists:uploaded_files,id',
                 'default_class_id' => 'required|exists:classes,id'
             ]);
 
@@ -44,11 +50,38 @@ class DataImportController extends Controller
                 ], 422);
             }
 
-            $file = $request->file('file');
             $defaultClassId = $request->default_class_id;
 
-            // Read CSV data
-            $csvData = $this->readCsvFile($file);
+            // Determine data source
+            $csvData = [];
+            if ($request->hasFile('file')) {
+                $file = $request->file('file');
+                $csvData = $this->readCsvFile($file);
+            } elseif ($request->filled('uploaded_file_id')) {
+                $uploaded = UploadedFileModel::find($request->input('uploaded_file_id'));
+                if (!$uploaded) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Uploaded file not found'
+                    ], 422);
+                }
+                $path = Storage::disk('public')->path($uploaded->stored_path);
+                if (!file_exists($path)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Uploaded file is missing on server'
+                    ], 422);
+                }
+                // Only CSV parsing supported here
+                if (str_ends_with(strtolower($uploaded->original_name), '.csv')) {
+                    $csvData = $this->readCsvPath($path);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Only CSV files are supported for import at the moment'
+                    ], 422);
+                }
+            }
             
             if (empty($csvData)) {
                 return response()->json([
@@ -251,27 +284,28 @@ class DataImportController extends Controller
      */
     private function readCsvFile($file): array
     {
+        return $this->readCsvPath($file->getRealPath());
+    }
+
+    private function readCsvPath(string $path): array
+    {
         $data = [];
         $headers = [];
 
-        if (($handle = fopen($file->getRealPath(), 'r')) !== false) {
+        if (($handle = fopen($path, 'r')) !== false) {
             $isFirstRow = true;
-            
             while (($row = fgetcsv($handle, 1000, ',')) !== false) {
                 if ($isFirstRow) {
                     $headers = array_map('trim', $row);
                     $isFirstRow = false;
                     continue;
                 }
-
                 if (count($row) === count($headers)) {
                     $data[] = array_combine($headers, array_map('trim', $row));
                 }
             }
-            
             fclose($handle);
         }
-
         return $data;
     }
 
@@ -286,4 +320,123 @@ class DataImportController extends Controller
 
         return $code;
     }
+
+    /**
+     * Handle file upload (store only, no processing)
+     */
+    public function uploadFile(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'file' => 'required|file|mimes:csv,xlsx,xls|max:2048',
+                'label' => 'nullable|string|max:255',
+                'school_id' => 'nullable|integer'
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $file = $request->file('file');
+            $storedPath = $file->store('imports', 'public');
+            $url = Storage::disk('public')->url($storedPath);
+
+            $uploaded = UploadedFileModel::create([
+                'user_id' => auth()->id(),
+                'school_id' => $request->input('school_id'),
+                'label' => $request->input('label'),
+                'original_name' => $file->getClientOriginalName(),
+                'stored_path' => $storedPath,
+                'mime_type' => $file->getMimeType(),
+                'size_bytes' => $file->getSize(),
+                'url' => $url,
+                'uploaded_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded successfully',
+                'data' => $uploaded
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Upload failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload file'
+            ], 500);
+        }
+    }
+
+    /**
+     * List uploaded files (paginated)
+     */
+    public function listUploads(Request $request): JsonResponse
+    {
+        $perPage = max(1, (int) $request->get('per_page', 10));
+        $query = UploadedFileModel::query()
+            ->where('user_id', auth()->id())
+            ->orderByDesc('uploaded_at')
+            ->orderByDesc('id');
+
+        if ($request->filled('school_id')) {
+            $query->where('school_id', $request->input('school_id'));
+        }
+
+        $paginator = $query->paginate($perPage);
+        return response()->json([
+            'success' => true,
+            'data' => $paginator
+        ]);
+    }
+
+    /**
+     * Delete uploaded file by id
+     */
+    public function deleteUpload(int $id): JsonResponse
+    {
+        $uploaded = UploadedFileModel::find($id);
+        if (!$uploaded) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found'
+            ], 404);
+        }
+        $user = auth()->user();
+        if ($uploaded->user_id !== $user->id && $user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden'
+            ], 403);
+        }
+        try {
+            Storage::disk('public')->delete($uploaded->stored_path);
+            $uploaded->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'File deleted'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Delete upload failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete file'
+            ], 500);
+        }
+    }
+
+    /**
+     * Subjects list for import selectors
+     */
+    public function getSubjectsList(): JsonResponse
+    {
+        $subjects = Subject::select('id', 'subject_name')->orderBy('subject_name')->get();
+        return response()->json([
+            'success' => true,
+            'data' => $subjects
+        ]);
+    }
 }
+
