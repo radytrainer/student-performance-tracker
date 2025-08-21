@@ -221,6 +221,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('student/reports/generate', [App\Http\Controllers\Student\ReportController::class, 'generate']);
         Route::get('student/reports/{id}', [App\Http\Controllers\Student\ReportController::class, 'show']);
         Route::get('student/reports/{id}/download', [App\Http\Controllers\Student\ReportController::class, 'download']);
+        // Student vs Class average comparison
+        Route::get('student/comparison', [App\Http\Controllers\Student\ReportController::class, 'comparison']);
 
         // Feedback Surveys
         Route::get('student/surveys', [FeedbackSurveyController::class, 'index']);

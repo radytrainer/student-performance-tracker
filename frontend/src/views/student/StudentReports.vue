@@ -294,47 +294,39 @@
     />
 
     <!-- Academic Progress Summary -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-800">Academic Progress Summary</h2>
-        </div>
-        <div class="p-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- GPA Trend -->
-            <div>
-              <h3 class="text-sm font-medium text-gray-700 mb-3">GPA Trend</h3>
-              <div class="space-y-3">
-                <div v-for="semester in gpaHistory" :key="semester.name" 
-                     class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span class="text-sm text-gray-600">{{ semester.name }}</span>
-                  <span class="text-sm font-semibold" :class="getGPAClass(semester.gpa)">
-                    {{ semester.gpa }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Achievement Highlights -->
-            <div>
-              <h3 class="text-sm font-medium text-gray-700 mb-3">Achievement Highlights</h3>
-              <div class="space-y-3">
-                <div v-for="achievement in achievements" :key="achievement.id" 
-                     class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <div class="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                    <i class="fas fa-trophy text-yellow-600"></i>
-                  </div>
-                  <div>
-                    <div class="text-sm font-medium text-gray-900">{{ achievement.title }}</div>
-                    <div class="text-xs text-gray-500">{{ achievement.description }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+    <h2 class="text-lg font-semibold text-gray-800">Academic Progress Summary</h2>
     </div>
-  </div>
+    <div class="p-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- GPA Trend -->
+    <div>
+    <h3 class="text-sm font-medium text-gray-700 mb-3">GPA Trend</h3>
+    <div class="space-y-3">
+    <div v-for="semester in gpaHistory" :key="semester.name" 
+    class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+    <span class="text-sm text-gray-600">{{ semester.name }}</span>
+    <span class="text-sm font-semibold" :class="getGPAClass(semester.gpa)">
+    {{ semester.gpa }}
+    </span>
+    </div>
+    </div>
+    </div>
+
+    <!-- Student vs Class Average -->
+    <div>
+    <h3 class="text-sm font-medium text-gray-700 mb-3">My Performance vs Class Average</h3>
+    <div class="bg-gray-50 rounded-lg p-3">
+    <BarChart v-if="comparisonChartData" :chartData="comparisonChartData" :chartOptions="comparisonChartOptions" />
+    <div v-else class="text-sm text-gray-500">No comparison data available</div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
 
   <!-- Unauthorized Access -->
   <div v-else class="p-6">
@@ -357,10 +349,11 @@ import { ref, reactive, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { reportsAPI } from '@/api/reports'
 import ReportDetailsModal from '@/components/student/ReportDetailsModal.vue'
+import BarChart from '@/components/charts/BarChart.vue'
 
 const { hasPermission } = useAuth()
 
-// State
+ // State
 const loading = ref(true)
 const generating = ref(false)
 const error = ref(null)
@@ -389,8 +382,35 @@ const recentReports = ref([])
 const gpaHistory = ref([])
 const achievements = ref([])
 
-// Load dashboard data
-const loadDashboardData = async () => {
+// Comparison chart state
+const comparisonChartData = ref(null)
+const comparisonChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: true } },
+  scales: { x: { grid: { display: false } }, y: { beginAtZero: true, max: 100 } }
+}
+
+const loadComparison = async () => {
+  try {
+    const resp = await reportsAPI.getComparison()
+    const rows = resp.data || []
+    if (!rows.length) { comparisonChartData.value = null; return }
+    comparisonChartData.value = {
+      labels: rows.map(r => r.subject_name),
+      datasets: [
+        { label: 'Me', data: rows.map(r => r.student_avg), backgroundColor: '#3B82F6' },
+        { label: 'Class', data: rows.map(r => r.class_avg), backgroundColor: '#10B981' }
+      ]
+    }
+  } catch (e) {
+    // Leave chart empty if error
+    comparisonChartData.value = null
+  }
+}
+ 
+ // Load dashboard data
+ const loadDashboardData = async () => {
   try {
     loading.value = true
     error.value = null
@@ -601,5 +621,6 @@ const formatDate = (date) => {
 
 onMounted(async () => {
   await loadDashboardData()
+  await loadComparison()
 })
 </script>
