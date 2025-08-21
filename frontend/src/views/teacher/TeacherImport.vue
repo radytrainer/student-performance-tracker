@@ -691,8 +691,13 @@ const closeEditor = () => { showEditor.value = false }
 const getFetchableUrl = (url) => {
   try {
     const u = new URL(url, window.location.origin)
-    if ((u.host === 'localhost:8000' || u.port === '8000') && u.pathname.startsWith('/storage')) {
-      return u.pathname // use Vite proxy /storage -> backend
+    // If it points to Laravel public storage, always use path-only so Vite proxy handles it
+    if (u.pathname.startsWith('/storage')) {
+      return u.pathname
+    }
+    // Common localhost patterns
+    if ((u.hostname === 'localhost' || u.hostname === '127.0.0.1') && (u.port === '8000' || u.host === 'localhost:8000')) {
+      if (u.pathname.startsWith('/storage')) return u.pathname
     }
     return u.toString()
   } catch {
@@ -787,10 +792,10 @@ const downloadEditedCsv = () => {
 const uploadEditedCsv = async () => {
   try {
     const csv = toCsv(editorHeaders.value, editorRows.value)
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const filename = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+    const file = new File([csv], filename, { type: 'text/csv;charset=utf-8' })
     const form = new FormData()
-    form.append('file', blob, filename)
+    form.append('file', file, filename)
     form.append('label', filename)
     if (schoolId.value) form.append('school_id', schoolId.value)
     await teacherAPI.uploadFileOnly(form)
@@ -806,10 +811,10 @@ const importEditedCsv = async () => {
   try {
     // Upload edited first, then import by id
     const csv = toCsv(editorHeaders.value, editorRows.value)
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const filename = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+    const file = new File([csv], filename, { type: 'text/csv;charset=utf-8' })
     const form = new FormData()
-    form.append('file', blob, filename)
+    form.append('file', file, filename)
     form.append('label', filename)
     if (schoolId.value) form.append('school_id', schoolId.value)
     const resp = await teacherAPI.uploadFileOnly(form)
