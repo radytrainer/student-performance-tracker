@@ -37,7 +37,7 @@ class DataImportController extends Controller
         try {
             // Support either direct file upload or previously uploaded file by ID
             $validator = Validator::make($request->all(), [
-                'file' => 'nullable|file|mimes:csv,xlsx,xls|max:2048',
+                'file' => 'nullable|file|mimes:csv,txt,xlsx,xls|max:20480',
                 'uploaded_file_id' => 'nullable|exists:uploaded_files,id',
                 'default_class_id' => 'required|exists:classes,id'
             ]);
@@ -382,7 +382,8 @@ class DataImportController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'file' => 'required|file|mimes:csv,xlsx,xls|max:2048',
+                // Accept CSV that may come through as text/plain on some browsers/OS
+                'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:20480',
                 'label' => 'nullable|string|max:255',
                 'school_id' => 'nullable|integer'
             ]);
