@@ -4,7 +4,7 @@
     <div class="flex-1 overflow-auto p-6">
       <div class="flex justify-between items-center mb-6">
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-800">Attendance</h1>
+          <h1 class="text-3xl font-bold text-gray-800">My Attendance</h1>
           <p class="text-gray-600 mt-1">View your attendance recode</p>
         </div>
       </div>
