@@ -174,6 +174,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('google/auth-url', [App\Http\Controllers\GoogleAuthController::class, 'getAuthUrl']);
         Route::get('google/status', [App\Http\Controllers\GoogleAuthController::class, 'status']);
         Route::post('google/sheets/preview', [App\Http\Controllers\GoogleAuthController::class, 'preview']);
+        Route::post('teacher/import/google', [App\Http\Controllers\Admin\DataImportController::class, 'importFromGoogleSheet']);
     });
 
     // Super Admin routes
