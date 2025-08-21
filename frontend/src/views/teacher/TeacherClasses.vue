@@ -395,29 +395,47 @@
               </div>
             </div>
 
+            <!-- Attendance Tab -->
+            <div v-if="activeTab === 'attendance'" class="space-y-6">
+              <AttendanceTracker :selected-class="selectedClass" />
+            </div>
+
             <!-- Subjects Tab -->
             <div v-if="activeTab === 'subjects'" class="space-y-8">
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div v-for="subject in selectedClass.subjectDetails" :key="subject.id"
+              <div v-if="loading" class="flex justify-center py-12">
+                <Loader class="w-8 h-8 animate-spin text-blue-600" />
+              </div>
+              
+              <div v-else-if="currentClassSubjects.length === 0" class="text-center py-12">
+                <BookOpen class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p class="text-gray-500 text-lg">No subjects assigned</p>
+              </div>
+              
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div v-for="subject in currentClassSubjects" :key="subject.id"
                   class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 hover:shadow-xl hover:scale-105 transition-all duration-300 shadow-lg">
                   <div class="flex items-start justify-between mb-6">
                     <div>
-                      <h4 class="font-bold text-gray-900 text-xl mb-1">{{ subject.name }}</h4>
-                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher }}</p>
+                      <h4 class="font-bold text-gray-900 text-xl mb-1">{{ subject.subject?.subject_name || subject.name || 'Unknown Subject' }}</h4>
+                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher?.first_name }} {{ subject.teacher?.last_name || 'Not Assigned' }}</p>
                     </div>
                     <span
                       class="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs font-bold rounded-full shadow-sm">
-                      {{ subject.code }}
+                      {{ subject.subject?.subject_code || subject.code || 'N/A' }}
                     </span>
                   </div>
                   <div class="space-y-4 mb-8">
                     <div class="flex justify-between text-sm">
-                      <span class="text-gray-600 font-medium">Average Grade:</span>
-                      <span class="font-bold text-gray-900">{{ subject.avgGrade }}</span>
+                      <span class="text-gray-600 font-medium">Credit Hours:</span>
+                      <span class="font-bold text-gray-900">{{ subject.subject?.credit_hours || 'N/A' }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
-                      <span class="text-gray-600 font-medium">Assignments:</span>
-                      <span class="font-bold text-gray-900">{{ subject.assignments }}</span>
+                      <span class="text-gray-600 font-medium">Department:</span>
+                      <span class="font-bold text-gray-900">{{ subject.subject?.department || 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-600 font-medium">Type:</span>
+                      <span class="font-bold text-gray-900">{{ subject.subject?.is_core ? 'Core' : 'Elective' }}</span>
                     </div>
                   </div>
                   <div class="flex space-x-3">
@@ -426,6 +444,7 @@
                       Gradebook
                     </button>
                     <button
+                      @click="activeTab = 'attendance'"
                       class="flex-1 bg-gradient-to-r from-amber-100 to-orange-200 hover:from-amber-200 hover:to-orange-300 text-orange-700 px-4 py-3 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
                       Attendance
                     </button>
@@ -479,29 +498,39 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
                   <h4 class="font-bold text-gray-900 mb-6 text-xl">Attendance Overview</h4>
-                  <div class="space-y-6">
+                  <div v-if="loadingStats" class="flex justify-center py-8">
+                    <Loader class="w-6 h-6 animate-spin text-blue-600" />
+                  </div>
+                  <div v-else class="space-y-6">
                     <div class="flex justify-between items-center">
                       <span class="text-sm text-gray-600 font-medium">Present</span>
-                      <span class="text-sm font-bold text-emerald-600">87%</span>
+                      <span class="text-sm font-bold text-emerald-600">{{ getClassAttendanceRate(selectedClass) }}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                       <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 h-3 rounded-full shadow-sm"
-                        style="width: 87%"></div>
+                        :style="`width: ${getClassAttendanceRate(selectedClass)}%`"></div>
                     </div>
                     <div class="flex justify-between items-center">
                       <span class="text-sm text-gray-600 font-medium">Absent</span>
-                      <span class="text-sm font-bold text-red-600">13%</span>
+                      <span class="text-sm font-bold text-red-600">{{ 100 - getClassAttendanceRate(selectedClass) }}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                       <div class="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full shadow-sm"
-                        style="width: 13%"></div>
+                        :style="`width: ${100 - getClassAttendanceRate(selectedClass)}%`"></div>
                     </div>
                   </div>
                 </div>
 
                 <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
                   <h4 class="font-bold text-gray-900 mb-6 text-xl">Grade Distribution</h4>
-                  <div class="space-y-4">
+                  <div v-if="loading" class="flex justify-center py-8">
+                    <Loader class="w-6 h-6 animate-spin text-blue-600" />
+                  </div>
+                  <div v-else-if="gradeDistribution.length === 0" class="text-center py-8">
+                    <TrendingUp class="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p class="text-gray-500 text-sm">No grade data available</p>
+                  </div>
+                  <div v-else class="space-y-4">
                     <div v-for="grade in gradeDistribution" :key="grade.grade"
                       class="flex justify-between items-center">
                       <span class="text-sm text-gray-600 font-medium">Grade {{ grade.grade }}</span>
@@ -519,16 +548,23 @@
 
               <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
                 <h4 class="font-bold text-gray-900 mb-6 text-xl">Subject Performance</h4>
-                <div class="space-y-6">
-                  <div v-for="subject in selectedClass.subjectDetails" :key="subject.id"
+                <div v-if="loading" class="flex justify-center py-8">
+                  <Loader class="w-6 h-6 animate-spin text-blue-600" />
+                </div>
+                <div v-else-if="currentClassSubjects.length === 0" class="text-center py-8">
+                  <BookOpen class="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <p class="text-gray-500 text-sm">No subjects found</p>
+                </div>
+                <div v-else class="space-y-6">
+                  <div v-for="subject in currentClassSubjects" :key="subject.id"
                     class="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-md border border-white/20">
                     <div>
-                      <p class="font-bold text-gray-900 text-lg">{{ subject.name }}</p>
-                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher }}</p>
+                      <p class="font-bold text-gray-900 text-lg">{{ subject.subject?.subject_name || subject.name || 'Unknown Subject' }}</p>
+                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher?.first_name }} {{ subject.teacher?.last_name || 'Not Assigned' }}</p>
                     </div>
                     <div class="text-right">
-                      <p class="text-2xl font-bold text-gray-900">{{ subject.avgGrade }}</p>
-                      <p class="text-sm text-gray-600 font-medium">Class Average</p>
+                      <p class="text-2xl font-bold text-gray-900">{{ subject.average_grade || 'N/A' }}</p>
+                      <p class="text-sm text-gray-600 font-medium">{{ subject.subject?.credit_hours || 0 }} Credits</p>
                     </div>
                   </div>
                 </div>
@@ -680,6 +716,9 @@
         </div>
       </div>
     </div>
+    
+    <!-- Toast Notifications -->
+    <ToastNotification />
   </div>
 </template>
 
@@ -691,6 +730,8 @@ import {
   Eye, Printer, X, RefreshCw, Loader
 } from 'lucide-vue-next'
 import HeaderTeacher from '@/components/teacher/Classes/HeaderTeacher.vue'
+import ToastNotification from '@/components/common/ToastNotification.vue'
+import AttendanceTracker from '@/components/teacher/AttendanceTracker.vue'
 import { useTeacherClasses } from '@/composables/useTeacherClasses'
 
 // Use the teacher classes composable
@@ -761,8 +802,9 @@ const gradeForm = ref({
 // Tabs configuration
 const tabs = [
   { id: 'students', name: 'Students', icon: Users },
+  { id: 'attendance', name: 'Attendance', icon: Calendar },
   { id: 'subjects', name: 'Subjects', icon: BookOpen },
-  { id: 'schedule', name: 'Schedule', icon: Calendar },
+  { id: 'schedule', name: 'Schedule', icon: Clock },
   { id: 'performance', name: 'Performance', icon: TrendingUp }
 ]
 
