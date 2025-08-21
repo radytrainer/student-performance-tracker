@@ -297,7 +297,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import dayjs from 'dayjs'
+// import dayjs from 'dayjs' // Not installed, using native Date
 import { teacherAPI } from '@/api/teacher'
 
 // State
