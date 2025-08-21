@@ -296,9 +296,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import dayjs from 'dayjs'
 import { teacherAPI } from '@/api/teacher'
+import { useAuth } from '@/composables/useAuth'
+import * as XLSX from 'xlsx'
 
 // State
 const selectedFile = ref(null)
@@ -324,6 +326,10 @@ const uploadsMeta = ref(null)
 const loadingUploads = ref(false)
 let uploadsPage = 1
 const uploadsPerPage = 10
+
+// School context
+const { user } = useAuth()
+const schoolId = computed(() => user.value?.school_id || user.value?.schoolId || null)
 
 // Methods
 const handleFileSelect = (event) => {
@@ -379,7 +385,8 @@ const showSuccessMessage = (message) => {
 
 const loadClasses = async () => {
   try {
-    const response = await teacherAPI.getClasses()
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getClasses(params)
     classes.value = response.data.data?.data || response.data.data || response.data || []
   } catch (err) {
     console.error('Error loading classes:', err)
@@ -388,7 +395,8 @@ const loadClasses = async () => {
 
 const loadSubjects = async () => {
   try {
-    const response = await teacherAPI.getSubjectsForImport()
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getSubjectsForImport(params)
     subjects.value = response.data.data || []
   } catch (err) {
     console.error('Error loading subjects:', err)
@@ -398,7 +406,8 @@ const loadSubjects = async () => {
 const loadImportHistory = async () => {
   try {
     loadingHistory.value = true
-    const response = await teacherAPI.getImportHistory()
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getImportHistory(params)
     importHistory.value = response.data.data || response.data || []
   } catch (err) {
     console.error('Error loading import history:', err)
@@ -410,7 +419,9 @@ const loadImportHistory = async () => {
 const loadUploadedFiles = async (page = 1) => {
   try {
     loadingUploads.value = true
-    const response = await teacherAPI.getUploadedFiles({ page, per_page: uploadsPerPage })
+    const params = { page, per_page: uploadsPerPage }
+    if (schoolId.value) params.school_id = schoolId.value
+    const response = await teacherAPI.getUploadedFiles(params)
     const payload = response.data.data
     uploadedFiles.value = payload.data || payload || []
     uploadsMeta.value = payload && payload.data ? payload : null
