@@ -1,5 +1,6 @@
 <template>
-  <div class="relative"><div class="p-6">
+  <div class="teacher-import-root">
+    <div class="p-6">
     <div>
       <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Data Import</h1>
@@ -353,7 +354,6 @@
         </div>
       </div>
     </div>
-  </div>
 
   <!-- File Editor Modal -->
   <div v-if="showEditor" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -398,6 +398,7 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -688,6 +689,18 @@ const confirmDelete = async (file) => {
 // File editor helpers
 const closeEditor = () => { showEditor.value = false }
 
+const getFetchableUrl = (url) => {
+  try {
+    const u = new URL(url, window.location.origin)
+    if ((u.host === 'localhost:8000' || u.port === '8000') && u.pathname.startsWith('/storage')) {
+      return u.pathname // use Vite proxy /storage -> backend
+    }
+    return u.toString()
+  } catch {
+    return url
+  }
+}
+
 const openFileEditor = async (file) => {
   try {
     editorOriginalFile.value = file
@@ -703,7 +716,7 @@ const openFileEditor = async (file) => {
       error.value = 'This file has no accessible URL to preview.'
       return
     }
-    const res = await fetch(file.url)
+    const res = await fetch(getFetchableUrl(file.url), { credentials: 'include' })
     const arrayBuffer = await res.arrayBuffer()
     const wb = XLSX.read(arrayBuffer, { type: 'array' })
     editorSheetNames.value = wb.SheetNames
@@ -738,7 +751,7 @@ const openFileEditor = async (file) => {
 const reparseEditorSheet = async () => {
   try {
     if (!editorOriginalFile.value || !selectedEditorSheetName.value) return
-    const res = await fetch(editorOriginalFile.value.url)
+    const res = await fetch(getFetchableUrl(editorOriginalFile.value.url), { credentials: 'include' })
     const arrayBuffer = await res.arrayBuffer()
     const wb = XLSX.read(arrayBuffer, { type: 'array' })
     const sheet = wb.Sheets[selectedEditorSheetName.value]
