@@ -25,7 +25,7 @@ class TeacherImportController extends Controller
             'file' => 'required|file|mimes:csv,txt,xlsx,xls',
             'default_class_id' => 'nullable|exists:classes,id',
             'subject_ids' => 'array',
-            'subject_ids.*' => 'exists:subjects,id',
+            'subject_ids.*' => 'exists:subjects,id'
         ]);
 
         // 2) Save the uploaded file
