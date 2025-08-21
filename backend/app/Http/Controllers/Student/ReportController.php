@@ -20,7 +20,7 @@ use App\Exports\GradeReportExport;
 use App\Exports\AttendanceReportExport;
 use App\Exports\ProgressReportExport;
 use App\Exports\TranscriptExport;
-// use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
 {
@@ -578,43 +578,41 @@ class ReportController extends Controller
      */
     private function generatePDFReport($type, $data)
     {
-        // For now, return a simple JSON response since DomPDF is not yet installed
-        // In production, uncomment the PDF generation code below
-        
-        // Create report record
+        // Create report record first
         $reportCard = ReportCard::create([
             'student_id' => $this->student->user_id,
             'term_id' => Term::where('is_current', true)->first()->id ?? null,
             'generated_by' => Auth::id(),
             'overall_grade' => $data['gpa'] ?? 0,
-            'attendance_percentage' => $data['attendance']['percentage'] ?? 0,
-            'file_path' => null, // Will be set when PDF is actually generated
+            'attendance_percentage' => data_get($data, 'attendance.percentage', 0),
+            'file_path' => null,
             'generated_at' => now()
         ]);
-        
-        return response()->json([
-            'message' => 'Report generated successfully',
-            'report_id' => $reportCard->id,
-            'data' => $data
-        ]);
-        
-        /*
-        // Uncomment this code after installing barryvdh/laravel-dompdf
+
+        // Render PDF from Blade view
         $viewName = "reports.{$type}";
-        
-        $pdf = PDF::loadView($viewName, $data);
-        
-        $filename = "{$type}_" . $this->student->student_code . "_" . now()->format('Y-m-d') . ".pdf";
-        
-        // Save to storage
-        $filePath = "reports/{$filename}";
-        $pdf->save(storage_path("app/public/{$filePath}"));
-        
+        if (!view()->exists($viewName)) {
+            // Fallback to a generic view or return JSON if view missing
+            return response()->json([
+                'error' => "Report view '{$viewName}' not found"
+            ], 422);
+        }
+
+        $pdf = Pdf::loadView($viewName, $data);
+        $filename = "{$type}_" . ($this->student->student_code ?? 'student') . "_" . now()->format('Y-m-d') . ".pdf";
+
+        // Persist to storage so it appears in Recent Reports and is downloadable later
+        $relativePath = "reports/{$filename}";
+        $absolutePath = storage_path("app/public/{$relativePath}");
+        // Ensure directory exists
+        @mkdir(dirname($absolutePath), 0775, true);
+        $pdf->save($absolutePath);
+
         // Update report record with file path
-        $reportCard->update(['file_path' => $filePath]);
-        
-        return $pdf->download($filename);
-        */
+        $reportCard->update(['file_path' => $relativePath]);
+
+        // Return the file for immediate download
+        return response()->download($absolutePath, $filename);
     }
 
     /**

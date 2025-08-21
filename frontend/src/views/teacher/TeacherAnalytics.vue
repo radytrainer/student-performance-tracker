@@ -316,12 +316,30 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import api from '@/api/axiosConfig'
+import {
+  Chart,
+  BarController,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  ArcElement,
+  Tooltip,
+  Legend
+} from 'chart.js'
+
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend)
 
 // State
 const analytics = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 const sortBy = ref('responses_count')
+
+// Chart refs
+const monthlyTrendCanvas = ref(null)
+const scoreDistributionCanvas = ref(null)
+let monthlyTrendChart = null
+let scoreDistributionChart = null
 
 // Computed
 const sortedFormPerformance = computed(() => {
@@ -364,20 +382,72 @@ const refreshData = () => {
 
 const renderCharts = () => {
   if (!analytics.value) return
-  
-  // Simple chart implementations (you can replace with Chart.js or similar)
   renderMonthlyTrendChart()
   renderScoreDistributionChart()
 }
 
 const renderMonthlyTrendChart = () => {
-  // Simple implementation - replace with actual charting library
-  console.log('Rendering monthly trend chart with data:', analytics.value.monthly_trend)
+  const ctx = monthlyTrendCanvas.value?.getContext('2d')
+  if (!ctx) return
+  if (monthlyTrendChart) monthlyTrendChart.destroy()
+
+  const trend = analytics.value.monthly_trend || []
+  const labels = trend.map(t => t.month || t.label || '')
+  const data = trend.map(t => t.responses || t.count || 0)
+
+  monthlyTrendChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Responses',
+        data,
+        backgroundColor: '#3B82F6'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+    }
+  })
 }
 
 const renderScoreDistributionChart = () => {
-  // Simple implementation - replace with actual charting library
-  console.log('Rendering score distribution chart')
+  const ctx = scoreDistributionCanvas.value?.getContext('2d')
+  if (!ctx) return
+  if (scoreDistributionChart) scoreDistributionChart.destroy()
+
+  // Build a simple histogram of average scores (0-10)
+  const forms = analytics.value.form_performance || []
+  const buckets = new Array(10).fill(0)
+  forms.forEach(f => {
+    const s = Number(f.average_score || 0)
+    if (!isNaN(s)) {
+      const idx = Math.min(9, Math.max(0, Math.floor(s)))
+      buckets[idx]++
+    }
+  })
+  const labels = Array.from({ length: 10 }, (_, i) => `${i}-${i+1}`)
+
+  scoreDistributionChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Forms by Avg Score Bucket',
+        data: buckets,
+        backgroundColor: '#10B981'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+    }
+  })
 }
 
 const getSurveyTypeClass = (type) => {
@@ -397,7 +467,7 @@ const formatDate = (date) => {
 }
 
 const viewFormDetails = (formId) => {
-  // Navigate to form-specific analytics
+  // Placeholder for drill-down navigation
   console.log('View details for form:', formId)
 }
 
@@ -411,7 +481,7 @@ const exportData = () => {
   // Create CSV data
   const csvData = [
     ['Survey Title', 'Type', 'Responses', 'Average Score', 'Created Date'],
-    ...analytics.value.form_performance.map(form => [
+    ... (analytics.value.form_performance || []).map(form => [
       form.title,
       form.survey_type,
       form.responses_count,

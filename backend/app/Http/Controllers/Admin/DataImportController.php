@@ -56,7 +56,17 @@ class DataImportController extends Controller
             $csvData = [];
             if ($request->hasFile('file')) {
                 $file = $request->file('file');
-                $csvData = $this->readCsvFile($file);
+                $ext = strtolower($file->getClientOriginalExtension());
+                if (in_array($ext, ['csv', 'txt'])) {
+                    $csvData = $this->readCsvFile($file);
+                } elseif (in_array($ext, ['xlsx', 'xls'])) {
+                    $csvData = $this->readXlsxPath($file->getRealPath());
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unsupported file type. Please upload CSV or Excel (.xlsx/.xls)'
+                    ], 422);
+                }
             } elseif ($request->filled('uploaded_file_id')) {
                 $uploaded = UploadedFileModel::find($request->input('uploaded_file_id'));
                 if (!$uploaded) {
@@ -72,13 +82,15 @@ class DataImportController extends Controller
                         'message' => 'Uploaded file is missing on server'
                     ], 422);
                 }
-                // Only CSV parsing supported here
-                if (str_ends_with(strtolower($uploaded->original_name), '.csv')) {
+                $lowerName = strtolower($uploaded->original_name);
+                if (str_ends_with($lowerName, '.csv') || str_ends_with($lowerName, '.txt')) {
                     $csvData = $this->readCsvPath($path);
+                } elseif (str_ends_with($lowerName, '.xlsx') || str_ends_with($lowerName, '.xls')) {
+                    $csvData = $this->readXlsxPath($path);
                 } else {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Only CSV files are supported for import at the moment'
+                        'message' => 'Unsupported file type. Only CSV or Excel files are allowed.'
                     ], 422);
                 }
             }
@@ -307,6 +319,48 @@ class DataImportController extends Controller
             fclose($handle);
         }
         return $data;
+    }
+
+    /**
+     * Read Excel (xlsx/xls) and return an array of associative rows using first row as headers.
+     */
+    private function readXlsxPath(string $path): array
+    {
+        try {
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($path);
+            $sheet = $spreadsheet->getSheet(0);
+            $rows = $sheet->toArray(null, true, true, true);
+            if (empty($rows)) return [];
+            // First row headers
+            $headerRow = array_shift($rows);
+            // Normalize headers: trim and lower snake-case-ish by replacing spaces with underscores
+            $headers = [];
+            foreach ($headerRow as $cell) {
+                $h = trim((string)$cell);
+                $h = preg_replace('/\s+/', ' ', $h);
+                $h = strtolower(str_replace(' ', '_', $h));
+                $headers[] = $h;
+            }
+            $out = [];
+            foreach ($rows as $row) {
+                $assoc = [];
+                $i = 0;
+                foreach ($headerRow as $colKey => $_) {
+                    $assoc[$headers[$i] ?? ('col_'.$i)] = isset($row[$colKey]) ? trim((string)$row[$colKey]) : '';
+                    $i++;
+                }
+                // Skip empty rows
+                if (count(array_filter($assoc, fn($v) => $v !== '' && $v !== null)) === 0) {
+                    continue;
+                }
+                $out[] = $assoc;
+            }
+            return $out;
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     /**
