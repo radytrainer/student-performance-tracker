@@ -204,56 +204,61 @@
           <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Uploaded Files</h3>
 
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center justify-between mb-3 gap-3">
               <input v-model="searchUploaded" type="text" placeholder="Search files..." class="border rounded px-3 py-2 w-full max-w-sm" />
+              <label class="text-sm flex items-center gap-2">
+                <input type="checkbox" v-model="autoRefreshUploads" /> Auto refresh
+              </label>
             </div>
-            
+
             <div v-if="loadingUploads" class="flex justify-center py-8">
               <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
-            
+
             <div v-else-if="uploadedFiles.length === 0" class="text-center py-8">
               <i class="fas fa-history text-gray-400 text-3xl mb-3"></i>
               <p class="text-gray-500">No uploaded files yet</p>
             </div>
-            
-            <div v-else class="space-y-3">
-              <div
-                v-for="file in filteredUploadedFiles"
-                :key="file.id"
-                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <div class="flex items-center">
-                      <i class="fas fa-file-import text-blue-600 mr-2"></i>
-                      <h4 class="font-medium text-gray-900">
-                        <a v-if="file.url" :href="file.url" target="_blank" class="text-blue-600 hover:underline">{{ file.original_name }}</a>
-                        <span v-else>{{ file.original_name }}</span>
-                      </h4>
-                    </div>
-                    <div class="mt-1 text-sm text-gray-600">
-                      <span v-if="file.size_bytes" class="ml-0">{{ (file.size_bytes/1024).toFixed(1) }} KB</span>
-                      <span v-if="file.mime_type" class="ml-2">• {{ file.mime_type }}</span>
-                      <span v-if="file.label" class="ml-2">• {{ file.label }}</span>
-                    </div>
-                    <div class="mt-1 text-xs text-gray-500">
-                      {{ formatDate(file.uploaded_at) }}
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <button @click="openFileEditor(file)" class="text-gray-700 hover:text-gray-900 text-sm">
-                      <i class="fas fa-eye mr-1"></i> Preview/Edit
-                    </button>
-                    <button @click="importFromUpload(file)" class="text-blue-600 hover:text-blue-800 text-sm">
-                      <i class="fas fa-upload mr-1"></i> Import with selected class
-                    </button>
-                    <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800 text-sm">
-                      <i class="fas fa-trash mr-1"></i> Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
+
+            <!-- Compact table-like list -->
+            <div v-else class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2 text-left w-6"></th>
+                    <th class="px-4 py-2 text-left">File name</th>
+                    <th class="px-4 py-2 text-left hidden lg:table-cell">Size</th>
+                    <th class="px-4 py-2 text-left hidden lg:table-cell">Uploaded</th>
+                    <th class="px-4 py-2 text-left">Class</th>
+                    <th class="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr v-for="file in filteredUploadedFiles" :key="file.id" class="hover:bg-gray-50">
+                    <td class="px-4 py-2"><i class="fas fa-file-csv text-blue-600"></i></td>
+                    <td class="px-4 py-2">
+                      <a v-if="file.url" :href="file.url" target="_blank" class="text-blue-600 hover:underline">{{ file.original_name }}</a>
+                      <span v-else>{{ file.original_name }}</span>
+                      <div v-if="file.label" class="text-xs text-gray-500">{{ file.label }}</div>
+                    </td>
+                    <td class="px-4 py-2 hidden lg:table-cell">{{ file.size_bytes ? (file.size_bytes/1024).toFixed(1) + ' KB' : '-' }}</td>
+                    <td class="px-4 py-2 hidden lg:table-cell">{{ formatDate(file.uploaded_at) }}</td>
+                    <td class="px-4 py-2">
+                      <select v-model="rowClassSelection[file.id]" class="border rounded px-2 py-1 min-w-[160px]">
+                        <option value="">Default</option>
+                        <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
+                      </select>
+                    </td>
+                    <td class="px-4 py-2">
+                      <div class="flex items-center gap-3">
+                        <button @click="openFileEditor(file)" class="text-gray-700 hover:text-gray-900">Preview/Edit</button>
+                        <button @click="importFromUploadWithRow(file)" class="text-blue-600 hover:text-blue-800">Import</button>
+                        <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             <div class="flex justify-between items-center mt-4" v-if="uploadsMeta">
@@ -401,7 +406,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import dayjs from 'dayjs'
 import { teacherAPI } from '@/api/teacher'
 import { useAuth } from '@/composables/useAuth'
@@ -442,6 +447,13 @@ const filteredUploadedFiles = computed(() => {
   if (!q) return uploadedFiles.value
   return uploadedFiles.value.filter(f => (f.original_name || f.label || '').toLowerCase().includes(q))
 })
+
+// Per-row class selection
+const rowClassSelection = ref({})
+
+// Auto refresh uploads
+const autoRefreshUploads = ref(true)
+let uploadsTimer = null
 
 // Editor modal state
 const showEditor = ref(false)
@@ -672,6 +684,44 @@ const nextUploadsPage = async () => {
 
 const reloadUploads = async () => {
   await loadUploadedFiles(uploadsPage)
+}
+
+const importFromUploadWithRow = async (file) => {
+  const chosen = rowClassSelection.value[file.id] || defaultClassId.value
+  if (!chosen) {
+    error.value = 'Please select a class for this file (or set Default Class)'
+    return
+  }
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+
+    const formData = new FormData()
+    formData.append('uploaded_file_id', file.id)
+    formData.append('default_class_id', chosen)
+    if (sheetName.value) formData.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
+    if (schoolId.value) formData.append('school_id', schoolId.value)
+
+    const response = await teacherAPI.importStudents(formData)
+    importResults.value = response.data.data
+    showSuccessMessage(response.data.message || 'Import completed')
+
+    await Promise.all([loadImportHistory(), loadClasses()])
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
+    console.error('Import from uploaded file error:', err)
+  } finally {
+    importing.value = false
+  }
 }
 
 const confirmDelete = async (file) => {
@@ -990,5 +1040,14 @@ onMounted(() => {
   loadImportHistory()
   loadUploadedFiles(1)
   loadTemplateHeaders()
+  // Start auto refresh
+  uploadsTimer = setInterval(() => {
+    if (autoRefreshUploads.value) {
+      loadUploadedFiles(uploadsPage)
+    }
+  }, 15000)
+})
+onUnmounted(() => {
+  if (uploadsTimer) clearInterval(uploadsTimer)
 })
 </script>
