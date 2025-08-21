@@ -43,72 +43,70 @@
           <p><strong>Term:</strong> {{ currentTermName }}</p>
         </div>
 
-        <h3 class="text-2xl font-bold mb-4 text-center">Performance Summary</h3>
+<h3 class="text-2xl font-bold mb-4 text-center">Performance Summary</h3>
 
-        <!-- Enhanced Performance Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <!-- GPA Card -->
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 shadow border border-blue-200 relative overflow-hidden">
-            <div class="absolute top-4 right-4 text-blue-400 text-3xl">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <div class="mb-2">
-              <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">GPA</p>
-              <p class="text-3xl font-bold text-blue-800">{{ gpa.toFixed(2) }}</p>
-            </div>
-            <div class="w-full bg-blue-200 rounded-full h-2.5 mt-2">
-              <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: (gpa / 4 * 100) + '%' }"></div>
-            </div>
-            <p class="text-xs text-gray-500 mt-2">Out of 4.0 scale</p>
-          </div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
 
-          <!-- Best Subject Card -->
-          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 shadow border border-green-200 relative overflow-hidden">
-            <div class="absolute top-4 right-4 text-green-400 text-3xl">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-            <div class="mb-2">
-              <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">Best Subject</p>
-              <p class="text-xl font-bold text-green-800 truncate">{{ bestSubject.name || '—' }}</p>
-            </div>
-            <p class="text-2xl font-bold text-green-700">{{ bestSubject.score || 0 }}%</p>
-            <p class="text-xs text-gray-500 mt-1">{{ bestSubject.grade || '' }}</p>
-          </div>
+  <!-- GPA Card -->
+  <div class="bg-white rounded-xl shadow-lg p-5 border border-blue-0">
+    <div class="flex justify-between items-start mb-4">
+      <!-- Icon -->
+      <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      </div>
+      <!-- Percentage -->
+      <span class="text-green-500 font-semibold text-sm">+2.5%</span>
+    </div>
+    <p class="text-gray-500 font-semibold text-sm uppercase">GPA</p>
+    <p class="text-3xl font-bold text-blue-800">{{ gpa.toFixed(2) }}</p>
+  </div>
 
-          <!-- Weakest Subject Card -->
-          <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-5 shadow border border-red-200 relative overflow-hidden">
-            <div class="absolute top-4 right-4 text-red-400 text-3xl">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-              </svg>
-            </div>
-            <div class="mb-2">
-              <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">Improvement</p>
-              <p class="text-xl font-bold text-red-800 truncate">{{ weakestSubject.name || '—' }}</p>
-            </div>
-            <p class="text-2xl font-bold text-red-700">{{ weakestSubject.score || 0 }}%</p>
-            <p class="text-xs text-gray-500 mt-1">{{ weakestSubject.grade || '' }}</p>
-          </div>
+  <!-- Best Subject Card -->
+  <div class="bg-white rounded-xl shadow-lg p-5 border border-green-0">
+    <div class="flex justify-between items-start mb-4">
+      <div class="bg-green-100 text-green-600 p-2 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      </div>
+      <span class="text-green-500 font-semibold text-sm">+1.8%</span>
+    </div>
+    <p class="text-gray-500 font-semibold text-sm uppercase">{{ bestSubject.name || '—' }}</p>
+    <p class="text-2xl font-bold text-green-700">{{ bestSubject.score || 0 }}%</p>
+  </div>
 
-          <!-- Overall Performance Card -->
-          <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 shadow border border-purple-200 relative overflow-hidden">
-            <div class="absolute top-4 right-4 text-purple-400 text-3xl">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <div class="mb-2">
-              <p class="text-gray-500 font-semibold text-sm uppercase tracking-wide">Overall </p>
-              <p class="text-xl font-bold text-purple-800">{{ overallPerformance.level }}</p>
-            </div>
-            <p class="text-2xl font-bold text-purple-700">{{ overallPerformance.score }}%</p>
-            <p class="text-xs text-gray-500 mt-1">{{ filteredGrades.length }} assessments</p>
-          </div>
-        </div>
+  <!-- Weakest Subject Card -->
+  <div class="bg-white rounded-xl shadow-lg p-5 border border-red-0">
+    <div class="flex justify-between items-start mb-4">
+      <div class="bg-red-100 text-red-600 p-2 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+        </svg>
+      </div>
+      <span class="text-red-500 font-semibold text-sm">-0.5%</span>
+    </div>
+    <p class="text-gray-500 font-semibold text-sm uppercase">{{ weakestSubject.name || '—' }}</p>
+    <p class="text-2xl font-bold text-red-700">{{ weakestSubject.score || 0 }}%</p>
+  </div>
+
+  <!-- Overall Performance Card -->
+  <div class="bg-white rounded-xl shadow-lg p-5 border border-purple-0">
+    <div class="flex justify-between items-start mb-4">
+      <div class="bg-purple-100 text-purple-600 p-2 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      </div>
+      <span class="text-purple-500 font-semibold text-sm">+3.0%</span>
+    </div>
+    <p class="text-gray-500 font-semibold text-sm uppercase">{{ overallPerformance.level }}</p>
+    <p class="text-2xl font-bold text-purple-700">{{ overallPerformance.score }}%</p>
+  </div>
+
+</div>
+
 
         <!-- Subject Performance Breakdown -->
         <div class="bg-white rounded-xl shadow-md p-5 mb-6 border">
