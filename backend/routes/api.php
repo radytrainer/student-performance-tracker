@@ -72,6 +72,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Active users endpoint for sidebar (protected)
     Route::get('/active-users', [UserController::class, 'index']);
 
+    // Notifications
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index']);
+    Route::post('/notifications/mark-read', [App\Http\Controllers\NotificationController::class, 'markRead']);
+
     // User Management (protected)
     Route::middleware(['role:admin'])->group(function () {
         Route::get('/users', [UserController::class, 'index']);

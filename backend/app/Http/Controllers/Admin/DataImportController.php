@@ -323,10 +323,22 @@ class DataImportController extends Controller
 
             DB::commit();
 
+            // Create a notification for the current user
+            try {
+                \App\Models\Notification::create([
+                    'user_id' => auth()->id(),
+                    'title' => 'Import Completed',
+                    'message' => "{$successCount} students imported, {$errorCount} errors",
+                    'type' => 'announcement',
+                    'is_read' => false,
+                    'sent_at' => now(),
+                ]);
+            } catch (\Throwable $e) {}
+
             // Log the import
             Log::info('Admin imported students from file', [
                 'admin_id' => auth()->id(),
-                'file_name' => $file->getClientOriginalName(),
+                'file_name' => (isset($file) ? $file->getClientOriginalName() : ($uploaded->original_name ?? 'uploaded')),
                 'success_count' => $successCount,
                 'error_count' => $errorCount,
                 'timestamp' => now()
