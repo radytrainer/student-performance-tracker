@@ -1,7 +1,6 @@
 <template>
   <div class="teacher-import-root">
     <div class="p-6">
-    <div>
       <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Data Import</h1>
         <p class="text-gray-600 mt-1">Import student data from CSV or Excel files</p>
@@ -363,17 +362,17 @@
         <button @click="closeEditor" class="text-gray-600 hover:text-gray-800">✕</button>
       </div>
       <div class="overflow-auto max-h-[60vh] border rounded">
+        <div class="p-2">
+          <div v-if="editorMissingHeaders.length" class="text-xs text-red-600 mb-2">Missing columns: {{ editorMissingHeaders.join(', ') }}</div>
+          <div v-if="editorExtraHeaders.length" class="text-xs text-yellow-700 mb-2">Extra columns: {{ editorExtraHeaders.join(', ') }}</div>
+        </div>
+        <div class="px-2 pb-2" v-if="editorSheetNames.length">
+          <label class="text-xs text-gray-600 mr-2">Sheet:</label>
+          <select v-model="selectedEditorSheetName" @change="reparseEditorSheet" class="border rounded px-2 py-1 text-xs">
+            <option v-for="n in editorSheetNames" :key="n" :value="n">{{ n }}</option>
+          </select>
+        </div>
         <table class="min-w-full text-sm">
-          <div class="p-2">
-            <div v-if="editorMissingHeaders.length" class="text-xs text-red-600 mb-2">Missing columns: {{ editorMissingHeaders.join(', ') }}</div>
-            <div v-if="editorExtraHeaders.length" class="text-xs text-yellow-700 mb-2">Extra columns: {{ editorExtraHeaders.join(', ') }}</div>
-          </div>
-          <div class="px-2 pb-2" v-if="editorSheetNames.length">
-            <label class="text-xs text-gray-600 mr-2">Sheet:</label>
-            <select v-model="selectedEditorSheetName" @change="reparseEditorSheet" class="border rounded px-2 py-1 text-xs">
-              <option v-for="n in editorSheetNames" :key="n" :value="n">{{ n }}</option>
-            </select>
-          </div>
           <thead class="bg-gray-100">
             <tr>
               <th v-for="(h,i) in editorHeaders" :key="i" class="px-2 py-1 text-left">{{ h }}</th>
