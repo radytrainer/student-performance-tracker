@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test - Class Filter</title>
+</head>
+<body>
+    <h1>Debug Test for Class Filter Issue</h1>
+    
+    <h2>Test Case 1: Empty Classes Array</h2>
+    <select>
+        <option value="">All Classes</option>
+        <!-- This should not cause errors -->
+    </select>
+    
+    <h2>Test Case 2: Null Classes</h2>
+    <div id="vue-test">
+        <p>Check browser console for Vue.js test results</p>
+    </div>
+
+    <script>
+        // Simulate the problematic scenario
+        console.log('Testing null access scenarios:');
+        
+        // This would cause the error
+        try {
+            let classes = null;
+            let result = classes.map(item => item.id); // This would fail
+        } catch (e) {
+            console.log('Error with null classes:', e.message);
+        }
+        
+        // This is the safe approach
+        try {
+            let classes = null;
+            let result = (classes || []).map(item => item?.id); // This is safe
+            console.log('Safe approach works:', result);
+        } catch (e) {
+            console.log('Safe approach failed:', e.message);
+        }
+        
+        // Test with undefined
+        try {
+            let classes;
+            let result = (classes || []).map(item => item?.id); // This is safe
+            console.log('Safe approach with undefined works:', result);
+        } catch (e) {
+            console.log('Safe approach with undefined failed:', e.message);
+        }
+    </script>
+</body>
+</html>

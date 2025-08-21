@@ -26,6 +26,7 @@ class AuthController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'role' => 'required|in:admin,teacher,student',
+            'school_id' => 'required|exists:schools,id',
             // Additional fields for students
             'gender' => 'nullable|in:male,female,other',
             'date_of_birth' => 'nullable|date',
@@ -51,6 +52,7 @@ class AuthController extends Controller
                 'last_name' => $request->last_name,
                 'role' => $request->role,
                 'is_active' => true,
+                'school_id' => $request->school_id,
             ]);
 
             // Create role-specific record

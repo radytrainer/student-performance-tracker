@@ -1,22 +1,19 @@
 <template>
   <div class="flex h-screen bg-gray-50">
-    <!-- Main Content -->
+
     <div class="flex-1 overflow-auto p-6">
-      <!-- Header -->
       <div class="flex justify-between items-center mb-6">
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-800">My Attendance</h1>
-          <p class="text-gray-600 mt-1">View your attendance records and statistics</p>
+          <h1 class="text-3xl font-bold text-gray-800">Attendance</h1>
+          <p class="text-gray-600 mt-1">View your attendance recode</p>
         </div>
       </div>
 
-      <!-- Loading state -->
       <div v-if="loading" class="text-center py-8">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
         <p>Loading attendance data...</p>
       </div>
 
-      <!-- Error state -->
       <div v-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
         <p>{{ error }}</p>
         <button @click="fetchAttendance" class="mt-2 text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
@@ -24,9 +21,7 @@
         </button>
       </div>
 
-      <!-- Content when loaded -->
       <div v-if="!loading && !error">
-        <!-- Attendance Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-green-100 p-4 rounded-2xl shadow flex items-start">
             <div class="bg-green-200 p-3 rounded-full mr-3">
@@ -82,18 +77,17 @@
   
         </div>
 
-        <!-- Calendar View -->
+    
         <div class="bg-white p-6 mb-6 rounded-xl shadow">
           <h2 class="text-xl font-bold text-gray-800 mb-4">Calendar View</h2>
           <FullCalendar :options="calendarOptions" />
         </div>
 
-        <!-- Filters and Export -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-xl shadow">
           <div class="flex flex-wrap items-center gap-4">
             <div class="relative">
               <select v-model="filters.status" class="border rounded-lg p-2 pl-10 pr-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">All Statuses</option>
+                <option value="">All Statuses for attendance</option>
                 <option value="present">Present</option>
                 <option value="absent">Absent</option>
                 <option value="late">Late</option>
@@ -133,7 +127,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
               </svg>
-              PDF
+              PDF 
             </button>
             <button @click="exportToExcel" class="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-lg text-green-800 hover:bg-green-200 transition">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -150,7 +144,7 @@
           </div>
         </div>
 
-        <!-- Attendance Table -->
+
         <div class="overflow-x-auto rounded-lg shadow bg-white" ref="tableRef">
           <table class="min-w-full text-sm">
             <thead class="bg-gray-100 text-gray-700">
@@ -196,7 +190,7 @@
                 </td>
               </tr>
               <tr v-if="filteredAttendance.length === 0">
-                <td colspan="4" class="px-6 py-4 text-center text-gray-500">No attendance records found</td>
+                <td colspan="4" class="px-6 py-4 text-center text-gray-500">No attendance records found in here</td>
               </tr>
             </tbody>
           </table>
@@ -207,18 +201,18 @@
 </template>
 
 <script setup>
-// Vue + Axios
+
 import { ref, computed, onMounted, nextTick } from 'vue'
 import axios from 'axios'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import * as XLSX from 'xlsx'
 
-// FullCalendar Imports
+
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 
-// API Configuration
+
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
   headers: {
@@ -227,7 +221,7 @@ const apiClient = axios.create({
   }
 })
 
-// Add authorization header
+
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('auth_token')
   if (token) {
@@ -236,7 +230,7 @@ apiClient.interceptors.request.use(config => {
   return config
 })
 
-// Data
+
 const attendance = ref([])
 const loading = ref(true)
 const error = ref(null)
@@ -245,9 +239,9 @@ const filters = ref({
   subject: '',
   date: ''
 })
-const tableRef = ref(null) // Reference to the table element
+const tableRef = ref(null) 
 
-// Fetch attendance data
+
 const fetchAttendance = async () => {
   loading.value = true
   error.value = null
@@ -262,7 +256,7 @@ const fetchAttendance = async () => {
   }
 }
 
-// Calendar Configuration
+
 const calendarOptions = ref({
   plugins: [dayGridPlugin],
   initialView: 'dayGridMonth',
@@ -276,15 +270,15 @@ const calendarOptions = ref({
       title: capitalizeFirstLetter(record.status) + (record.subject_name ? ` - ${record.subject_name}` : ''),
       date: record.date,
       color: {
-        present: '#34D399', // green
-        absent: '#F87171',  // red
-        late: '#FBBF24'     // yellow
-      }[record.status] || '#9CA3AF' // default gray
+        present: '#34D399', 
+        absent: '#F87171',  
+        late: '#FBBF24'     
+      }[record.status] || '#9CA3AF' 
     }))
   })
 })
 
-// Computed properties
+
 const summary = computed(() => {
   const stats = { present: 0, absent: 0, late: 0, total: 0 }
   attendance.value.forEach(record => {
@@ -382,7 +376,7 @@ const capitalizeFirstLetter = (string) => {
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
-// Export PDF
+
 const exportToPDF = async () => {
   try {
     await nextTick();
@@ -392,7 +386,7 @@ const exportToPDF = async () => {
       return;
     }
 
-    // Create PDF
+    
     const pdf = new jsPDF('p', 'pt', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -403,7 +397,6 @@ const exportToPDF = async () => {
     pdf.text("www.passerellesnumeriques.org | BP 511 St. 371 Phum Tropeang Chhuk , City ZIP | +855 23 99 55 00 |", pageWidth / 2, 30, { align: 'center' });
     pdf.text("passerelles numériques cambodia", pageWidth / 2, 45, { align: 'center' });
 
-    // Title
     pdf.setFontSize(18);
     pdf.setTextColor(40);
     pdf.text("Student Attendance Report", pageWidth / 2, 80, { align: 'center' });
@@ -413,7 +406,7 @@ const exportToPDF = async () => {
     pdf.text(`Class: ${localStorage.getItem('class_name') || 'All Classes'}`, 40, 110);
     pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 40, 110, { align: 'right' });
 
-    // Capture table
+  
     const canvas = await html2canvas(tableRef.value, {
       scale: 2,
       logging: false,
@@ -425,23 +418,22 @@ const exportToPDF = async () => {
     const imgWidth = pageWidth - 80;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    // Table position
+    
     const tableY = 130;
     pdf.addImage(imgData, 'PNG', 40, tableY, imgWidth, imgHeight);
 
-    // Footer positioned right below table
-    const footerY = tableY + imgHeight + 20; // 20px below table
+    
+    const footerY = tableY + imgHeight + 20; 
     
     pdf.setFontSize(10);
     pdf.setTextColor(100);
     
-    // Footer notes
     pdf.text("Notes:", 40, footerY);
     pdf.text("- Absences require parental note within 3 days", 40, footerY + 15);
     pdf.text("- Late arrivals marked after 8:15 AM", 40, footerY + 30);
     pdf.text("- Report discrepancies to office within 24 hours", 40, footerY + 45);
     
-    // School footer
+    
     pdf.text(`© ${new Date().getFullYear()} passerelles numériques cambodia`, pageWidth / 2, pageHeight - 20, { align: 'center' });
 
     // Save PDF

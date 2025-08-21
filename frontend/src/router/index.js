@@ -18,6 +18,33 @@ const routes = [
     meta: { guestOnly: true }
   },
 
+  // Super Admin routes
+  {
+    path: '/super-admin',
+    redirect: '/super-admin/dashboard',
+    meta: { requiresAuth: true, requiresPermission: 'super_admin.manage_schools' }
+  },
+  {
+    path: '/super-admin/dashboard',
+    name: 'SuperAdminDashboard',
+    component: () => import('@/views/superAdmin/SuperAdminDashboard.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresPermission: 'super_admin.manage_schools',
+      title: 'Super Admin Dashboard'
+    }
+  },
+  {
+    path: '/super-admin/import',
+    name: 'SuperAdminImport',
+    component: () => import('@/views/admin/AdminImport.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresPermission: 'super_admin.manage_schools',
+      title: 'Data Import'
+    }
+  },
+
   // Admin routes
   {
     path: '/admin',
@@ -170,6 +197,16 @@ const routes = [
       requiresRole: 'teacher',
       requiresPermission: 'teacher.manage_attendance',
       title: 'Manage Attendance'
+    }
+  },
+  {
+    path: '/teacher/import',
+    name: 'TeacherImport',
+    component: () => import('@/views/teacher/TeacherImport.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'teacher',
+      title: 'Import Data'
     }
   },
   {

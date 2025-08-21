@@ -11,6 +11,8 @@ export function useAuth() {
 
   // Role checking functions
   const isAdmin = computed(() => userRole.value === 'admin')
+  const isSuperAdmin = computed(() => userRole.value === 'admin' && authStore.user?.is_super_admin)
+  const isSchoolAdmin = computed(() => userRole.value === 'admin' && !authStore.user?.is_super_admin)
   const isTeacher = computed(() => userRole.value === 'teacher')
   const isStudent = computed(() => userRole.value === 'student')
 
@@ -27,6 +29,11 @@ export function useAuth() {
 
   const hasPermission = (permission) => {
     const permissions = {
+      // Super Admin permissions
+      'super_admin.manage_schools': () => isSuperAdmin.value,
+      'super_admin.manage_sub_admins': () => isSuperAdmin.value,
+      'super_admin.view_all_schools': () => isSuperAdmin.value,
+
       // Admin permissions
       'admin.manage_users': ['admin'],
       'admin.manage_system': ['admin'],
@@ -42,6 +49,7 @@ export function useAuth() {
       'teacher.manage_attendance': ['admin', 'teacher'],
       'teacher.create_reports': ['admin', 'teacher'],
       'teacher.view_analytics': ['admin', 'teacher'],
+      'teacher.import_data': ['admin', 'teacher'],
 
       // Student permissions
       'student.view_own_grades': ['admin', 'teacher', 'student'],
@@ -58,6 +66,12 @@ export function useAuth() {
     const allowedRoles = permissions[permission]
     if (!allowedRoles) return false
     
+    // If permission is a function, call it
+    if (typeof allowedRoles === 'function') {
+      return allowedRoles()
+    }
+    
+    // If permission is an array of roles, check if user has one of them
     return allowedRoles.includes(userRole.value)
   }
 
@@ -90,6 +104,10 @@ export function useAuth() {
 
   // Navigation helpers
   const getDefaultRoute = () => {
+    if (isSuperAdmin.value) {
+      return '/super-admin/dashboard'
+    }
+    
     switch (userRole.value) {
       case 'admin':
         return '/admin/dashboard'
@@ -122,6 +140,7 @@ export function useAuth() {
         { name: 'Students', path: '/students', icon: 'fas fa-user-graduate' },
         { name: 'Grades', path: '/teacher/grades', icon: 'fas fa-clipboard-list' },
         { name: 'Attendance', path: '/teacher/attendance', icon: 'fas fa-calendar-check' },
+        { name: 'Data Import', path: '/teacher/import', icon: 'fas fa-file-import' },
         { name: 'Feedback Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-poll' },
         { name: 'Reports', path: '/teacher/reports', icon: 'fas fa-file-alt' },
         { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
@@ -162,6 +181,8 @@ export function useAuth() {
 
     // Role checks
     isAdmin,
+    isSuperAdmin,
+    isSchoolAdmin,
     isTeacher,
     isStudent,
     hasRole,

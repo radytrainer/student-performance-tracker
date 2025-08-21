@@ -1,4 +1,3 @@
-
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6">
     <div class="max-w-7xl mx-auto space-y-6">
@@ -166,7 +165,7 @@
           </div>
           <h3 class="text-xl font-bold text-gray-900">User Overview</h3>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div v-for="userType in userTypes" :key="userType.type" class="p-4 bg-gray-50 rounded-xl">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
@@ -198,15 +197,43 @@ import {
   Users, TrendingUp, AlertTriangle, BarChart3, PieChart, Activity, BookOpen, Shield, Database
 } from 'lucide-vue-next'
 
-// Data
+// --- Admin Data ---
 const adminData = ref({
-  totalUsers: 1247,
-  totalStudents: 1089,
-  totalTeachers: 142,
-  totalAdmins: 16,
-  activeCourses: 48
+  totalUsers: 0,
+  totalStudents: 0,
+  totalTeachers: 0,
+  totalAdmins: 0,
+  activeCourses: 0,
+  totalClasses: 0,
+  totalAttendance: 0,
+  userGrowth: [],
+  coursePerformance: [],
+  activity: []
 })
 
+// --- Fetch from API ---
+const fetchAdminStats = async () => {
+  try {
+    const res = await fetch('http://127.0.0.1:8000/api/admin/stats')
+    const data = await res.json()
+    adminData.value = {
+      totalUsers: data.totalUsers || 0,
+      totalStudents: data.totalStudents || 0,
+      totalTeachers: data.totalTeachers || 0,
+      totalAdmins: data.totalAdmins || 0,
+      activeCourses: data.totalSubjects || 0,
+      totalClasses: data.totalClasses || 0,
+      totalAttendance: data.totalAttendance || 0,
+      userGrowth: data.userGrowth || [],
+      coursePerformance: data.coursePerformance || [],
+      activity: data.activity || []
+    }
+  } catch (error) {
+    console.error('Failed to fetch admin stats:', error)
+  }
+}
+
+// --- KPI Boxes ---
 const kpiData = computed(() => [
   {
     title: 'Total Users',
@@ -227,18 +254,18 @@ const kpiData = computed(() => [
     change: '+8%'
   },
   {
-    title: 'System Health',
-    value: '98.5%',
-    icon: Activity,
+    title: 'Total Classes',
+    value: adminData.value.totalClasses,
+    icon: BarChart3,
     gradient: 'from-purple-500 to-purple-600',
     textColor: 'text-purple-600',
     badgeColor: 'bg-purple-100 text-purple-700',
-    change: '+0.2%'
+    change: '+0%'
   },
   {
-    title: 'Storage Used',
-    value: '67%',
-    icon: Database,
+    title: 'Total Attendance',
+    value: adminData.value.totalAttendance,
+    icon: Activity,
     gradient: 'from-orange-500 to-orange-600',
     textColor: 'text-orange-600',
     badgeColor: 'bg-orange-100 text-orange-700',
@@ -246,6 +273,7 @@ const kpiData = computed(() => [
   }
 ])
 
+// --- Other Data ---
 const systemHealth = ref([
   { name: 'CPU Usage', value: '45%', percentage: 45, status: 'good' },
   { name: 'Memory Usage', value: '67%', percentage: 67, status: 'warning' },
@@ -253,70 +281,19 @@ const systemHealth = ref([
   { name: 'Network', value: '12%', percentage: 12, status: 'good' },
   { name: 'Database', value: '89%', percentage: 89, status: 'warning' }
 ])
-
 const systemAlerts = ref([
-  {
-    id: 1,
-    title: 'High Server Load',
-    description: 'Server CPU usage is above 85%',
-    severity: 'high',
-    time: '5 min ago'
-  },
-  {
-    id: 2,
-    title: 'Database Backup Completed',
-    description: 'Daily backup completed successfully',
-    severity: 'low',
-    time: '1 hour ago'
-  },
-  {
-    id: 3,
-    title: 'New User Registrations Spike',
-    description: '50+ new registrations in the last hour',
-    severity: 'medium',
-    time: '2 hours ago'
-  }
+  { id: 1, title: 'High Server Load', description: 'Server CPU usage is above 85%', severity: 'high', time: '5 min ago' },
+  { id: 2, title: 'Database Backup Completed', description: 'Daily backup completed successfully', severity: 'low', time: '1 hour ago' },
+  { id: 3, title: 'New User Registrations Spike', description: '50+ new registrations in the last hour', severity: 'medium', time: '2 hours ago' }
 ])
-
 const userTypes = computed(() => [
-  {
-    type: 'students',
-    label: 'Students',
-    count: adminData.value.totalStudents,
-    active: Math.floor(adminData.value.totalStudents * 0.85),
-    icon: Users
-  },
-  {
-    type: 'teachers',
-    label: 'Teachers',
-    count: adminData.value.totalTeachers,
-    active: Math.floor(adminData.value.totalTeachers * 0.92),
-    icon: BookOpen
-  },
-  {
-    type: 'admins',
-    label: 'Administrators',
-    count: adminData.value.totalAdmins,
-    active: Math.floor(adminData.value.totalAdmins * 0.95),
-    icon: Shield
-  }
+  { type: 'students', label: 'Students', count: adminData.value.totalStudents, active: Math.floor(adminData.value.totalStudents * 0.85), icon: Users },
+  { type: 'teachers', label: 'Teachers', count: adminData.value.totalTeachers, active: Math.floor(adminData.value.totalTeachers * 0.92), icon: BookOpen },
+  { type: 'admins', label: 'Administrators', count: adminData.value.totalAdmins, active: Math.floor(adminData.value.totalAdmins * 0.95), icon: Shield }
 ])
-
 const totalUsers = computed(() => adminData.value.totalUsers)
 
-// Chart refs
-const userGrowthChart = ref(null)
-const coursePerformanceChart = ref(null)
-const userDistributionChart = ref(null)
-const activityChart = ref(null)
-
-// Chart instances
-let userGrowthChartInstance = null
-let coursePerformanceChartInstance = null
-let userDistributionChartInstance = null
-let activityChartInstance = null
-
-// Methods
+// --- Helper functions ---
 const getStatusColor = (status) => {
   switch (status) {
     case 'good': return 'bg-green-500'
@@ -325,7 +302,6 @@ const getStatusColor = (status) => {
     default: return 'bg-gray-500'
   }
 }
-
 const getSeverityStyles = (severity) => {
   switch (severity) {
     case 'high': return 'bg-red-50 border-red-500'
@@ -335,232 +311,65 @@ const getSeverityStyles = (severity) => {
   }
 }
 
-// Chart creation functions
-const createUserGrowthChart = async () => {
-  if (!userGrowthChart.value) return
+// --- Charts ---
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
 
-  const { Chart, registerables } = await import('chart.js')
-  Chart.register(...registerables)
+const userGrowthChart = ref(null)
+const coursePerformanceChart = ref(null)
+const userDistributionChart = ref(null)
+const activityChart = ref(null)
 
+let userGrowthChartInstance = null
+let coursePerformanceChartInstance = null
+let userDistributionChartInstance = null
+let activityChartInstance = null
+
+const createCharts = () => {
+  // User Growth
   if (userGrowthChartInstance) userGrowthChartInstance.destroy()
-
-  const ctx = userGrowthChart.value.getContext('2d')
-  userGrowthChartInstance = new Chart(ctx, {
+  userGrowthChartInstance = new Chart(userGrowthChart.value, {
     type: 'line',
     data: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      datasets: [
-        {
-          label: 'Students',
-          data: [120, 150, 180, 220, 280, 320],
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#3b82f6',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 6
-        },
-        {
-          label: 'Teachers',
-          data: [15, 18, 22, 28, 35, 42],
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#10b981',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 6
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: { 
-            font: { size: 12, weight: '500' },
-            usePointStyle: true,
-            padding: 20
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(0, 0, 0, 0.05)' },
-          ticks: { font: { size: 12, weight: '500' } }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 12, weight: '500' } }
-        }
-      }
+      labels: adminData.value.userGrowth.map(i => i.month),
+      datasets: [{ label: 'Users', data: adminData.value.userGrowth.map(i => i.count), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)' }]
     }
   })
-}
-
-const createCoursePerformanceChart = async () => {
-  if (!coursePerformanceChart.value) return
-
-  const { Chart, registerables } = await import('chart.js')
-  Chart.register(...registerables)
-
+  // Course Performance
   if (coursePerformanceChartInstance) coursePerformanceChartInstance.destroy()
-
-  const ctx = coursePerformanceChart.value.getContext('2d')
-  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-
-  coursePerformanceChartInstance = new Chart(ctx, {
+  coursePerformanceChartInstance = new Chart(coursePerformanceChart.value, {
     type: 'bar',
     data: {
-      labels: ['Mathematics', 'Science', 'English', 'History', 'Art'],
-      datasets: [{
-        label: 'Average Grade',
-        data: [85, 78, 92, 76, 88],
-        backgroundColor: colors.map(color => color + '40'),
-        borderColor: colors,
-        borderWidth: 2,
-        borderRadius: 8,
-        borderSkipped: false
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { 
-        legend: { display: false }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          grid: { color: 'rgba(0, 0, 0, 0.05)' },
-          ticks: { font: { size: 12, weight: '500' } }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 11, weight: '500' }, maxRotation: 45 }
-        }
-      }
+      labels: adminData.value.coursePerformance.map(i => i.course),
+      datasets: [{ label: 'Average Grade', data: adminData.value.coursePerformance.map(i => i.avg), backgroundColor: '#10b981' }]
     }
   })
-}
-
-const createUserDistributionChart = async () => {
-  if (!userDistributionChart.value) return
-
-  const { Chart, registerables } = await import('chart.js')
-  Chart.register(...registerables)
-
+  // User Distribution
   if (userDistributionChartInstance) userDistributionChartInstance.destroy()
-
-  const ctx = userDistributionChart.value.getContext('2d')
-  const colors = ['#3b82f6', '#10b981', '#8b5cf6']
-
-  userDistributionChartInstance = new Chart(ctx, {
-    type: 'doughnut',
+  userDistributionChartInstance = new Chart(userDistributionChart.value, {
+    type: 'pie',
     data: {
-      labels: ['Students', 'Teachers', 'Administrators'],
-      datasets: [{
-        data: [
-          adminData.value.totalStudents,
-          adminData.value.totalTeachers,
-          adminData.value.totalAdmins
-        ],
-        backgroundColor: colors,
-        borderColor: '#fff',
-        borderWidth: 4,
-        hoverBorderWidth: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '60%',
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            padding: 20,
-            usePointStyle: true,
-            font: { size: 12, weight: '500' }
-          }
-        }
-      }
+      labels: ['Students', 'Teachers', 'Admins'],
+      datasets: [{ data: [adminData.value.totalStudents, adminData.value.totalTeachers, adminData.value.totalAdmins], backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'] }]
     }
   })
-}
-
-const createActivityChart = async () => {
-  if (!activityChart.value) return
-
-  const { Chart, registerables } = await import('chart.js')
-  Chart.register(...registerables)
-
+  // Activity
   if (activityChartInstance) activityChartInstance.destroy()
-
-  const ctx = activityChart.value.getContext('2d')
-
-  activityChartInstance = new Chart(ctx, {
+  activityChartInstance = new Chart(activityChart.value, {
     type: 'line',
     data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [{
-        label: 'Daily Active Users',
-        data: [245, 289, 267, 312, 298, 156, 189],
-        borderColor: '#8b5cf6',
-        backgroundColor: 'rgba(139, 92, 246, 0.2)',
-        borderWidth: 3,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#8b5cf6',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { 
-        legend: { display: false }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(0, 0, 0, 0.05)' },
-          ticks: { font: { size: 12, weight: '500' } }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 12, weight: '500' } }
-        }
-      }
+      labels: adminData.value.activity.map(i => i.date),
+      datasets: [{ label: 'Daily Active Users', data: adminData.value.activity.map(i => i.count), borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.2)' }]
     }
   })
 }
 
-const updateCharts = async () => {
-  await nextTick()
-  setTimeout(() => {
-    createUserGrowthChart()
-    createCoursePerformanceChart()
-    createUserDistributionChart()
-    createActivityChart()
-  }, 100)
-}
-
-onMounted(() => {
-  updateCharts()
+onMounted(async () => {
+  await fetchAdminStats()
+  nextTick(() => createCharts())
 })
 </script>
+
 <style scoped>
 .bg-clip-text {
   -webkit-background-clip: text;

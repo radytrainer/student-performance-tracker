@@ -1,6 +1,6 @@
 <template>
   <div class="p-6">
-    <div v-if="!hasPermission('admin.manage_users')" class="text-center py-12">
+    <div v-if="!(hasPermission('admin.manage_users') || hasPermission('super_admin.manage_schools'))" class="text-center py-12">
       <h2 class="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
       <p class="text-gray-600">You don't have permission to import data.</p>
     </div>
@@ -81,6 +81,18 @@
                 </div>
               </div>
 
+              <!-- Optional Sheet Name (for Excel) -->
+              <div v-if="selectedFile && (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls'))">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sheet Name (optional)</label>
+                <input
+                  v-model="sheetName"
+                  type="text"
+                  placeholder="e.g., Students or Sheet1"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p class="text-xs text-gray-500 mt-1">If left empty, the first/active sheet will be used</p>
+              </div>
+
               <!-- Default Class Selection -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Default Class</label>
@@ -95,6 +107,15 @@
                 <p class="text-xs text-gray-500 mt-1">Students without a specified class will be assigned to this class</p>
               </div>
 
+              <!-- Optional Subjects Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Assign Subjects to Class (optional)</label>
+                <select multiple v-model="subjectIds" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[110px]">
+                  <option v-for="sub in subjects" :key="sub.id" :value="sub.id">{{ sub.subject_name }}</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">If selected, these subjects will be added to the chosen class</p>
+              </div>
+
               <!-- Import Button -->
               <button
                 @click="importStudents"
@@ -106,12 +127,34 @@
                   Importing...
                 </span>
                 <span v-else class="flex items-center">
-                  <i class="fas fa-upload mr-2"></i>
-                  Import Students
+                <i class="fas fa-upload mr-2"></i>
+                Import Students
                 </span>
-              </button>
-            </div>
-          </div>
+                </button>
+
+                    <!-- Or upload file only -->
+               <div class="pt-2">
+                 <label class="inline-flex items-center">
+                   <input type="checkbox" v-model="fileOnly" class="mr-2">
+                   <span class="text-sm text-gray-700">Upload file only (store without processing)</span>
+                 </label>
+               </div>
+               <button
+                 @click="uploadFileOnly"
+                 :disabled="!selectedFile || importing"
+                 class="w-full mt-2 bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+               >
+                 <span v-if="importing && fileOnly" class="flex items-center">
+                   <i class="fas fa-spinner fa-spin mr-2"></i>
+                   Uploading...
+                 </span>
+                 <span v-else class="flex items-center">
+                   <i class="fas fa-file-upload mr-2"></i>
+                   Upload File Only
+                 </span>
+               </button>
+             </div>
+           </div>
 
           <!-- Template Download -->
           <div class="bg-white rounded-lg shadow p-6">
@@ -147,56 +190,76 @@
           </div>
         </div>
 
-        <!-- Import History -->
+        <!-- Uploaded Files -->
         <div class="space-y-6">
           <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Import History</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Uploaded Files</h3>
             
-            <div v-if="loadingHistory" class="flex justify-center py-8">
+            <div v-if="loadingUploads" class="flex justify-center py-8">
               <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
             
-            <div v-else-if="importHistory.length === 0" class="text-center py-8">
+            <div v-else-if="uploadedFiles.length === 0" class="text-center py-8">
               <i class="fas fa-history text-gray-400 text-3xl mb-3"></i>
-              <p class="text-gray-500">No import history yet</p>
+              <p class="text-gray-500">No uploaded files yet</p>
             </div>
             
             <div v-else class="space-y-3">
               <div
-                v-for="import_record in importHistory"
-                :key="import_record.id"
+                v-for="file in uploadedFiles"
+                :key="file.id"
                 class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
               >
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
                     <div class="flex items-center">
                       <i class="fas fa-file-import text-blue-600 mr-2"></i>
-                      <h4 class="font-medium text-gray-900">{{ import_record.file_name }}</h4>
+                      <h4 class="font-medium text-gray-900">
+                        <a v-if="file.url" :href="file.url" target="_blank" class="text-blue-600 hover:underline">{{ file.original_name }}</a>
+                        <span v-else>{{ file.original_name }}</span>
+                      </h4>
                     </div>
                     <div class="mt-1 text-sm text-gray-600">
-                      <span class="text-green-600">{{ import_record.records_imported }} imported</span>
-                      <span v-if="import_record.records_failed > 0" class="text-red-600 ml-2">
-                        {{ import_record.records_failed }} failed
-                      </span>
+                      <span v-if="file.size_bytes" class="ml-0">{{ (file.size_bytes/1024).toFixed(1) }} KB</span>
+                      <span v-if="file.mime_type" class="ml-2">• {{ file.mime_type }}</span>
+                      <span v-if="file.label" class="ml-2">• {{ file.label }}</span>
                     </div>
                     <div class="mt-1 text-xs text-gray-500">
-                      {{ formatDate(import_record.imported_at) }} by {{ import_record.imported_by }}
+                      {{ formatDate(file.uploaded_at) }}
                     </div>
                   </div>
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        :class="getStatusClass(import_record.status)">
-                    {{ capitalizeFirst(import_record.status) }}
-                  </span>
+                  <div class="flex items-center gap-3">
+                    <button @click="importFromUpload(file)" class="text-blue-600 hover:text-blue-800 text-sm">
+                      <i class="fas fa-upload mr-1"></i> Import with selected class
+                    </button>
+                    <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800 text-sm">
+                      <i class="fas fa-trash mr-1"></i> Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
+            <div class="flex justify-between items-center mt-4" v-if="uploadsMeta">
+              <button
+                @click="prevUploadsPage"
+                :disabled="uploadsMeta.current_page <= 1"
+                class="px-3 py-1 border rounded disabled:opacity-50"
+              >Prev</button>
+              <div class="text-sm text-gray-600">Page {{ uploadsMeta.current_page }} of {{ uploadsMeta.last_page }}</div>
+              <button
+                @click="nextUploadsPage"
+                :disabled="uploadsMeta.current_page >= uploadsMeta.last_page"
+                class="px-3 py-1 border rounded disabled:opacity-50"
+              >Next</button>
+            </div>
+
             <button
-              @click="loadImportHistory"
+              @click="reloadUploads"
               class="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm transition-colors"
             >
               <i class="fas fa-refresh mr-1"></i>
-              Refresh History
+              Refresh Uploaded Files
             </button>
           </div>
 
@@ -246,14 +309,27 @@ const { hasPermission } = useAuth()
 // State
 const selectedFile = ref(null)
 const defaultClassId = ref('')
+const sheetName = ref('')
 const classes = ref([])
 const importing = ref(false)
 const isDragOver = ref(false)
 const successMessage = ref('')
 const error = ref('')
-const importHistory = ref([])
+const importHistory = ref([]) // kept for last import stats if needed
 const loadingHistory = ref(false)
 const importResults = ref(null)
+const fileOnly = ref(false)
+
+// Subjects
+const subjects = ref([])
+const subjectIds = ref([])
+
+// Uploaded files state
+const uploadedFiles = ref([])
+const uploadsMeta = ref(null)
+const loadingUploads = ref(false)
+let uploadsPage = 1
+const uploadsPerPage = 10
 
 // Methods
 const handleFileSelect = (event) => {
@@ -322,6 +398,15 @@ const loadClasses = async () => {
   }
 }
 
+const loadSubjects = async () => {
+  try {
+    const response = await adminAPI.getSubjectsForImport()
+    subjects.value = response.data.data || []
+  } catch (err) {
+    console.error('Error loading subjects:', err)
+  }
+}
+
 const loadImportHistory = async () => {
   try {
     loadingHistory.value = true
@@ -331,6 +416,49 @@ const loadImportHistory = async () => {
     console.error('Error loading import history:', err)
   } finally {
     loadingHistory.value = false
+  }
+}
+
+const loadUploadedFiles = async (page = 1) => {
+  try {
+    loadingUploads.value = true
+    const response = await adminAPI.getUploadedFiles({ page, per_page: uploadsPerPage })
+    const payload = response.data.data
+    // If backend returns a paginator object under data, handle that
+    uploadedFiles.value = payload.data || payload
+    uploadsMeta.value = payload.data ? payload : null
+    uploadsPage = uploadsMeta.value ? uploadsMeta.value.current_page : page
+  } catch (err) {
+    console.error('Error loading uploaded files:', err)
+  } finally {
+    loadingUploads.value = false
+  }
+}
+
+const prevUploadsPage = async () => {
+  if (uploadsMeta.value && uploadsMeta.value.current_page > 1) {
+    await loadUploadedFiles(uploadsMeta.value.current_page - 1)
+  }
+}
+
+const nextUploadsPage = async () => {
+  if (uploadsMeta.value && uploadsMeta.value.current_page < uploadsMeta.value.last_page) {
+    await loadUploadedFiles(uploadsMeta.value.current_page + 1)
+  }
+}
+
+const reloadUploads = async () => {
+  await loadUploadedFiles(uploadsPage)
+}
+
+const confirmDelete = async (file) => {
+  if (!confirm(`Delete ${file.original_name}?`)) return
+  try {
+    await adminAPI.deleteUploadedFile(file.id)
+    showSuccessMessage('File deleted')
+    await loadUploadedFiles(uploadsMeta.value?.current_page || 1)
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to delete file'
   }
 }
 
@@ -369,22 +497,107 @@ const importStudents = async () => {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
     formData.append('default_class_id', defaultClassId.value)
-    
+    if (sheetName.value) {
+    formData.append('sheet_name', sheetName.value)
+    }
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
+
     const response = await adminAPI.importStudents(formData)
-    
+
     importResults.value = response.data.data
     showSuccessMessage(response.data.message)
     
     // Clear form
     selectedFile.value = null
     defaultClassId.value = ''
+    sheetName.value = ''
     
-    // Refresh history
-    await loadImportHistory()
+    // Refresh lists
+    await Promise.all([loadImportHistory(), loadClasses(), loadUploadedFiles(1)])
     
   } catch (err) {
-    error.value = err.response?.data?.message || 'Failed to import students'
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
     console.error('Import error:', err)
+  } finally {
+    importing.value = false
+  }
+}
+
+const uploadFileOnly = async () => {
+  try {
+    importing.value = true
+    error.value = ''
+    successMessage.value = ''
+
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    // optional label could be filename without extension
+    formData.append('label', selectedFile.value?.name || '')
+
+    const response = await adminAPI.uploadFileOnly(formData)
+    showSuccessMessage(response.data.message)
+
+    // Clear selections
+    selectedFile.value = null
+    defaultClassId.value = ''
+    sheetName.value = ''
+    fileOnly.value = false
+
+    // Refresh uploads list
+    await loadUploadedFiles(1)
+
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to upload file'
+    }
+    console.error('Upload file error:', err)
+  } finally {
+    importing.value = false
+  }
+}
+
+const importFromUpload = async (file) => {
+  if (!defaultClassId.value) {
+    error.value = 'Please select a Default Class before importing'
+    return
+  }
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+
+    const formData = new FormData()
+    formData.append('uploaded_file_id', file.id)
+    formData.append('default_class_id', defaultClassId.value)
+    if (sheetName.value) formData.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
+
+    const response = await adminAPI.importStudents(formData)
+    importResults.value = response.data.data
+    showSuccessMessage(response.data.message)
+
+    // refresh lists for real-time UI
+    await Promise.all([loadImportHistory(), loadClasses()])
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
+    console.error('Import from uploaded file error:', err)
   } finally {
     importing.value = false
   }
@@ -392,6 +605,8 @@ const importStudents = async () => {
 
 onMounted(() => {
   loadClasses()
+  loadSubjects()
   loadImportHistory()
+  loadUploadedFiles(1)
 })
 </script>
