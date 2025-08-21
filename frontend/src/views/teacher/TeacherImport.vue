@@ -1,6 +1,6 @@
 <template>
-  <div class="p-6">
-    <div>
+  <div class="teacher-import-root">
+    <div class="p-6">
       <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Data Import</h1>
         <p class="text-gray-600 mt-1">Import student data from CSV or Excel files</p>
@@ -70,23 +70,36 @@
                   <div class="flex-1">
                     <p class="text-sm font-medium text-gray-900">{{ selectedFile.name }}</p>
                     <p class="text-sm text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
+                    <p v-if="missingHeaders.length" class="text-xs text-red-600 mt-1">Missing columns: {{ missingHeaders.join(', ') }}</p>
                   </div>
                   <button @click="clearFile" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
+                <div class="mt-3 border rounded overflow-auto" v-if="localPreviewHeaders.length">
+                  <table class="min-w-full text-xs">
+                    <thead class="bg-gray-100">
+                      <tr>
+                        <th v-for="(h,i) in localPreviewHeaders" :key="i" class="px-2 py-1 text-left">{{ h }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, idx) in localPreviewRows" :key="idx" class="border-b">
+                        <td v-for="(h,i) in localPreviewHeaders" :key="i" class="px-2 py-1">{{ row[h] }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div v-else-if="localPreviewLoading" class="mt-3 text-sm text-gray-500">Parsing preview...</div>
               </div>
 
-              <!-- Optional Sheet Name (for Excel) -->
+              <!-- Sheet selection (Excel only) -->
               <div v-if="selectedFile && (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls'))">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Sheet Name (optional)</label>
-                <input
-                  v-model="sheetName"
-                  type="text"
-                  placeholder="e.g., Students or Sheet1"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <p class="text-xs text-gray-500 mt-1">If left empty, the first/active sheet will be used</p>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sheet</label>
+                <select v-model="selectedLocalSheetName" @change="onChangeLocalSheet" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                  <option v-for="n in localSheetNames" :key="n" :value="n">{{ n }}</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Selected sheet will be used for preview and import.</p>
               </div>
 
               <!-- Default Class Selection -->
@@ -190,50 +203,62 @@
         <div class="space-y-6">
           <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Uploaded Files</h3>
-            
+
+            <div class="flex items-center justify-between mb-3 gap-3">
+              <input v-model="searchUploaded" type="text" placeholder="Search files..." class="border rounded px-3 py-2 w-full max-w-sm" />
+              <label class="text-sm flex items-center gap-2">
+                <input type="checkbox" v-model="autoRefreshUploads" /> Auto refresh
+              </label>
+            </div>
+
             <div v-if="loadingUploads" class="flex justify-center py-8">
               <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
-            
+
             <div v-else-if="uploadedFiles.length === 0" class="text-center py-8">
               <i class="fas fa-history text-gray-400 text-3xl mb-3"></i>
               <p class="text-gray-500">No uploaded files yet</p>
             </div>
-            
-            <div v-else class="space-y-3">
-              <div
-                v-for="file in uploadedFiles"
-                :key="file.id"
-                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <div class="flex items-center">
-                      <i class="fas fa-file-import text-blue-600 mr-2"></i>
-                      <h4 class="font-medium text-gray-900">
-                        <a v-if="file.url" :href="file.url" target="_blank" class="text-blue-600 hover:underline">{{ file.original_name }}</a>
-                        <span v-else>{{ file.original_name }}</span>
-                      </h4>
-                    </div>
-                    <div class="mt-1 text-sm text-gray-600">
-                      <span v-if="file.size_bytes" class="ml-0">{{ (file.size_bytes/1024).toFixed(1) }} KB</span>
-                      <span v-if="file.mime_type" class="ml-2">• {{ file.mime_type }}</span>
-                      <span v-if="file.label" class="ml-2">• {{ file.label }}</span>
-                    </div>
-                    <div class="mt-1 text-xs text-gray-500">
-                      {{ formatDate(file.uploaded_at) }}
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <button @click="importFromUpload(file)" class="text-blue-600 hover:text-blue-800 text-sm">
-                      <i class="fas fa-upload mr-1"></i> Import with selected class
-                    </button>
-                    <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800 text-sm">
-                      <i class="fas fa-trash mr-1"></i> Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
+
+            <!-- Compact table-like list -->
+            <div v-else class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2 text-left w-6"></th>
+                    <th class="px-4 py-2 text-left">File name</th>
+                    <th class="px-4 py-2 text-left hidden lg:table-cell">Size</th>
+                    <th class="px-4 py-2 text-left hidden lg:table-cell">Uploaded</th>
+                    <th class="px-4 py-2 text-left">Class</th>
+                    <th class="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr v-for="file in filteredUploadedFiles" :key="file.id" class="hover:bg-gray-50">
+                    <td class="px-4 py-2"><i class="fas fa-file-csv text-blue-600"></i></td>
+                    <td class="px-4 py-2">
+                      <a v-if="file.url" :href="file.url" target="_blank" class="text-blue-600 hover:underline">{{ file.original_name }}</a>
+                      <span v-else>{{ file.original_name }}</span>
+                      <div v-if="file.label" class="text-xs text-gray-500">{{ file.label }}</div>
+                    </td>
+                    <td class="px-4 py-2 hidden lg:table-cell">{{ file.size_bytes ? (file.size_bytes/1024).toFixed(1) + ' KB' : '-' }}</td>
+                    <td class="px-4 py-2 hidden lg:table-cell">{{ formatDate(file.uploaded_at) }}</td>
+                    <td class="px-4 py-2">
+                      <select v-model="rowClassSelection[file.id]" class="border rounded px-2 py-1 min-w-[160px]">
+                        <option value="">Default</option>
+                        <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
+                      </select>
+                    </td>
+                    <td class="px-4 py-2">
+                      <div class="flex items-center gap-3">
+                        <button @click="openFileEditor(file)" class="text-gray-700 hover:text-gray-900">Preview/Edit</button>
+                        <button @click="importFromUploadWithRow(file)" class="text-blue-600 hover:text-blue-800">Import</button>
+                        <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             <div class="flex justify-between items-center mt-4" v-if="uploadsMeta">
@@ -289,16 +314,103 @@
               </div>
             </div>
           </div>
+
+          <!-- Import History -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Import History</h3>
+            <div class="flex items-center justify-between mb-3">
+              <input v-model="searchHistory" type="text" placeholder="Search history..." class="border rounded px-3 py-2 w-full max-w-sm" />
+              <button @click="loadImportHistory" class="ml-3 px-3 py-2 border rounded">Refresh</button>
+            </div>
+            <div v-if="loadingHistory" class="flex justify-center py-8">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            </div>
+            <div v-else>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-2 text-left">Date</th>
+                      <th class="px-4 py-2 text-left">Name</th>
+                      <th class="px-4 py-2 text-left">Type</th>
+                      <th class="px-4 py-2 text-left">Records</th>
+                      <th class="px-4 py-2 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200">
+                    <tr v-for="(item, i) in filteredHistory" :key="i">
+                      <td class="px-4 py-2">{{ formatDate(item.created_at) }}</td>
+                      <td class="px-4 py-2">{{ item.name || 'Untitled' }}</td>
+                      <td class="px-4 py-2">{{ item.import_type || 'students' }}</td>
+                      <td class="px-4 py-2">{{ item.records_processed ?? '-' }}</td>
+                      <td class="px-4 py-2">
+                        <span :class="getStatusClass(item.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">{{ item.status }}</span>
+                      </td>
+                    </tr>
+                    <tr v-if="filteredHistory.length === 0">
+                      <td colspan="5" class="px-4 py-6 text-center text-gray-500">No history found</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- File Editor Modal -->
+  <div v-if="showEditor" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold">Preview/Edit: {{ editorFileName }}</h3>
+        <button @click="closeEditor" class="text-gray-600 hover:text-gray-800">✕</button>
+      </div>
+      <div class="overflow-auto max-h-[60vh] border rounded">
+        <div class="p-2">
+          <div v-if="editorMissingHeaders.length" class="text-xs text-red-600 mb-2">Missing columns: {{ editorMissingHeaders.join(', ') }}</div>
+          <div v-if="editorExtraHeaders.length" class="text-xs text-yellow-700 mb-2">Extra columns: {{ editorExtraHeaders.join(', ') }}</div>
+        </div>
+        <div class="px-2 pb-2" v-if="editorSheetNames.length">
+          <label class="text-xs text-gray-600 mr-2">Sheet:</label>
+          <select v-model="selectedEditorSheetName" @change="reparseEditorSheet" class="border rounded px-2 py-1 text-xs">
+            <option v-for="n in editorSheetNames" :key="n" :value="n">{{ n }}</option>
+          </select>
+        </div>
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th v-for="(h,i) in editorHeaders" :key="i" class="px-2 py-1 text-left">{{ h }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row,r) in editorRows" :key="r" class="border-b">
+              <td v-for="(h,c) in editorHeaders" :key="c" class="px-2 py-1">
+                <input v-model="editorRows[r][h]" :class="['border rounded px-1 py-0.5 w-full', editorCellInvalid(r,h) ? 'border-red-500 bg-red-50' : 'border-gray-300']" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-3 flex justify-between">
+        <div class="text-xs text-gray-500">Rows: {{ editorRows.length }}</div>
+        <div class="space-x-2">
+          <button @click="downloadEditedCsv" class="px-3 py-2 border rounded">Download edited CSV</button>
+          <button @click="uploadEditedCsv" class="px-3 py-2 bg-gray-700 text-white rounded">Upload edited CSV</button>
+          <button @click="importEditedCsv" class="px-3 py-2 bg-blue-600 text-white rounded" :disabled="!defaultClassId">Import edited (uses selected class)</button>
         </div>
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-// import dayjs from 'dayjs' // Not installed, using native Date
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import dayjs from 'dayjs'
 import { teacherAPI } from '@/api/teacher'
+import { useAuth } from '@/composables/useAuth'
+import * as XLSX from 'xlsx'
 
 // State
 const selectedFile = ref(null)
@@ -309,10 +421,15 @@ const importing = ref(false)
 const isDragOver = ref(false)
 const successMessage = ref('')
 const error = ref('')
-const importHistory = ref([]) // kept for last import stats if needed
+const importHistory = ref([])
 const loadingHistory = ref(false)
+const historyPage = ref(1)
+const historyPerPage = 10
 const importResults = ref(null)
 const fileOnly = ref(false)
+
+// Expected template headers
+const expectedHeaders = ref([])
 
 // Subjects
 const subjects = ref([])
@@ -324,12 +441,117 @@ const uploadsMeta = ref(null)
 const loadingUploads = ref(false)
 let uploadsPage = 1
 const uploadsPerPage = 10
+const searchUploaded = ref('')
+const filteredUploadedFiles = computed(() => {
+  const q = searchUploaded.value.toLowerCase().trim()
+  if (!q) return uploadedFiles.value
+  return uploadedFiles.value.filter(f => (f.original_name || f.label || '').toLowerCase().includes(q))
+})
+
+// Per-row class selection
+const rowClassSelection = ref({})
+
+// Auto refresh uploads
+const autoRefreshUploads = ref(true)
+let uploadsTimer = null
+
+// Editor modal state
+const showEditor = ref(false)
+const editorHeaders = ref([])
+const editorRows = ref([])
+const editorFileName = ref('')
+const editorOriginalFile = ref(null)
+const editorSheetNames = ref([])
+const selectedEditorSheetName = ref('')
+const editorMissingHeaders = ref([])
+const editorExtraHeaders = ref([])
+
+const requiredHeaders = computed(() => expectedHeaders.value.length ? expectedHeaders.value : minimalHeaders)
+
+const editorCellInvalid = (rowIndex, header) => {
+  const val = editorRows.value[rowIndex]?.[header]
+  if (requiredHeaders.value.includes(header)) {
+    if (header === 'email') return !!val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
+    return val === undefined || val === null || String(val).trim() === ''
+  }
+  if (header === 'date_of_birth') {
+    return val && isNaN(Date.parse(val))
+  }
+  if (header === 'gender') {
+    return val && !['male','female','other','m','f'].includes(String(val).toLowerCase())
+  }
+  return false
+}
+
+// School context
+const { user } = useAuth()
+const schoolId = computed(() => user.value?.school_id || user.value?.schoolId || null)
+
+// Local preview state (before upload)
+const localPreviewHeaders = ref([])
+const localPreviewRows = ref([])
+const localPreviewLoading = ref(false)
+const missingHeaders = ref([])
+const minimalHeaders = ['first_name','last_name','email']
+
+// Local sheet support
+const localSheetNames = ref([])
+const selectedLocalSheetName = ref('')
+
+const parseLocalFile = async (file) => {
+  try {
+    localPreviewLoading.value = true
+    localPreviewHeaders.value = []
+    localPreviewRows.value = []
+    localSheetNames.value = []
+    const buffer = await file.arrayBuffer()
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      const wb = XLSX.read(buffer, { type: 'array' })
+      localSheetNames.value = wb.SheetNames
+      const name = selectedLocalSheetName.value || wb.SheetNames[0]
+      selectedLocalSheetName.value = name
+      sheetName.value = name
+      const sheet = wb.Sheets[name]
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      if (json.length) {
+        localPreviewHeaders.value = Object.keys(json[0])
+        localPreviewRows.value = json.slice(0, 10)
+      }
+    } else {
+      const text = new TextDecoder().decode(buffer)
+      const lines = text.split(/\r?\n/).filter(Boolean)
+      if (lines.length) {
+        const headers = lines[0].split(',')
+        localPreviewHeaders.value = headers
+        localPreviewRows.value = lines.slice(1, 11).map(l => {
+          const cells = l.split(',')
+          return Object.fromEntries(headers.map((h,i)=>[h, cells[i] ?? '']))
+        })
+      }
+      localSheetNames.value = ['CSV']
+      selectedLocalSheetName.value = 'CSV'
+    }
+    // Soft validation: show missing headers using template if available
+    const baseline = expectedHeaders.value.length ? expectedHeaders.value : minimalHeaders
+    missingHeaders.value = baseline.filter(h => !localPreviewHeaders.value.includes(h))
+  } catch (e) {
+    console.error('Failed to parse local file', e)
+  } finally {
+    localPreviewLoading.value = false
+  }
+}
+
+const onChangeLocalSheet = async () => {
+  if (!selectedFile.value) return
+  await parseLocalFile(selectedFile.value)
+}
 
 // Methods
 const handleFileSelect = (event) => {
   const file = event.target.files[0]
   if (file) {
     selectedFile.value = file
+    parseLocalFile(file)
   }
 }
 
@@ -338,6 +560,7 @@ const handleFileDrop = (event) => {
   const file = event.dataTransfer.files[0]
   if (file && (file.type === 'text/csv' || file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
     selectedFile.value = file
+    parseLocalFile(file)
   }
 }
 
@@ -379,16 +602,27 @@ const showSuccessMessage = (message) => {
 
 const loadClasses = async () => {
   try {
-    const response = await teacherAPI.getClasses()
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getClasses(params)
     classes.value = response.data.data?.data || response.data.data || response.data || []
   } catch (err) {
     console.error('Error loading classes:', err)
   }
 }
 
+const loadTemplateHeaders = async () => {
+  try {
+    const resp = await teacherAPI.getImportTemplate('students')
+    expectedHeaders.value = resp?.data?.data?.headers || []
+  } catch (e) {
+    console.warn('Could not load template headers', e)
+  }
+}
+
 const loadSubjects = async () => {
   try {
-    const response = await teacherAPI.getSubjectsForImport()
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getSubjectsForImport(params)
     subjects.value = response.data.data || []
   } catch (err) {
     console.error('Error loading subjects:', err)
@@ -398,7 +632,8 @@ const loadSubjects = async () => {
 const loadImportHistory = async () => {
   try {
     loadingHistory.value = true
-    const response = await teacherAPI.getImportHistory()
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getImportHistory(params)
     importHistory.value = response.data.data || response.data || []
   } catch (err) {
     console.error('Error loading import history:', err)
@@ -407,10 +642,23 @@ const loadImportHistory = async () => {
   }
 }
 
+const searchHistory = ref('')
+const filteredHistory = computed(() => {
+  const q = searchHistory.value.toLowerCase().trim()
+  if (!q) return importHistory.value
+  return importHistory.value.filter(i =>
+    (i.name || '').toLowerCase().includes(q) ||
+    (i.status || '').toLowerCase().includes(q) ||
+    (i.import_type || '').toLowerCase().includes(q)
+  )
+})
+
 const loadUploadedFiles = async (page = 1) => {
   try {
     loadingUploads.value = true
-    const response = await teacherAPI.getUploadedFiles({ page, per_page: uploadsPerPage })
+    const params = { page, per_page: uploadsPerPage }
+    if (schoolId.value) params.school_id = schoolId.value
+    const response = await teacherAPI.getUploadedFiles(params)
     const payload = response.data.data
     uploadedFiles.value = payload.data || payload || []
     uploadsMeta.value = payload && payload.data ? payload : null
@@ -438,6 +686,44 @@ const reloadUploads = async () => {
   await loadUploadedFiles(uploadsPage)
 }
 
+const importFromUploadWithRow = async (file) => {
+  const chosen = rowClassSelection.value[file.id] || defaultClassId.value
+  if (!chosen) {
+    error.value = 'Please select a class for this file (or set Default Class)'
+    return
+  }
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+
+    const formData = new FormData()
+    formData.append('uploaded_file_id', file.id)
+    formData.append('default_class_id', chosen)
+    if (sheetName.value) formData.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
+    if (schoolId.value) formData.append('school_id', schoolId.value)
+
+    const response = await teacherAPI.importStudents(formData)
+    importResults.value = response.data.data
+    showSuccessMessage(response.data.message || 'Import completed')
+
+    await Promise.all([loadImportHistory(), loadClasses()])
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
+    console.error('Import from uploaded file error:', err)
+  } finally {
+    importing.value = false
+  }
+}
+
 const confirmDelete = async (file) => {
   if (!confirm(`Delete ${file.original_name}?`)) return
   try {
@@ -446,6 +732,165 @@ const confirmDelete = async (file) => {
     await loadUploadedFiles(uploadsMeta.value?.current_page || 1)
   } catch (err) {
     error.value = err.response?.data?.message || 'Failed to delete file'
+  }
+}
+
+// File editor helpers
+const closeEditor = () => { showEditor.value = false }
+
+const getFetchableUrl = (url) => {
+  try {
+    const u = new URL(url, window.location.origin)
+    // If it points to Laravel public storage, always use path-only so Vite proxy handles it
+    if (u.pathname.startsWith('/storage')) {
+      return u.pathname
+    }
+    // Common localhost patterns
+    if ((u.hostname === 'localhost' || u.hostname === '127.0.0.1') && (u.port === '8000' || u.host === 'localhost:8000')) {
+      if (u.pathname.startsWith('/storage')) return u.pathname
+    }
+    return u.toString()
+  } catch {
+    return url
+  }
+}
+
+const openFileEditor = async (file) => {
+  try {
+    editorOriginalFile.value = file
+    editorFileName.value = file.original_name || file.label || 'uploaded.csv'
+    editorHeaders.value = []
+    editorRows.value = []
+    editorSheetNames.value = []
+    selectedEditorSheetName.value = ''
+    editorMissingHeaders.value = []
+    editorExtraHeaders.value = []
+    showEditor.value = true
+    if (!file.url) {
+      error.value = 'This file has no accessible URL to preview.'
+      return
+    }
+    const res = await fetch(getFetchableUrl(file.url), { credentials: 'include' })
+    const arrayBuffer = await res.arrayBuffer()
+    const wb = XLSX.read(arrayBuffer, { type: 'array' })
+    editorSheetNames.value = wb.SheetNames
+    const name = wb.SheetNames[0]
+    selectedEditorSheetName.value = name
+    const sheet = wb.Sheets[name]
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+    if (json.length) {
+      editorHeaders.value = Object.keys(json[0])
+      editorRows.value = json
+    } else {
+      // Try CSV fallback
+      const text = new TextDecoder().decode(arrayBuffer)
+      const rows = text.split(/\r?\n/).filter(Boolean).map(l => l.split(','))
+      if (rows.length) {
+        editorHeaders.value = rows[0]
+        editorRows.value = rows.slice(1).map(r => Object.fromEntries(editorHeaders.value.map((h,i)=>[h, r[i] ?? ''])))
+      }
+    }
+    // header diff
+    if (expectedHeaders.value.length) {
+      const set = new Set(editorHeaders.value)
+      editorMissingHeaders.value = expectedHeaders.value.filter(h => !set.has(h))
+      editorExtraHeaders.value = editorHeaders.value.filter(h => !expectedHeaders.value.includes(h))
+    }
+  } catch (e) {
+    console.error('Preview failed', e)
+    error.value = 'Failed to preview file'
+  }
+}
+
+const reparseEditorSheet = async () => {
+  try {
+    if (!editorOriginalFile.value || !selectedEditorSheetName.value) return
+    const res = await fetch(getFetchableUrl(editorOriginalFile.value.url), { credentials: 'include' })
+    const arrayBuffer = await res.arrayBuffer()
+    const wb = XLSX.read(arrayBuffer, { type: 'array' })
+    const sheet = wb.Sheets[selectedEditorSheetName.value]
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+    editorHeaders.value = json.length ? Object.keys(json[0]) : []
+    editorRows.value = json
+    if (expectedHeaders.value.length) {
+      const set = new Set(editorHeaders.value)
+      editorMissingHeaders.value = expectedHeaders.value.filter(h => !set.has(h))
+      editorExtraHeaders.value = editorHeaders.value.filter(h => !expectedHeaders.value.includes(h))
+    }
+  } catch (e) {
+    console.error('Reparse failed', e)
+  }
+}
+
+const toCsv = (headers, rows) => {
+  const head = headers.join(',')
+  const body = rows.map(r => headers.map(h => (r[h] ?? '').toString().replace(/"/g,'""')).map(v=>`"${v}"`).join(',')).join('\n')
+  return head + '\n' + body
+}
+
+const downloadEditedCsv = () => {
+  const csv = toCsv(editorHeaders.value, editorRows.value)
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const uploadEditedCsv = async () => {
+  try {
+    const csv = toCsv(editorHeaders.value, editorRows.value)
+    const filename = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+    const file = new File([csv], filename, { type: 'text/csv;charset=utf-8' })
+    const form = new FormData()
+    form.append('file', file, filename)
+    form.append('label', filename)
+    if (schoolId.value) form.append('school_id', schoolId.value)
+    await teacherAPI.uploadFileOnly(form)
+    showSuccessMessage('Edited file uploaded')
+    await loadUploadedFiles(1)
+  } catch (e) {
+    console.error('Upload edited CSV failed', e)
+    error.value = 'Failed to upload edited CSV'
+  }
+}
+
+const importEditedCsv = async () => {
+  try {
+    // Upload edited first, then import by id
+    const csv = toCsv(editorHeaders.value, editorRows.value)
+    const filename = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+    const file = new File([csv], filename, { type: 'text/csv;charset=utf-8' })
+    const form = new FormData()
+    form.append('file', file, filename)
+    form.append('label', filename)
+    if (schoolId.value) form.append('school_id', schoolId.value)
+    const resp = await teacherAPI.uploadFileOnly(form)
+    // Try to detect id from response; fallback by reloading and taking most recent
+    let uploadedId = resp?.data?.data?.id || resp?.data?.id
+    if (!uploadedId) {
+      await loadUploadedFiles(1)
+      uploadedId = uploadedFiles.value?.[0]?.id
+    }
+    if (!uploadedId) throw new Error('Cannot determine uploaded file id')
+
+    const importForm = new FormData()
+    importForm.append('uploaded_file_id', uploadedId)
+    importForm.append('default_class_id', defaultClassId.value)
+    if (sheetName.value) importForm.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => importForm.append('subject_ids[]', id))
+    }
+    if (schoolId.value) importForm.append('school_id', schoolId.value)
+    const importResp = await teacherAPI.importStudents(importForm)
+    importResults.value = importResp.data.data
+    showSuccessMessage(importResp.data.message || 'Import completed')
+    closeEditor()
+  } catch (e) {
+    console.error('Import edited CSV failed', e)
+    error.value = 'Failed to import edited CSV'
   }
 }
 
@@ -488,6 +933,9 @@ const importStudents = async () => {
     if (subjectIds.value && subjectIds.value.length) {
       subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
     }
+    if (schoolId.value) {
+      formData.append('school_id', schoolId.value)
+    }
 
     const response = await teacherAPI.importStudents(formData)
 
@@ -524,6 +972,7 @@ const uploadFileOnly = async () => {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
     formData.append('label', selectedFile.value?.name || '')
+    if (schoolId.value) formData.append('school_id', schoolId.value)
 
     const response = await teacherAPI.uploadFileOnly(formData)
     showSuccessMessage(response.data.message || 'File uploaded')
@@ -565,6 +1014,7 @@ const importFromUpload = async (file) => {
     if (subjectIds.value && subjectIds.value.length) {
       subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
     }
+    if (schoolId.value) formData.append('school_id', schoolId.value)
 
     const response = await teacherAPI.importStudents(formData)
     importResults.value = response.data.data
@@ -589,5 +1039,15 @@ onMounted(() => {
   loadSubjects()
   loadImportHistory()
   loadUploadedFiles(1)
+  loadTemplateHeaders()
+  // Start auto refresh
+  uploadsTimer = setInterval(() => {
+    if (autoRefreshUploads.value) {
+      loadUploadedFiles(uploadsPage)
+    }
+  }, 15000)
+})
+onUnmounted(() => {
+  if (uploadsTimer) clearInterval(uploadsTimer)
 })
 </script>
