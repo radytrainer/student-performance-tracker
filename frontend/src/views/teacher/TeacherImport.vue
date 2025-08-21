@@ -225,6 +225,9 @@
                     </div>
                   </div>
                   <div class="flex items-center gap-3">
+                    <button @click="openFileEditor(file)" class="text-gray-700 hover:text-gray-900 text-sm">
+                      <i class="fas fa-eye mr-1"></i> Preview/Edit
+                    </button>
                     <button @click="importFromUpload(file)" class="text-blue-600 hover:text-blue-800 text-sm">
                       <i class="fas fa-upload mr-1"></i> Import with selected class
                     </button>
@@ -293,6 +296,40 @@
       </div>
     </div>
   </div>
+
+  <!-- File Editor Modal -->
+  <div v-if="showEditor" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold">Preview/Edit: {{ editorFileName }}</h3>
+        <button @click="closeEditor" class="text-gray-600 hover:text-gray-800">✕</button>
+      </div>
+      <div class="overflow-auto max-h-[60vh] border rounded">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th v-for="(h,i) in editorHeaders" :key="i" class="px-2 py-1 text-left">{{ h }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row,r) in editorRows" :key="r" class="border-b">
+              <td v-for="(h,c) in editorHeaders" :key="c" class="px-2 py-1">
+                <input v-model="editorRows[r][h]" class="border rounded px-1 py-0.5 w-full" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-3 flex justify-between">
+        <div class="text-xs text-gray-500">Rows: {{ editorRows.length }}</div>
+        <div class="space-x-2">
+          <button @click="downloadEditedCsv" class="px-3 py-2 border rounded">Download edited CSV</button>
+          <button @click="uploadEditedCsv" class="px-3 py-2 bg-gray-700 text-white rounded">Upload edited CSV</button>
+          <button @click="importEditedCsv" class="px-3 py-2 bg-blue-600 text-white rounded" :disabled="!defaultClassId">Import edited (uses selected class)</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -326,6 +363,13 @@ const uploadsMeta = ref(null)
 const loadingUploads = ref(false)
 let uploadsPage = 1
 const uploadsPerPage = 10
+
+// Editor modal state
+const showEditor = ref(false)
+const editorHeaders = ref([])
+const editorRows = ref([])
+const editorFileName = ref('')
+const editorOriginalFile = ref(null)
 
 // School context
 const { user } = useAuth()
@@ -460,6 +504,115 @@ const confirmDelete = async (file) => {
   }
 }
 
+// File editor helpers
+const closeEditor = () => { showEditor.value = false }
+
+const openFileEditor = async (file) => {
+  try {
+    editorOriginalFile.value = file
+    editorFileName.value = file.original_name || file.label || 'uploaded.csv'
+    editorHeaders.value = []
+    editorRows.value = []
+    showEditor.value = true
+    if (!file.url) {
+      error.value = 'This file has no accessible URL to preview.'
+      return
+    }
+    const res = await fetch(file.url)
+    const arrayBuffer = await res.arrayBuffer()
+    const wb = XLSX.read(arrayBuffer, { type: 'array' })
+    const sheet = wb.Sheets[wb.SheetNames[0]]
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+    if (json.length) {
+      editorHeaders.value = Object.keys(json[0])
+      editorRows.value = json
+    } else {
+      // Try CSV fallback
+      const text = new TextDecoder().decode(arrayBuffer)
+      const rows = text.split(/\r?\n/).filter(Boolean).map(l => l.split(','))
+      if (rows.length) {
+        editorHeaders.value = rows[0]
+        editorRows.value = rows.slice(1).map(r => Object.fromEntries(editorHeaders.value.map((h,i)=>[h, r[i] ?? ''])))
+      }
+    }
+  } catch (e) {
+    console.error('Preview failed', e)
+    error.value = 'Failed to preview file'
+  }
+}
+
+const toCsv = (headers, rows) => {
+  const head = headers.join(',')
+  const body = rows.map(r => headers.map(h => (r[h] ?? '').toString().replace(/"/g,'""')).map(v=>`"${v}"`).join(',')).join('\n')
+  return head + '\n' + body
+}
+
+const downloadEditedCsv = () => {
+  const csv = toCsv(editorHeaders.value, editorRows.value)
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const uploadEditedCsv = async () => {
+  try {
+    const csv = toCsv(editorHeaders.value, editorRows.value)
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const file = new File([blob], 'edited_' + editorFileName.value, { type: 'text/csv' })
+    const form = new FormData()
+    form.append('file', file)
+    form.append('label', file.name)
+    if (schoolId.value) form.append('school_id', schoolId.value)
+    await teacherAPI.uploadFileOnly(form)
+    showSuccessMessage('Edited file uploaded')
+    await loadUploadedFiles(1)
+  } catch (e) {
+    console.error('Upload edited CSV failed', e)
+    error.value = 'Failed to upload edited CSV'
+  }
+}
+
+const importEditedCsv = async () => {
+  try {
+    // Upload edited first, then import by id
+    const csv = toCsv(editorHeaders.value, editorRows.value)
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const file = new File([blob], 'edited_' + editorFileName.value, { type: 'text/csv' })
+    const form = new FormData()
+    form.append('file', file)
+    form.append('label', file.name)
+    if (schoolId.value) form.append('school_id', schoolId.value)
+    const resp = await teacherAPI.uploadFileOnly(form)
+    // Try to detect id from response; fallback by reloading and taking most recent
+    let uploadedId = resp?.data?.data?.id || resp?.data?.id
+    if (!uploadedId) {
+      await loadUploadedFiles(1)
+      uploadedId = uploadedFiles.value?.[0]?.id
+    }
+    if (!uploadedId) throw new Error('Cannot determine uploaded file id')
+
+    const importForm = new FormData()
+    importForm.append('uploaded_file_id', uploadedId)
+    importForm.append('default_class_id', defaultClassId.value)
+    if (sheetName.value) importForm.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => importForm.append('subject_ids[]', id))
+    }
+    if (schoolId.value) importForm.append('school_id', schoolId.value)
+    const importResp = await teacherAPI.importStudents(importForm)
+    importResults.value = importResp.data.data
+    showSuccessMessage(importResp.data.message || 'Import completed')
+    closeEditor()
+  } catch (e) {
+    console.error('Import edited CSV failed', e)
+    error.value = 'Failed to import edited CSV'
+  }
+}
+
 const downloadTemplate = async () => {
   try {
     const response = await teacherAPI.getImportTemplate('students')
@@ -499,6 +652,9 @@ const importStudents = async () => {
     if (subjectIds.value && subjectIds.value.length) {
       subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
     }
+    if (schoolId.value) {
+      formData.append('school_id', schoolId.value)
+    }
 
     const response = await teacherAPI.importStudents(formData)
 
@@ -535,6 +691,7 @@ const uploadFileOnly = async () => {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
     formData.append('label', selectedFile.value?.name || '')
+    if (schoolId.value) formData.append('school_id', schoolId.value)
 
     const response = await teacherAPI.uploadFileOnly(formData)
     showSuccessMessage(response.data.message || 'File uploaded')
@@ -576,6 +733,7 @@ const importFromUpload = async (file) => {
     if (subjectIds.value && subjectIds.value.length) {
       subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
     }
+    if (schoolId.value) formData.append('school_id', schoolId.value)
 
     const response = await teacherAPI.importStudents(formData)
     importResults.value = response.data.data
