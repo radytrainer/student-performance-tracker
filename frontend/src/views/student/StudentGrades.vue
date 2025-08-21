@@ -1,6 +1,9 @@
 <template>
   <div class="max-w-7xl mx-auto p-2">
-    <h1 class="text-2xl font-bold mb-6">🎓 My Grade</h1>
+      <div class="mb-6">
+          <h1 class="text-3xl font-bold text-gray-800">My Grade</h1>
+          <p class="text-gray-600 mt-1">View your grade recode</p>
+        </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
