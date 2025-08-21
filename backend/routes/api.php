@@ -39,6 +39,8 @@ Route::get('/schools', [App\Http\Controllers\PublicSchoolController::class, 'ind
 Route::middleware('web')->group(function () {
     Route::get('/auth/social/{provider}', [AuthController::class, 'redirectToProvider']);
     Route::get('/auth/social/{provider}/callback', [AuthController::class, 'handleProviderCallback']);
+    // Google Sheets OAuth callback
+    Route::get('/google/oauth/callback', [App\Http\Controllers\GoogleAuthController::class, 'callback']);
 });
 
 // User routes are protected below under auth:sanctum
@@ -168,6 +170,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('teacher/import/template', [App\Http\Controllers\Admin\DataImportController::class, 'getTemplate']);
         Route::get('teacher/import/uploads', [App\Http\Controllers\Admin\DataImportController::class, 'listUploads']);
         Route::delete('teacher/import/uploads/{id}', [App\Http\Controllers\Admin\DataImportController::class, 'deleteUpload']);
+        // Google Sheets integration (teacher)
+        Route::get('google/auth-url', [App\Http\Controllers\GoogleAuthController::class, 'getAuthUrl']);
+        Route::get('google/status', [App\Http\Controllers\GoogleAuthController::class, 'status']);
+        Route::post('google/sheets/preview', [App\Http\Controllers\GoogleAuthController::class, 'preview']);
     });
 
     // Super Admin routes
