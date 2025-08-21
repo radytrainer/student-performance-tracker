@@ -383,7 +383,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import dayjs from 'dayjs'
+// import dayjs from 'dayjs' // Not installed, using native Date
 import { teacherAPI } from '@/api/teacher'
 
 const selectedFile = ref(null)
@@ -415,7 +415,17 @@ const prettyJson = (raw) => {
   } catch { return raw }
 }
 
-const formatDate = (d) => (d ? dayjs(d).format('YYYY-MM-DD HH:mm') : '')
+const formatDate = (d) => {
+  if (!d) return ''
+  const date = new Date(d)
+  return date.toLocaleString('en-CA', { 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit', 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  }).replace(',', '')
+}
 
 // Load classes
 const loadClasses = async () => {

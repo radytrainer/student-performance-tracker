@@ -244,8 +244,11 @@ export const teacherClassesAPI = {
 
   async getCurrentTerm() {
     try {
-      const response = await apiClient.get('/admin/terms/current')
-      return response.data
+      const response = await apiClient.get('/terms')
+      // Find current term from the list
+      const terms = response.data?.data || response.data || []
+      const currentTerm = terms.find(term => term.is_current) || terms[0]
+      return { data: currentTerm }
     } catch (error) {
       console.error('Error fetching current term:', error)
       throw error

@@ -20,9 +20,7 @@ class TeacherImportController extends Controller
     {
         // 1) Validate file
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:20480', // up to 20MB
-        $validator = Validator::make($request->all(), [
-            'file' => 'required|file|mimes:csv,txt,xlsx,xls',
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:20480',
             'default_class_id' => 'nullable|exists:classes,id',
             'subject_ids' => 'array',
             'subject_ids.*' => 'exists:subjects,id'
