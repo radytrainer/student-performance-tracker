@@ -138,6 +138,31 @@
         <h3 class="text-lg font-medium text-gray-900 mb-2">No classes found</h3>
         <p class="text-gray-500">Try adjusting your search or filter criteria, or create a new class.</p>
       </div>
+
+      <!-- Pagination -->
+      <div v-if="paginationInfo.totalPages > 1" class="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
+        <div class="flex items-center">
+          <p class="text-sm text-gray-700">
+            Showing {{ paginationInfo.startItem }} to {{ paginationInfo.endItem }} of {{ paginationInfo.totalItems }} results
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="goToPage(currentPage - 1)" :disabled="!paginationInfo.hasPrevPage" class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors">
+            Previous
+          </button>
+          <div class="flex items-center space-x-1">
+            <template v-for="(page, index) in getVisiblePages()">
+              <span v-if="page === '...'" :key="`ellipsis-${index}`" class="px-3 py-2 text-sm text-gray-400">...</span>
+              <button v-else :key="`page-${page}`" @click="goToPage(page)" :class="['px-3 py-2 text-sm rounded-lg transition-colors', page === currentPage ? 'bg-blue-600 text-white' : 'border border-gray-300 hover:bg-gray-50']">
+                {{ page }}
+              </button>
+            </template>
+          </div>
+          <button @click="goToPage(currentPage + 1)" :disabled="!paginationInfo.hasNextPage" class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors">
+            Next
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Create/Edit Modal Placeholder -->
@@ -207,35 +232,20 @@ const { hasPermission } = useAuth()
 // State
 const loading = ref(true)
 const error = ref(null)
-const classes = ref([])
+const classes = ref([]) // current page items
+const classesMeta = ref({ total: 0, last_page: 1, current_page: 1, per_page: 12, from: 0, to: 0 })
 const searchQuery = ref('')
 const gradeFilter = ref('')
+const currentPage = ref(1)
+const itemsPerPage = ref(12)
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedClass = ref(null)
 const successMessage = ref('')
 
 // Computed
-const filteredClasses = computed(() => {
-  let filtered = classes.value
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(cls =>
-      cls.class_name.toLowerCase().includes(query) ||
-      cls.room_number?.toLowerCase().includes(query) ||
-      cls.class_teacher_name?.toLowerCase().includes(query)
-    )
-  }
-
-  if (gradeFilter.value) {
-    filtered = filtered.filter(cls => 
-      cls.class_name.toLowerCase().includes(gradeFilter.value.toLowerCase())
-    )
-  }
-
-  return filtered
-})
+// Server returns filtered page; no client-side filtering
+const filteredClasses = computed(() => classes.value)
 
 // Methods
 const viewClass = (cls) => {
@@ -273,18 +283,26 @@ const showSuccessMessage = (message) => {
 }
 
 const loadClasses = async () => {
-  try {
-    loading.value = true
-    error.value = null
-    
-    const params = {}
-    if (searchQuery.value) params.search = searchQuery.value
-    if (gradeFilter.value) params.academic_year = gradeFilter.value
+try {
+loading.value = true
+error.value = null
 
-    const response = await adminAPI.getClasses(params)
-    
-    // Transform data to match frontend expectations
-    classes.value = response.data.data.data || response.data.data || []
+const params = { per_page: itemsPerPage.value, page: currentPage.value }
+if (searchQuery.value) params.search = searchQuery.value
+if (gradeFilter.value) params.academic_year = gradeFilter.value
+
+const response = await adminAPI.getClasses(params)
+const payload = response.data.data || {}
+const items = payload.data || []
+classes.value = items
+classesMeta.value = {
+    total: payload.total || items.length,
+  last_page: payload.last_page || 1,
+  current_page: payload.current_page || params.page,
+    per_page: payload.per_page || params.per_page,
+  from: payload.from || (items.length ? (params.page - 1) * params.per_page + 1 : 0),
+    to: payload.to || ((params.page - 1) * params.per_page + items.length)
+    }
     
   } catch (err) {
     error.value = err.response?.data?.message || err.message || 'Failed to load classes'
@@ -297,9 +315,60 @@ const loadClasses = async () => {
 // Watch for search changes
 watch([searchQuery, gradeFilter], () => {
   if (!loading.value) {
+    currentPage.value = 1
     loadClasses()
   }
 }, { debounce: 500 })
+
+// Pagination info and helpers
+const paginationInfo = computed(() => {
+  const meta = classesMeta.value || {}
+  const totalItems = meta.total || 0
+  const totalPages = meta.last_page || 1
+  const startItem = meta.from || 0
+  const endItem = meta.to || 0
+  return {
+    totalItems,
+    totalPages,
+    startItem,
+    endItem,
+    currentPage: meta.current_page || currentPage.value,
+    hasNextPage: (meta.current_page || 1) < totalPages,
+    hasPrevPage: (meta.current_page || 1) > 1
+  }
+})
+
+const goToPage = async (page) => {
+  if (page >= 1 && page <= paginationInfo.value.totalPages) {
+    currentPage.value = page
+    await loadClasses()
+  }
+}
+
+const getVisiblePages = () => {
+  const totalPages = paginationInfo.value.totalPages
+  const current = currentPage.value
+  const pages = []
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i)
+  } else {
+    if (current <= 4) {
+      for (let i = 1; i <= 5; i++) pages.push(i)
+      if (totalPages > 6) { pages.push('...'); pages.push(totalPages) }
+    } else if (current >= totalPages - 3) {
+      pages.push(1)
+      if (totalPages > 6) pages.push('...')
+      for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i)
+    } else {
+      pages.push(1)
+      pages.push('...')
+      for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+      pages.push('...')
+      pages.push(totalPages)
+    }
+  }
+  return pages
+}
 
 onMounted(() => {
   loadClasses()

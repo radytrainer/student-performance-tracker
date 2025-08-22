@@ -323,6 +323,11 @@ class AuthController extends Controller
                 return redirect('http://localhost:5173/login?error=unsupported_provider');
             }
 
+            if ($provider === 'google') {
+                return Socialite::driver('google')
+                    ->redirectUrl(env('GOOGLE_SOCIAL_REDIRECT_URI', config('app.url').'/api/auth/social/google/callback'))
+                    ->redirect();
+            }
             return Socialite::driver($provider)->redirect();
 
         } catch (\Exception $e) {
