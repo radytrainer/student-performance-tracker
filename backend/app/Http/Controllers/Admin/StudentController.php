@@ -249,11 +249,21 @@ class StudentController extends Controller
                 }
             ]);
 
-            // Add computed fields
+            // Add computed fields and attach profile image URL
             $student->full_name = trim($student->user->first_name . ' ' . $student->user->last_name);
             $student->current_gpa = $this->calculateGPA($student);
             $student->attendance_rate = $this->calculateAttendanceRate($student);
-
+                       if ($student->user && $student->user->profile_picture) {
+                $pp = $student->user->profile_picture;
+            if (str_starts_with($pp, 'http://') || str_starts_with($pp, 'https://')) {
+                $student->user->profile_picture_url = $pp;
+                } else {
+                    $student->user->profile_picture_url = asset('storage/' . ltrim($pp, '/'));
+                }
+            } else if ($student->user) {
+                $student->user->profile_picture_url = null;
+            }
+ 
             return response()->json([
                 'success' => true,
                 'data' => $student
@@ -482,10 +492,22 @@ class StudentController extends Controller
                 })
                 ->get();
 
-            // Add computed fields
+            // Add computed fields and normalize user profile image URL
             $students->transform(function ($student) {
                 $student->full_name = trim($student->user->first_name . ' ' . $student->user->last_name);
                 $student->current_gpa = $this->calculateGPA($student);
+
+                if ($student->user && $student->user->profile_picture) {
+                    $pp = $student->user->profile_picture;
+                    if (str_starts_with($pp, 'http://') || str_starts_with($pp, 'https://')) {
+                        $student->user->profile_picture_url = $pp;
+                    } else {
+                        $student->user->profile_picture_url = asset('storage/' . ltrim($pp, '/'));
+                    }
+                } else if ($student->user) {
+                    $student->user->profile_picture_url = null;
+                }
+
                 return $student;
             });
 
