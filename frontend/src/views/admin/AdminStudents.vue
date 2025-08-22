@@ -119,6 +119,16 @@
               Add Student
             </button>
           </div>
+
+          <!-- Student Modal -->
+          <StudentModal
+            :show="showStudentModal"
+            :student="selectedStudent"
+            :classes="classes"
+            :loading="modalLoading"
+            @close="closeStudentModal"
+            @submit="handleStudentSubmit"
+          />
         </div>
 
         <!-- Students Table -->
@@ -381,6 +391,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { adminAPI } from '@/api/admin'
+import StudentModal from '@/components/modals/StudentModal.vue'
 
 const { hasPermission } = useAuth()
 
@@ -402,6 +413,8 @@ const successMessage = ref('')
 // Modal states
 const showDeleteModal = ref(false)
 const showBulkTransferModal = ref(false)
+const showStudentModal = ref(false)
+const modalLoading = ref(false)
 const selectedStudent = ref(null)
 const selectedStudents = ref([])
 const transferClassId = ref('')
