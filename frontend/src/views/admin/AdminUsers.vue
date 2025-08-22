@@ -572,21 +572,8 @@ const getUserName = (user) => {
   return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email
 }
 
-// Resolve a profile image for a user to an absolute URL
-const resolveImage = (user) => {
-  if (!user) return null
-  if (user.profile_picture_url) return user.profile_picture_url
-  const value = user.profile_picture
-  if (!value) return null
-  if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:'))) {
-    return value
-  }
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
-  const origin = baseUrl.replace(/\/api\/?$/, '')
-  const cleaned = String(value).replace(/^\/+/, '')
-  const path = cleaned.startsWith('storage/') ? cleaned : `storage/${cleaned}`
-  return `${origin}/${path}`
-}
+import { resolveImageUrl } from '@/utils/imageUrl'
+const resolveImage = (user) => resolveImageUrl(user)
 
 // Computed filtered users for instant search
 const filteredUsers = computed(() => {

@@ -19,21 +19,8 @@ export function useProfileImage() {
   )
 
   const getImageUrl = (imagePath) => {
-    if (!imagePath) return null
-    
-    // If it's already a full URL (starts with http), return as is
-    if (imagePath.startsWith('http')) return imagePath
-    
-    // If it's a data URL (base64), return as is
-    if (imagePath.startsWith('data:')) return imagePath
-    
-    // If it's a relative path, prepend the backend storage URL
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-    const origin = baseUrl.replace('/api', '')
-    // Support values like "profile_pictures/abc.jpg" or "storage/profile_pictures/abc.jpg"
-    const cleaned = imagePath.replace(/^\/+/, '')
-    const path = cleaned.startsWith('storage/') ? cleaned : `storage/${cleaned}`
-    return `${origin}/${path}`
+    const { resolveImageUrl } = require('@/utils/imageUrl')
+    return resolveImageUrl(imagePath)
   }
 
   const updateProfileImage = async (file) => {
