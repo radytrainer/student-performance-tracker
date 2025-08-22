@@ -12,11 +12,44 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class StudentController extends BaseController
 {
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = max(1, (int) $request->get('per_page', 15));
+        $search = trim((string) $request->get('search', ''));
+        $sortBy = (string) $request->get('sort_by', 'created_at'); // name|email|created_at
+        $sortDir = strtolower((string) $request->get('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        $query = Student::query()->with('user');
+
+        // Search by user first/last/email or student_code
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', function ($uq) use ($search) {
+                    $uq->where('first_name', 'like', "%{$search}%")
+                       ->orWhere('last_name', 'like', "%{$search}%")
+                       ->orWhere('email', 'like', "%{$search}%");
+                })->orWhere('student_code', 'like', "%{$search}%");
+            });
+        }
+
+        // Sorting
+        if (in_array($sortBy, ['name', 'email'])) {
+            $query->join('users', 'students.user_id', '=', 'users.id')
+                  ->select('students.*');
+            if ($sortBy === 'name') {
+                $query->orderBy('users.first_name', $sortDir)->orderBy('users.last_name', $sortDir);
+            } else {
+                $query->orderBy('users.email', $sortDir);
+            }
+        } else {
+            $query->orderBy('students.created_at', $sortDir);
+        }
+
+        $paginator = $query->paginate($perPage);
+
         return response()->json([
             'success' => true,
-            'data' => Student::with('user')->get()
+            'data' => $paginator
         ]);
     }
     public function students()

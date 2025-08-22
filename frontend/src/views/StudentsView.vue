@@ -55,6 +55,15 @@
         </div>
       </div>
 
+      <!-- Server pagination controls -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-sm text-gray-600">Page {{ page }} of {{ totalPages }}</div>
+        <div class="space-x-2">
+          <button @click="prevPage" :disabled="page <= 1" class="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
+          <button @click="nextPage" :disabled="page >= totalPages" class="px-3 py-1 border rounded disabled:opacity-50">Next</button>
+        </div>
+      </div>
+
       <!-- Student cards grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
@@ -430,7 +439,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
 import {
   Plus, Search, Briefcase, Phone, Calendar, Edit, Trash2,
   Users, RotateCcw, X, AlertTriangle
@@ -502,41 +511,8 @@ const editForm = reactive<Student>({
 // Students list loaded from API
 const students = ref<Student[]>([])
 
-// Computed: filter + search + sort
-const filteredStudents = computed<Student[]>(() => {
-  let filtered = [...students.value]
-
-  // Search
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase().trim()
-    filtered = filtered.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q)
-    )
-  }
-
-  // Role filter
-  if (selectedRole.value) {
-    filtered = filtered.filter((s) => s.role === selectedRole.value)
-  }
-
-  // Sort
-  filtered.sort((a, b) => {
-    switch (sortBy.value) {
-      case 'name':
-        return a.name.localeCompare(b.name)
-      case 'email':
-        return a.email.localeCompare(b.email)
-      case 'createdAt':
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      default:
-        return 0
-    }
-  })
-
-  return filtered
-})
+// Computed: items are server-paginated; client filtering only displays current page
+const filteredStudents = computed<Student[]>(() => students.value)
 
 // Methods
 function getInitials(name: string): string {
@@ -728,12 +704,41 @@ function clearFilters() {
   sortBy.value = 'name'
 }
 
+const prevPage = async () => {
+  if (page.value > 1) {
+    page.value--
+    await loadStudents()
+  }
+}
+
+const nextPage = async () => {
+  if (page.value < totalPages.value) {
+    page.value++
+    await loadStudents()
+  }
+}
+
+// Server-side table: fetch paginated students with search/sort
+const page = ref<number>(1)
+const perPage = ref<number>(12)
+const totalPages = ref<number>(1)
+
 async function loadStudents() {
   loading.value = true
   try {
-    const res = await studentsAPI.getAllStudents()
-    const list = (res.data?.data || []) as any[]
-    students.value = list.map((s: any) => ({
+    const params: any = { page: page.value, per_page: perPage.value }
+    if (searchQuery.value) params.search = searchQuery.value
+    // Map sort key
+    let sort_by = 'created_at'
+    if (sortBy.value === 'name') sort_by = 'name'
+    if (sortBy.value === 'email') sort_by = 'email'
+    params.sort_by = sort_by
+    params.sort_dir = sort_by === 'created_at' ? 'desc' : 'asc'
+
+    const res = await studentsAPI.getAllStudents(params)
+    const payload = res.data?.data
+    const rows: any[] = payload?.data || payload || []
+    students.value = rows.map((s: any) => ({
       id: s.user_id,
       name: `${s.user?.first_name || ''} ${s.user?.last_name || ''}`.trim() || 'Unknown',
       email: s.user?.email || 'unknown@example.com',
@@ -743,6 +748,8 @@ async function loadStudents() {
       createdAt: s.user?.created_at || '',
       profileImage: s.user?.profile_picture || ''
     }))
+    totalPages.value = payload?.last_page ?? 1
+    page.value = payload?.current_page ?? 1
   } catch (error) {
     console.error('Error loading students:', error)
   } finally {
@@ -753,6 +760,12 @@ async function loadStudents() {
 onMounted(() => {
   loadStudents()
 })
+
+watch([searchQuery, sortBy], () => {
+  page.value = 1
+  loadStudents()
+})
+
 </script>
 
 <style scoped>

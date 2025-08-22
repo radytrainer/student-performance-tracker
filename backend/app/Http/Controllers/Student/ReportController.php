@@ -674,7 +674,7 @@ class ReportController extends Controller
 
         // Create a notification for the student
         try {
-            Notification::create([
+            $n = Notification::create([
                 'user_id' => $this->student->user_id,
                 'title' => 'Report generated',
                 'message' => 'Your ' . str_replace('_', ' ', $type) . ' is ready for download.',
@@ -682,6 +682,7 @@ class ReportController extends Controller
                 'is_read' => false,
                 'sent_at' => now(),
             ]);
+            event(new \App\Events\NotificationCreated($n));
         } catch (\Throwable $e) {}
  
         // Return the file for immediate download
@@ -729,7 +730,7 @@ class ReportController extends Controller
 
             // Create a notification for the student before returning file
             try {
-                Notification::create([
+                $n = Notification::create([
                     'user_id' => $this->student->user_id,
                     'title' => 'Report generated',
                     'message' => 'Your ' . str_replace('_', ' ', $type) . ' (Excel) is ready for download.',
@@ -737,6 +738,7 @@ class ReportController extends Controller
                     'is_read' => false,
                     'sent_at' => now(),
                 ]);
+                event(new \App\Events\NotificationCreated($n));
             } catch (\Throwable $e) {}
 
             return Excel::download($export, $filename);

@@ -148,6 +148,19 @@ class DataImportController extends Controller
 
             DB::commit();
 
+            // Notify current user (admin/teacher)
+            try {
+            $n = \App\Models\Notification::create([
+                'user_id' => auth()->id(),
+            'title' => 'Google Sheet Import Completed',
+            'message' => "{$successCount} students imported, {$errorCount} errors",
+            'type' => 'success',
+                'is_read' => false,
+                    'sent_at' => now(),
+                ]);
+                event(new \App\Events\NotificationCreated($n));
+            } catch (\Throwable $e) {}
+ 
             return response()->json([
                 'success' => true,
                 'message' => "Import completed. {$successCount} students imported successfully.",
@@ -325,7 +338,7 @@ class DataImportController extends Controller
 
             // Create a notification for the current user
             try {
-                \App\Models\Notification::create([
+                $n = \App\Models\Notification::create([
                     'user_id' => auth()->id(),
                     'title' => 'Import Completed',
                     'message' => "{$successCount} students imported, {$errorCount} errors",
@@ -333,6 +346,7 @@ class DataImportController extends Controller
                     'is_read' => false,
                     'sent_at' => now(),
                 ]);
+                event(new \App\Events\NotificationCreated($n));
             } catch (\Throwable $e) {}
 
             // Log the import
