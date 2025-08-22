@@ -699,7 +699,7 @@
       <div
         v-if="notification.show"
         :class="getEnhancedNotificationClasses()"
-        class="fixed top-6 right-6 p-6 rounded-2xl shadow-2xl z-50 max-w-sm border backdrop-blur-sm"
+        class="fixed top-16 right-6 p-6 rounded-2xl shadow-2xl z-50 max-w-sm border backdrop-blur-sm"
       >
         <div class="flex items-start">
           <div class="flex-shrink-0">
