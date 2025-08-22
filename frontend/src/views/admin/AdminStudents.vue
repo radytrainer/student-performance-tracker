@@ -77,6 +77,8 @@
                 <option value="name">Sort: Name</option>
                 <option value="email">Sort: Email</option>
                 <option value="student_code">Sort: Student Code</option>
+                <option value="gpa">Sort: GPA</option>
+                <option value="attendance">Sort: Attendance</option>
                 <option value="created_at">Sort: Created Date</option>
               </select>
               <button @click="toggleSortDir" class="px-3 py-2 border border-gray-300 rounded-lg">
@@ -141,8 +143,14 @@
                   <i v-if="sortBy==='student_code'" :class="sortDir==='asc' ? 'fas fa-sort-up ml-1' : 'fas fa-sort-down ml-1'"></i>
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GPA</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance</th>
+                <th @click="sortBy='gpa'; toggleSortDir()" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
+                  GPA
+                  <i v-if="sortBy==='gpa'" :class="sortDir==='asc' ? 'fas fa-sort-up ml-1' : 'fas fa-sort-down ml-1'"></i>
+                </th>
+                <th @click="sortBy='attendance'; toggleSortDir()" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
+                  Attendance
+                  <i v-if="sortBy==='attendance'" :class="sortDir==='asc' ? 'fas fa-sort-up ml-1' : 'fas fa-sort-down ml-1'"></i>
+                </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
