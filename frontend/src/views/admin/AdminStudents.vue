@@ -360,7 +360,8 @@ const { hasPermission } = useAuth()
 // State
 const loading = ref(true)
 const error = ref(null)
-const students = ref([])
+const students = ref([]) // current page items from server
+const studentsMeta = ref({ total: 0, last_page: 1, current_page: 1, per_page: 15, from: 0, to: 0 })
 const classes = ref([])
 const searchQuery = ref('')
 const classFilter = ref('')
@@ -377,60 +378,29 @@ const selectedStudents = ref([])
 const transferClassId = ref('')
 
 // Computed filtered students
-const filteredStudents = computed(() => {
-  let filtered = students.value
-
-  // Apply search filter
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim()
-    filtered = filtered.filter(student => {
-      const fullName = student.full_name?.toLowerCase() || ''
-      const email = student.user?.email?.toLowerCase() || ''
-      const studentCode = student.student_code?.toLowerCase() || ''
-      
-      return fullName.includes(query) || 
-             email.includes(query) || 
-             studentCode.includes(query)
-    })
-  }
-
-  // Apply class filter
-  if (classFilter.value) {
-    filtered = filtered.filter(student => student.current_class_id == classFilter.value)
-  }
-
-  // Apply status filter
-  if (statusFilter.value === 'active') {
-    filtered = filtered.filter(student => student.user?.is_active)
-  } else if (statusFilter.value === 'inactive') {
-    filtered = filtered.filter(student => !student.user?.is_active)
-  }
-
-  return filtered
-})
+// With server-side filtering, just return current page items
+const filteredStudents = computed(() => students.value)
 
 // Computed paginated students
-const paginatedStudents = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage.value
-  const endIndex = startIndex + itemsPerPage.value
-  return filteredStudents.value.slice(startIndex, endIndex)
-})
+// Server returns only the current page
+const paginatedStudents = computed(() => filteredStudents.value)
 
 // Computed pagination info
 const paginationInfo = computed(() => {
-  const totalItems = filteredStudents.value.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage.value)
-  const startItem = totalItems === 0 ? 0 : (currentPage.value - 1) * itemsPerPage.value + 1
-  const endItem = Math.min(currentPage.value * itemsPerPage.value, totalItems)
+  const meta = studentsMeta.value || {}
+  const totalItems = meta.total || 0
+  const totalPages = meta.last_page || 1
+  const startItem = meta.from || 0
+  const endItem = meta.to || 0
   
   return {
     totalItems,
     totalPages,
     startItem,
     endItem,
-    currentPage: currentPage.value,
-    hasNextPage: currentPage.value < totalPages,
-    hasPrevPage: currentPage.value > 1
+    currentPage: meta.current_page || currentPage.value,
+    hasNextPage: (meta.current_page || 1) < totalPages,
+    hasPrevPage: (meta.current_page || 1) > 1
   }
 })
 
@@ -477,19 +447,30 @@ const showSuccessMessage = (message) => {
 }
 
 const loadStudents = async () => {
-  try {
-    loading.value = true
-    error.value = null
-    
-    const params = {
-      per_page: 50 // Load more for client-side filtering
-    }
-    if (searchQuery.value) params.search = searchQuery.value
-    if (classFilter.value) params.class_id = classFilter.value
-    if (statusFilter.value) params.status = statusFilter.value
+try {
+loading.value = true
+error.value = null
 
-    const response = await adminAPI.getStudents(params)
-    students.value = response.data.data.data || response.data.data || []
+const params = {
+per_page: itemsPerPage.value,
+  page: currentPage.value
+}
+if (searchQuery.value) params.search = searchQuery.value
+if (classFilter.value) params.class_id = classFilter.value
+if (statusFilter.value) params.status = statusFilter.value
+
+const response = await adminAPI.getStudents(params)
+const payload = response.data.data || {}
+  const items = payload.data || []
+students.value = items
+studentsMeta.value = {
+    total: payload.total || items.length,
+  last_page: payload.last_page || 1,
+    current_page: payload.current_page || params.page,
+      per_page: payload.per_page || params.per_page,
+      from: payload.from || (items.length ? (params.page - 1) * params.per_page + 1 : 0),
+      to: payload.to || ((params.page - 1) * params.per_page + items.length)
+    }
     
   } catch (err) {
     error.value = err.response?.data?.message || err.message || 'Failed to load students'
@@ -616,9 +597,10 @@ const performBulkTransfer = async () => {
 }
 
 // Pagination functions
-const goToPage = (page) => {
+const goToPage = async (page) => {
   if (page >= 1 && page <= paginationInfo.value.totalPages) {
     currentPage.value = page
+    await loadStudents()
   }
 }
 
