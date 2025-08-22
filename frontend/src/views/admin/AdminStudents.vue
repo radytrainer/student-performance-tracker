@@ -71,6 +71,19 @@
             </select>
           </div>
           <div class="flex items-center space-x-3">
+            <!-- Sort controls -->
+            <div class="flex items-center space-x-2">
+              <select v-model="sortBy" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="name">Sort: Name</option>
+                <option value="email">Sort: Email</option>
+                <option value="student_code">Sort: Student Code</option>
+                <option value="created_at">Sort: Created Date</option>
+              </select>
+              <button @click="toggleSortDir" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <i :class="sortDir === 'asc' ? 'fas fa-sort-amount-up' : 'fas fa-sort-amount-down' "></i>
+              </button>
+            </div>
+            
             <!-- Bulk Actions -->
             <div v-if="selectedStudents.length > 0" class="flex items-center space-x-2">
               <span class="text-sm text-gray-600">{{ selectedStudents.length }} selected</span>
@@ -368,6 +381,8 @@ const classFilter = ref('')
 const statusFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(15)
+const sortBy = ref('name')
+const sortDir = ref('asc')
 const successMessage = ref('')
 
 // Modal states
@@ -453,11 +468,13 @@ error.value = null
 
 const params = {
 per_page: itemsPerPage.value,
-  page: currentPage.value
+page: currentPage.value,
+  sort_by: sortBy.value,
+  sort_dir: sortDir.value
 }
 if (searchQuery.value) params.search = searchQuery.value
-if (classFilter.value) params.class_id = classFilter.value
-if (statusFilter.value) params.status = statusFilter.value
+    if (classFilter.value) params.class_id = classFilter.value
+    if (statusFilter.value) params.status = statusFilter.value
 
 const response = await adminAPI.getStudents(params)
 const payload = response.data.data || {}
@@ -519,6 +536,10 @@ const deleteStudent = async () => {
   } catch (err) {
     error.value = err.response?.data?.message || 'Failed to delete student'
   }
+}
+
+const toggleSortDir = () => {
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
 }
 
 const toggleStudentStatus = async (student) => {
@@ -651,8 +672,9 @@ watch([searchQuery, classFilter, statusFilter], () => {
 })
 
 // Debounced API calls
-watch([searchQuery, classFilter, statusFilter], () => {
+watch([searchQuery, classFilter, statusFilter, sortBy, sortDir], () => {
   if (!loading.value) {
+    currentPage.value = 1
     loadStudents()
   }
 }, { debounce: 500 })

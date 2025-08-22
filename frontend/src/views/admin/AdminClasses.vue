@@ -45,23 +45,32 @@
       <!-- Header Actions -->
       <div class="flex justify-between items-center">
         <div class="flex items-center space-x-4">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search classes..."
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <select
-            v-model="gradeFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Grades</option>
-            <option value="9">Grade 9</option>
-            <option value="10">Grade 10</option>
-            <option value="11">Grade 11</option>
-            <option value="12">Grade 12</option>
-          </select>
-        </div>
+        <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Search classes..."
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <select
+        v-model="gradeFilter"
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+        <option value="">All Grades</option>
+        <option value="9">Grade 9</option>
+        <option value="10">Grade 10</option>
+        <option value="11">Grade 11</option>
+        <option value="12">Grade 12</option>
+        </select>
+          <select v-model="sortBy" class="px-3 py-2 border border-gray-300 rounded-lg">
+             <option value="class_name">Sort: Name</option>
+             <option value="academic_year">Sort: Academic Year</option>
+             <option value="room_number">Sort: Room</option>
+             <option value="created_at">Sort: Created</option>
+           </select>
+           <button @click="toggleSortDir" class="px-3 py-2 border border-gray-300 rounded-lg">
+             <i :class="sortDir === 'asc' ? 'fas fa-sort-amount-up' : 'fas fa-sort-amount-down' "></i>
+           </button>
+         </div>
         <button
           @click="showCreateModal = true"
           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -238,6 +247,8 @@ const searchQuery = ref('')
 const gradeFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(12)
+const sortBy = ref('class_name')
+const sortDir = ref('asc')
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedClass = ref(null)
@@ -287,7 +298,7 @@ try {
 loading.value = true
 error.value = null
 
-const params = { per_page: itemsPerPage.value, page: currentPage.value }
+const params = { per_page: itemsPerPage.value, page: currentPage.value, sort_by: sortBy.value, sort_dir: sortDir.value }
 if (searchQuery.value) params.search = searchQuery.value
 if (gradeFilter.value) params.academic_year = gradeFilter.value
 
@@ -313,7 +324,7 @@ classesMeta.value = {
 }
 
 // Watch for search changes
-watch([searchQuery, gradeFilter], () => {
+watch([searchQuery, gradeFilter, sortBy, sortDir], () => {
   if (!loading.value) {
     currentPage.value = 1
     loadClasses()
@@ -368,6 +379,10 @@ const getVisiblePages = () => {
     }
   }
   return pages
+}
+
+const toggleSortDir = () => {
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
 }
 
 onMounted(() => {

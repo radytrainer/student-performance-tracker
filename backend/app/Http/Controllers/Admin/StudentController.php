@@ -59,9 +59,22 @@ class StudentController extends Controller
                 $query->where('users.is_active', false);
             }
 
-            $students = $query->select('students.*')
-                ->orderBy('users.first_name')
-                ->paginate($perPage);
+            // Sorting
+            $sortBy = strtolower($request->get('sort_by', 'name'));
+            $sortDir = strtolower($request->get('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+            $sortMap = [
+                'name' => ['users.first_name', 'users.last_name'],
+                'email' => ['users.email'],
+                'student_code' => ['students.student_code'],
+                'created_at' => ['users.created_at'],
+            ];
+            $orderColumns = $sortMap[$sortBy] ?? $sortMap['name'];
+
+            $students = $query->select('students.*');
+            foreach ($orderColumns as $col) {
+                $students = $students->orderBy($col, $sortDir);
+            }
+            $students = $students->paginate($perPage);
 
             // Add computed fields
             $students->getCollection()->transform(function ($student) {

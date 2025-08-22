@@ -45,24 +45,34 @@
       <!-- Header Actions -->
       <div class="flex justify-between items-center">
         <div class="flex items-center space-x-4">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search subjects..."
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <select
-            v-model="categoryFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Categories</option>
-            <option value="Science">Science</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Language Arts">Language Arts</option>
-            <option value="Social Studies">Social Studies</option>
-            <option value="Arts">Arts</option>
-          </select>
-        </div>
+        <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Search subjects..."
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <select
+        v-model="categoryFilter"
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+        <option value="">All Categories</option>
+        <option value="Science">Science</option>
+        <option value="Mathematics">Mathematics</option>
+        <option value="Language Arts">Language Arts</option>
+        <option value="Social Studies">Social Studies</option>
+        <option value="Arts">Arts</option>
+        </select>
+          <select v-model="sortBy" class="px-3 py-2 border border-gray-300 rounded-lg">
+             <option value="subject_name">Sort: Name</option>
+             <option value="subject_code">Sort: Code</option>
+             <option value="department">Sort: Department</option>
+             <option value="credit_hours">Sort: Credit Hours</option>
+             <option value="created_at">Sort: Created</option>
+           </select>
+           <button @click="toggleSortDir" class="px-3 py-2 border border-gray-300 rounded-lg">
+             <i :class="sortDir === 'asc' ? 'fas fa-sort-amount-up' : 'fas fa-sort-amount-down' "></i>
+           </button>
+         </div>
         <button
           @click="showCreateModal = true"
           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -251,6 +261,8 @@ const searchQuery = ref('')
 const categoryFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(15)
+const sortBy = ref('subject_name')
+const sortDir = ref('asc')
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedSubject = ref(null)
@@ -320,7 +332,7 @@ try {
 loading.value = true
 error.value = null
 
-const params = { per_page: itemsPerPage.value, page: currentPage.value }
+const params = { per_page: itemsPerPage.value, page: currentPage.value, sort_by: sortBy.value, sort_dir: sortDir.value }
 if (searchQuery.value) params.search = searchQuery.value
 if (categoryFilter.value) params.department = categoryFilter.value
 
@@ -329,24 +341,24 @@ const payload = response.data.data || {}
 const items = payload.data || []
 subjects.value = items
 subjectsMeta.value = {
-    total: payload.total || items.length,
-  last_page: payload.last_page || 1,
-  current_page: payload.current_page || params.page,
-    per_page: payload.per_page || params.per_page,
-  from: payload.from || (items.length ? (params.page - 1) * params.per_page + 1 : 0),
-    to: payload.to || ((params.page - 1) * params.per_page + items.length)
-    }
-    
-  } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Failed to load subjects'
-    console.error('Error loading subjects:', err)
-  } finally {
-    loading.value = false
-  }
+total: payload.total || items.length,
+last_page: payload.last_page || 1,
+current_page: payload.current_page || params.page,
+per_page: payload.per_page || params.per_page,
+from: payload.from || (items.length ? (params.page - 1) * params.per_page + 1 : 0),
+to: payload.to || ((params.page - 1) * params.per_page + items.length)
+}
+
+} catch (err) {
+error.value = err.response?.data?.message || err.message || 'Failed to load subjects'
+console.error('Error loading subjects:', err)
+} finally {
+loading.value = false
+}
 }
 
 // Watch for search/filter changes
-watch([searchQuery, categoryFilter], () => {
+watch([searchQuery, categoryFilter, sortBy, sortDir], () => {
   if (!loading.value) {
     currentPage.value = 1
     loadSubjects()
@@ -401,6 +413,10 @@ const getVisiblePages = () => {
     }
   }
   return pages
+}
+
+const toggleSortDir = () => {
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
 }
 
 onMounted(() => {
