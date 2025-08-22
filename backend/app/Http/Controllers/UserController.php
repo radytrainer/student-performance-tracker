@@ -49,9 +49,17 @@ class UserController extends Controller
             $query->where('is_active', true);
         }
 
-        // Order by creation date (newest first)
-        $query->orderBy('created_at', 'desc');
-
+        // Sorting
+        $sortBy = $request->get('sort_by', 'created_at'); // name|email|created_at
+               $sortDir = strtolower($request->get('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if ($sortBy === 'name') {
+            $query->orderBy('first_name', $sortDir)->orderBy('last_name', $sortDir);
+        } elseif ($sortBy === 'email') {
+            $query->orderBy('email', $sortDir);
+        } else {
+            $query->orderBy('created_at', $sortDir);
+        }
+ 
         $perPage = min($request->get('per_page', 10), 50); // Max 50 per page
         $users = $query->paginate($perPage);
 

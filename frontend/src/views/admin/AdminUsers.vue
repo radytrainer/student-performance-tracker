@@ -145,9 +145,9 @@
           <div v-else-if="!error" class="space-y-1">
             <!-- User Rows -->
             <div 
-              v-for="user in paginatedUsers" 
-              :key="user.id" 
-              class="bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            v-for="user in allUsers" 
+            :key="user.id" 
+            class="bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
                 <div class="col-span-1">
@@ -615,34 +615,32 @@ const filteredUsers = computed(() => {
   return filtered
 })
 
-// Computed paginated users
-const paginatedUsers = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage.value
-  const endIndex = startIndex + itemsPerPage.value
-  return filteredUsers.value.slice(startIndex, endIndex)
-})
+// Server-side: use API pagination; 'allUsers' already contains current page
+const paginatedUsers = computed(() => allUsers.value)
 
-// Computed pagination info
+// Computed pagination info (server-side)
 const paginationInfo = computed(() => {
-  const totalItems = filteredUsers.value.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage.value)
-  const startItem = totalItems === 0 ? 0 : (currentPage.value - 1) * itemsPerPage.value + 1
-  const endItem = Math.min(currentPage.value * itemsPerPage.value, totalItems)
-  
+  const meta = pagination.value || {}
+  const totalItems = meta.total || 0
+  const totalPages = meta.last_page || 1
+  const startItem = meta.from || 0
+  const endItem = meta.to || 0
+  const current = meta.current_page || currentPage.value
+
   return {
     totalItems,
     totalPages,
     startItem,
     endItem,
-    currentPage: currentPage.value,
-    hasNextPage: currentPage.value < totalPages,
-    hasPrevPage: currentPage.value > 1
+    currentPage: current,
+    hasNextPage: current < totalPages,
+    hasPrevPage: current > 1
   }
 })
 
 // Computed for bulk selection
 const isAllSelected = computed(() => {
-  return paginatedUsers.value.length > 0 && selectedUsers.value.length === paginatedUsers.value.length
+  return allUsers.value.length > 0 && selectedUsers.value.length === allUsers.value.length
 })
 
 // Debounced search for API calls (only when needed)
@@ -759,16 +757,17 @@ const loadClasses = async () => {
 }
 
 const changePage = (page) => {
-  if (page >= 1 && page <= pagination.value.last_page) {
+  if (page >= 1 && page <= (pagination.value?.last_page || 1)) {
     currentPage.value = page
     loadUsers()
   }
 }
 
-// New pagination functions for client-side pagination
+// New pagination functions for server-side pagination
 const goToPage = (page) => {
   if (page >= 1 && page <= paginationInfo.value.totalPages) {
     currentPage.value = page
+    loadUsers()
   }
 }
 
@@ -905,7 +904,7 @@ const toggleSelectAll = () => {
   if (isAllSelected.value) {
     selectedUsers.value = []
   } else {
-    selectedUsers.value = paginatedUsers.value.map(user => user.id)
+    selectedUsers.value = allUsers.value.map(user => user.id)
   }
 }
 
