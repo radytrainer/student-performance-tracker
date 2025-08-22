@@ -197,6 +197,75 @@
               </button>
             </div>
           </div>
+
+          <!-- Import from Google Sheets -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Import from Google Sheets</h3>
+
+            <div class="flex items-center justify-between mb-4">
+              <div class="text-sm" :class="googleConnected ? 'text-green-700' : 'text-gray-600'">
+                <span class="font-medium">Connection:</span>
+                <span v-if="googleConnected" class="ml-1">Connected</span>
+                <span v-else class="ml-1">Not connected</span>
+              </div>
+              <button
+                @click="connectGoogle"
+                :disabled="googleLoading"
+                class="px-3 py-2 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+              >
+                <i v-if="googleLoading" class="fas fa-spinner fa-spin mr-2"></i>
+                {{ googleConnected ? 'Reconnect' : 'Connect Google' }}
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              <label class="block text-sm font-medium text-gray-700">Google Sheet URL or ID</label>
+              <input v-model="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/.. or ID"
+                     class="w-full px-3 py-2 border rounded-lg" />
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Sheet name (optional)</label>
+                  <input v-model="gsSheetName" type="text" placeholder="Sheet1" class="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Range (optional)</label>
+                  <input v-model="gsRange" type="text" placeholder="Sheet1!A1:Z1000" class="w-full px-3 py-2 border rounded-lg" />
+                </div>
+              </div>
+
+              <div class="flex gap-3">
+                <button @click="previewGoogle"
+                        :disabled="!sheetUrl || gsPreviewLoading"
+                        class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50">
+                  <i v-if="gsPreviewLoading" class="fas fa-spinner fa-spin mr-2"></i>
+                  Preview
+                </button>
+                <button @click="importFromGoogle"
+                        :disabled="!sheetUrl || !defaultClassId || importing"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  <i v-if="importing" class="fas fa-spinner fa-spin mr-2"></i>
+                  Import from Google
+                </button>
+              </div>
+
+              <div v-if="gsPreviewHeaders.length" class="mt-3 border rounded overflow-auto">
+                <table class="min-w-full text-xs">
+                  <thead class="bg-gray-100">
+                    <tr>
+                      <th v-for="(h,i) in gsPreviewHeaders" :key="i" class="px-2 py-1 text-left">{{ h }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, idx) in gsPreviewRows" :key="idx" class="border-b">
+                      <td v-for="(h,i) in gsPreviewHeaders" :key="i" class="px-2 py-1">{{ row[h] }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else-if="gsPreviewLoading" class="text-sm text-gray-500">Fetching preview…</div>
+            </div>
+          </div>
         </div>
 
         <!-- Uploaded Files -->
@@ -412,7 +481,17 @@ import { teacherAPI } from '@/api/teacher'
 import { useAuth } from '@/composables/useAuth'
 import * as XLSX from 'xlsx'
 
-// State
+// Google Sheets state
+ const googleConnected = ref(false)
+ const googleLoading = ref(false)
+ const sheetUrl = ref('')
+ const gsSheetName = ref('')
+ const gsRange = ref('')
+ const gsPreviewHeaders = ref([])
+ const gsPreviewRows = ref([])
+ const gsPreviewLoading = ref(false)
+ 
+ // State
 const selectedFile = ref(null)
 const defaultClassId = ref('')
 const sheetName = ref('')
@@ -566,6 +645,18 @@ const handleFileDrop = (event) => {
 
 const clearFile = () => {
   selectedFile.value = null
+}
+
+const extractSheetId = (input) => {
+  try {
+    // If it's a URL, extract the /d/{id}/ segment
+    if (/^https?:\/\//i.test(input)) {
+      const m = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)
+      if (m && m[1]) return m[1]
+    }
+    // Otherwise assume it's already an ID
+    return input.trim()
+  } catch { return input }
 }
 
 const formatFileSize = (bytes) => {
@@ -839,6 +930,74 @@ const downloadEditedCsv = () => {
   URL.revokeObjectURL(url)
 }
 
+const checkGoogleStatus = async () => {
+  try {
+    const resp = await teacherAPI.getGoogleStatus()
+    googleConnected.value = !!resp?.data?.connected
+  } catch {
+    googleConnected.value = false
+  }
+}
+
+const connectGoogle = async () => {
+  try {
+    googleLoading.value = true
+    const resp = await teacherAPI.getGoogleAuthUrl()
+    const url = resp?.data?.auth_url
+    if (url) window.location.href = url
+  } catch (e) {
+    console.error('Google auth url error', e)
+    error.value = 'Failed to start Google authorization'
+  } finally {
+    googleLoading.value = false
+  }
+}
+
+const previewGoogle = async () => {
+  try {
+    gsPreviewLoading.value = true
+    gsPreviewHeaders.value = []
+    gsPreviewRows.value = []
+    const payload = {
+      sheet_id: extractSheetId(sheetUrl.value),
+      sheet_name: gsSheetName.value || undefined,
+      range: gsRange.value || undefined,
+      limit: 50
+    }
+    const resp = await teacherAPI.previewGoogleSheet(payload)
+    gsPreviewHeaders.value = resp?.data?.headers || []
+    gsPreviewRows.value = resp?.data?.rows || []
+  } catch (e) {
+    console.error('Preview Google sheet failed', e)
+    error.value = 'Failed to preview Google Sheet'
+  } finally {
+    gsPreviewLoading.value = false
+  }
+}
+
+const importFromGoogle = async () => {
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+    const payload = {
+      sheet_id: extractSheetId(sheetUrl.value),
+      sheet_name: gsSheetName.value || undefined,
+      range: gsRange.value || undefined,
+      default_class_id: defaultClassId.value
+    }
+    const resp = await teacherAPI.importFromGoogle(payload)
+    importResults.value = resp?.data?.data
+    showSuccessMessage(resp?.data?.message || 'Import completed')
+    await Promise.all([loadImportHistory(), loadClasses()])
+  } catch (e) {
+    console.error('Import Google sheet failed', e)
+    error.value = e?.response?.data?.message || 'Failed to import from Google Sheet'
+  } finally {
+    importing.value = false
+  }
+}
+
 const uploadEditedCsv = async () => {
   try {
     const csv = toCsv(editorHeaders.value, editorRows.value)
@@ -1034,12 +1193,21 @@ const importFromUpload = async (file) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadClasses()
   loadSubjects()
   loadImportHistory()
   loadUploadedFiles(1)
   loadTemplateHeaders()
+  await checkGoogleStatus()
+  // If returned from OAuth
+  const url = new URL(window.location.href)
+  const googleParam = url.searchParams.get('google')
+  if (googleParam === 'connected') {
+    showSuccessMessage('Google account connected')
+    url.searchParams.delete('google')
+    window.history.replaceState({}, '', url.toString())
+  }
   // Start auto refresh
   uploadsTimer = setInterval(() => {
     if (autoRefreshUploads.value) {

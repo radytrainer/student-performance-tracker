@@ -72,6 +72,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Active users endpoint for sidebar (protected)
     Route::get('/active-users', [UserController::class, 'index']);
 
+    // Notifications
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index']);
+    Route::post('/notifications/mark-read', [App\Http\Controllers\NotificationController::class, 'markRead']);
+
     // User Management (protected)
     Route::middleware(['role:admin'])->group(function () {
         Route::get('/users', [UserController::class, 'index']);
@@ -160,6 +164,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('admin/import/history', [App\Http\Controllers\Admin\DataImportController::class, 'getImportHistory']);
         Route::get('admin/import/uploads', [App\Http\Controllers\Admin\DataImportController::class, 'listUploads']);
         Route::delete('admin/import/uploads/{id}', [App\Http\Controllers\Admin\DataImportController::class, 'deleteUpload']);
+        // Google Sheets integration (admin)
+        Route::get('admin/google/auth-url', [App\Http\Controllers\GoogleAuthController::class, 'getAuthUrl']);
+        Route::get('admin/google/status', [App\Http\Controllers\GoogleAuthController::class, 'status']);
+        Route::post('admin/google/sheets/preview', [App\Http\Controllers\GoogleAuthController::class, 'preview']);
+        Route::post('admin/import/google', [App\Http\Controllers\Admin\DataImportController::class, 'importFromGoogleSheet']);
     });
 
     // Teacher routes for import and uploads (use same controller with role check)
@@ -174,6 +183,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('google/auth-url', [App\Http\Controllers\GoogleAuthController::class, 'getAuthUrl']);
         Route::get('google/status', [App\Http\Controllers\GoogleAuthController::class, 'status']);
         Route::post('google/sheets/preview', [App\Http\Controllers\GoogleAuthController::class, 'preview']);
+        Route::post('teacher/import/google', [App\Http\Controllers\Admin\DataImportController::class, 'importFromGoogleSheet']);
     });
 
     // Super Admin routes
@@ -215,6 +225,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('student/reports/generate', [App\Http\Controllers\Student\ReportController::class, 'generate']);
         Route::get('student/reports/{id}', [App\Http\Controllers\Student\ReportController::class, 'show']);
         Route::get('student/reports/{id}/download', [App\Http\Controllers\Student\ReportController::class, 'download']);
+        // Student vs Class average comparison
+        Route::get('student/comparison', [App\Http\Controllers\Student\ReportController::class, 'comparison']);
 
         // Feedback Surveys
         Route::get('student/surveys', [FeedbackSurveyController::class, 'index']);

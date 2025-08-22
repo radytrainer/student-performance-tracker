@@ -127,6 +127,10 @@ npm run build                 # Build for production
 npm run preview               # Preview production build
 ```
 
+### Google Sheets & PDFs
+- Google Sheets import for Admin/Teacher: connect, preview, and import students
+- Server-side PDF generation for Student Reports (storage/app/public/reports)
+
 ### Key Features Implemented
 - ✅ **Authentication & Authorization**: Role-based access with Laravel Sanctum
 - ✅ **Grade Management**: CRUD operations for student grades

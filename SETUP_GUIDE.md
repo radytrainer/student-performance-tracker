@@ -268,6 +268,37 @@ npm install
 
 ## 📱 Production Deployment
 
+## Google Sheets Integration
+
+1. Create OAuth 2.0 Client (Web) in Google Cloud Console
+   - Authorized redirect URI: http://localhost:8000/api/google/oauth/callback
+   - Authorized JavaScript origins: http://localhost:3000, http://localhost:8000
+
+2. Add to backend/.env
+```
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/api/google/oauth/callback
+FRONTEND_URL=http://localhost:3000
+APP_URL=http://localhost:8000
+```
+
+3. Backend install and cache clear
+```
+cd backend
+composer install
+php artisan config:clear && php artisan cache:clear
+php artisan migrate
+php artisan serve
+```
+
+4. Use in app
+- Admin/Teacher: go to Data Import -> Connect Google -> Preview -> Import
+
+## PDF Reports
+- Installed barryvdh/laravel-dompdf for server-side PDF generation
+- After `composer install`, run `php artisan storage:link` to serve PDFs saved to storage/app/public/reports
+
 ### Backend Deployment
 1. Set `APP_ENV=production` in `.env`
 2. Set `APP_DEBUG=false`
