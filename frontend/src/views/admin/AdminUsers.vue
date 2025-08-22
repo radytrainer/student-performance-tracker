@@ -85,6 +85,17 @@
             </div>
           </div>
           <div class="flex items-center space-x-3">
+            <!-- Sort controls -->
+            <div class="flex items-center space-x-2">
+              <select v-model="sortBy" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="name">Sort: Name</option>
+                <option value="email">Sort: Email</option>
+                <option value="created_at">Sort: Created Date</option>
+              </select>
+              <button @click="toggleSortDir" class="px-3 py-2 border border-gray-300 rounded-lg" :title="sortDir==='asc' ? 'Ascending' : 'Descending'">
+                <i :class="sortDir === 'asc' ? 'fas fa-sort-amount-up' : 'fas fa-sort-amount-down' "></i>
+              </button>
+            </div>
             <!-- Bulk Actions -->
             <div v-if="selectedUsers.length > 0" class="flex items-center space-x-2">
               <span class="text-sm text-gray-600">{{ selectedUsers.length }} selected</span>
@@ -531,13 +542,15 @@ const searchLoading = ref(false)
 const error = ref(null)
 const successMessage = ref('')
 const users = ref([])
-const allUsers = ref([]) // Store all users for local filtering
+const allUsers = ref([]) // current server page
 const pagination = ref(null)
 const searchQuery = ref('')
 const roleFilter = ref('')
 const classFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
+const sortBy = ref('created_at')
+const sortDir = ref('desc')
 
 // Classes data
 const classes = ref([])
@@ -660,14 +673,17 @@ const performApiSearch = async () => {
     searchLoading.value = true
     const params = {
       page: 1,
-      per_page: 50, // Get more results for better local filtering
+      per_page: itemsPerPage.value,
       search: searchQuery.value,
-      role: roleFilter.value
+      role: roleFilter.value,
+      sort_by: sortBy.value,
+      sort_dir: sortDir.value
     }
 
     const response = await usersAPI.getUsers(params)
-    allUsers.value = response.data.data
-    pagination.value = response.data
+    const payload = response.data
+    allUsers.value = Array.isArray(payload?.data) ? payload.data : payload
+    pagination.value = payload
     currentPage.value = 1
   } catch (err) {
     console.error('Search error:', err)
@@ -712,29 +728,29 @@ const showSuccessMessage = (message) => {
 }
 
 const loadUsers = async () => {
-  try {
-    loading.value = true
-    error.value = null
-    
-    const params = {
-      page: currentPage.value,
-      per_page: 50 // Load more users for better local filtering
-    }
+try {
+loading.value = true
+error.value = null
 
-    // Only add filters for initial load or role changes
-    if (roleFilter.value) {
-      params.role = roleFilter.value
-    }
+const params = {
+page: currentPage.value,
+per_page: itemsPerPage.value,
+  sort_by: sortBy.value,
+  sort_dir: sortDir.value
+}
+if (searchQuery.value) params.search = searchQuery.value
+if (roleFilter.value) params.role = roleFilter.value
 
-    const response = await usersAPI.getUsers(params)
-    allUsers.value = response.data.data
-    pagination.value = response.data
-  } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Failed to load users'
-    console.error('Error loading users:', err)
-  } finally {
-    loading.value = false
-  }
+const response = await usersAPI.getUsers(params)
+const payload = response.data
+allUsers.value = Array.isArray(payload?.data) ? payload.data : payload
+pagination.value = payload
+} catch (err) {
+error.value = err.response?.data?.message || err.message || 'Failed to load users'
+console.error('Error loading users:', err)
+} finally {
+loading.value = false
+}
 }
 
 const applyFilters = () => {
@@ -1024,16 +1040,16 @@ const bulkDeactivate = async () => {
   }
 }
 
-// Watch for search/filter changes to reset pagination
-watch([searchQuery, roleFilter, classFilter], () => {
+// Watch for search/filter/sort changes
+watch([searchQuery, roleFilter, sortBy, sortDir], () => {
   currentPage.value = 1
-  selectedUsers.value = [] // Clear selection when filtering
+  selectedUsers.value = []
+  loadUsers()
 })
 
 onMounted(async () => {
   try {
     await loadUsers()
-    // await loadClasses() // Temporarily disabled
   } catch (error) {
     console.error('Error during component initialization:', error)
   }
