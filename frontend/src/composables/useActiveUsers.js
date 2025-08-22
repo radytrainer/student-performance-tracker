@@ -2,6 +2,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { usersAPI } from '@/api/users'
 import axios from '@/api/axiosConfig'
 
+import { resolveImageUrl } from '@/utils/imageUrl'
+
 export function useActiveUsers() {
   const activeUsers = ref([])
   const totalActiveUsers = ref(0)
@@ -75,7 +77,6 @@ export function useActiveUsers() {
 
   // Get user profile image or fallback
   const getUserImage = (user) => {
-    const { resolveImageUrl } = require('@/utils/imageUrl')
     return resolveImageUrl(user)
   }
 

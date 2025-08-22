@@ -1,6 +1,7 @@
 import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import profileImageAPI from '@/api/profileImage'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
 // Global reactive profile image state
 const globalProfileImage = ref(null)
@@ -19,7 +20,6 @@ export function useProfileImage() {
   )
 
   const getImageUrl = (imagePath) => {
-    const { resolveImageUrl } = require('@/utils/imageUrl')
     return resolveImageUrl(imagePath)
   }
 
