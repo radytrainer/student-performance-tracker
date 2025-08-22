@@ -151,7 +151,7 @@
               <tr>
                 <th class="px-6 py-3 text-left font-semibold">Date</th>
                 <th class="px-6 py-3 text-left font-semibold">Status</th>
-                <th class="px-6 py-3 text-left font-semibold">Subject</th>
+                <th class="px-6 py-3 text-left font-semibold">Subjects</th>
                 <th class="px-6 py-3 text-left font-semibold">Time</th>
               </tr>
             </thead>
