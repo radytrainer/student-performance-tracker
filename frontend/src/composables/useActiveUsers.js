@@ -25,8 +25,6 @@ export function useActiveUsers() {
       })
       
       // Handle paginated response structure
-      console.log('API Response:', response.data)
-      
       const responseData = response.data
       let users = []
       let total = 0
@@ -39,8 +37,6 @@ export function useActiveUsers() {
         users = responseData
         total = users.length
       }
-      
-      console.log('Processed users:', users)
       
       if (users.length > 0) {
         // Shuffle users for random display
