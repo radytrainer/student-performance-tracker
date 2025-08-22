@@ -29,7 +29,11 @@ export function useProfileImage() {
     
     // If it's a relative path, prepend the backend storage URL
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-    return `${baseUrl.replace('/api', '')}/storage/${imagePath}`
+    const origin = baseUrl.replace('/api', '')
+    // Support values like "profile_pictures/abc.jpg" or "storage/profile_pictures/abc.jpg"
+    const cleaned = imagePath.replace(/^\/+/, '')
+    const path = cleaned.startsWith('storage/') ? cleaned : `storage/${cleaned}`
+    return `${origin}/${path}`
   }
 
   const updateProfileImage = async (file) => {

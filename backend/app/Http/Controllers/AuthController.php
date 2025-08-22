@@ -186,6 +186,16 @@ class AuthController extends Controller
             $user = $request->user();
             $user->load(['student', 'teacher']); // Load relationships
 
+            // Normalize profile picture to URL if stored as a relative path
+            $profileUrl = null;
+            if ($user->profile_picture) {
+                if (str_starts_with($user->profile_picture, 'http://') || str_starts_with($user->profile_picture, 'https://')) {
+                    $profileUrl = $user->profile_picture;
+                } else {
+                    $profileUrl = asset('storage/' . ltrim($user->profile_picture, '/'));
+                }
+            }
+
             $userData = [
                 'id' => $user->id,
                 'username' => $user->username,
@@ -194,7 +204,8 @@ class AuthController extends Controller
                 'last_name' => $user->last_name,
                 'role' => $user->role,
                 'is_active' => $user->is_active,
-                'profile_picture' => $user->profile_picture,
+                'profile_picture' => $user->profile_picture, // raw value for internal use
+                'profile_picture_url' => $profileUrl, // absolute URL for frontend display
                 'phone' => $user->phone,
                 'bio' => $user->bio,
                 'last_login' => $user->last_login,

@@ -58,7 +58,13 @@ class UserController extends Controller
         // Transform profile picture URLs for each user
         foreach ($users->items() as $user) {
             if ($user->profile_picture) {
-                $user->profile_picture = asset('storage/' . $user->profile_picture);
+                if (str_starts_with($user->profile_picture, 'http://') || str_starts_with($user->profile_picture, 'https://')) {
+                    $user->profile_picture_url = $user->profile_picture;
+                } else {
+                    $user->profile_picture_url = asset('storage/' . ltrim($user->profile_picture, '/'));
+                }
+            } else {
+                $user->profile_picture_url = null;
             }
         }
 
@@ -118,7 +124,15 @@ class UserController extends Controller
             return response()->json(['error' => 'Access denied'], 403);
         }
         
-        $user->profile_picture = $user->profile_picture ? asset('storage/' . $user->profile_picture) : null;
+        if ($user->profile_picture) {
+            if (str_starts_with($user->profile_picture, 'http://') || str_starts_with($user->profile_picture, 'https://')) {
+                $user->profile_picture_url = $user->profile_picture;
+            } else {
+                $user->profile_picture_url = asset('storage/' . ltrim($user->profile_picture, '/'));
+            }
+        } else {
+            $user->profile_picture_url = null;
+        }
         return response()->json($user);
     }
 
@@ -162,6 +176,17 @@ class UserController extends Controller
 
         $user->update($validated);
 
+        // Attach profile picture URL for frontend convenience
+        if ($user->profile_picture) {
+            if (str_starts_with($user->profile_picture, 'http://') || str_starts_with($user->profile_picture, 'https://')) {
+                $user->profile_picture_url = $user->profile_picture;
+            } else {
+                $user->profile_picture_url = asset('storage/' . ltrim($user->profile_picture, '/'));
+            }
+        } else {
+            $user->profile_picture_url = null;
+        }
+ 
         return response()->json(['message' => 'User updated successfully', 'user' => $user]);
     }
 

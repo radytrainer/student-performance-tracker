@@ -79,11 +79,25 @@ export function useActiveUsers() {
 
   // Get user profile image or fallback
   const getUserImage = (user) => {
-    if (user?.profile_picture) {
-      // Backend already returns full URLs, so use as-is
-      return user.profile_picture
+    if (!user) return null
+
+    // Prefer explicit URL if backend provided it
+    if (user.profile_picture_url) return user.profile_picture_url
+
+    const imagePath = user.profile_picture
+    if (!imagePath) return null
+
+    // If it's already a full URL (social login or transformed), return as is
+    if (typeof imagePath === 'string' && (imagePath.startsWith('http://') || imagePath.startsWith('https://'))) {
+      return imagePath
     }
-    return null
+
+    // Build absolute URL from relative storage path
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+    const origin = baseUrl.replace(/\/api\/?$/, '')
+    const cleaned = String(imagePath).replace(/^\/+/, '')
+    const path = cleaned.startsWith('storage/') ? cleaned : `storage/${cleaned}`
+    return `${origin}/${path}`
   }
 
   // Get user initials as fallback

@@ -168,8 +168,8 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-10 w-10">
-                      <div v-if="student.user?.profile_picture" class="h-10 w-10 rounded-full overflow-hidden">
-                        <img :src="student.user.profile_picture" :alt="student.full_name" class="h-full w-full object-cover">
+                      <div v-if="resolveImage(student.user?.profile_picture)" class="h-10 w-10 rounded-full overflow-hidden">
+                      <img :src="resolveImage(student.user.profile_picture)" :alt="student.full_name" class="h-full w-full object-cover" @error="$event.target.style.display='none'">
                       </div>
                       <div v-else class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                         <span class="text-blue-600 font-medium">{{ getStudentInitial(student) }}</span>
