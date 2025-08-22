@@ -132,8 +132,14 @@
                     class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Code</th>
+                <th @click="sortBy='name'; toggleSortDir()" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
+                  Student
+                  <i v-if="sortBy==='name'" :class="sortDir==='asc' ? 'fas fa-sort-up ml-1' : 'fas fa-sort-down ml-1'"></i>
+                </th>
+                <th @click="sortBy='student_code'; toggleSortDir()" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none">
+                  Student Code
+                  <i v-if="sortBy==='student_code'" :class="sortDir==='asc' ? 'fas fa-sort-up ml-1' : 'fas fa-sort-down ml-1'"></i>
+                </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">GPA</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance</th>

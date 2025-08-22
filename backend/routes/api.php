@@ -121,6 +121,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
 
+        // Analytics (advanced)
+        Route::get('analytics/correlation', [App\Http\Controllers\Admin\AnalyticsController::class, 'correlation']);
+        Route::get('analytics/heatmap', [App\Http\Controllers\Admin\AnalyticsController::class, 'heatmap']);
+
          // Dashboard Stats
         // User Management
         Route::apiResource('admin/users', UserController::class);
