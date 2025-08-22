@@ -161,8 +161,8 @@
                 <div class="col-span-3">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-10 w-10">
-                      <div v-if="user.profile_picture" class="h-10 w-10 rounded-full overflow-hidden">
-                        <img :src="user.profile_picture" :alt="getUserName(user)" class="h-full w-full object-cover">
+                      <div v-if="resolveImage(user)" class="h-10 w-10 rounded-full overflow-hidden">
+                        <img :src="resolveImage(user)" :alt="getUserName(user)" class="h-full w-full object-cover" @error="$event.target.style.display='none'">
                       </div>
                       <div v-else class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                         <span class="text-blue-600 font-medium">{{ getUserInitial(user) }}</span>
@@ -570,6 +570,22 @@ const accessLogs = ref([])
 // Helper functions (defined early for use in computed)
 const getUserName = (user) => {
   return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email
+}
+
+// Resolve a profile image for a user to an absolute URL
+const resolveImage = (user) => {
+  if (!user) return null
+  if (user.profile_picture_url) return user.profile_picture_url
+  const value = user.profile_picture
+  if (!value) return null
+  if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:'))) {
+    return value
+  }
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+  const origin = baseUrl.replace(/\/api\/?$/, '')
+  const cleaned = String(value).replace(/^\/+/, '')
+  const path = cleaned.startsWith('storage/') ? cleaned : `storage/${cleaned}`
+  return `${origin}/${path}`
 }
 
 // Computed filtered users for instant search

@@ -444,6 +444,31 @@ const getStudentInitial = (student) => {
   return name.charAt(0).toUpperCase()
 }
 
+// Resolve a profile image path or user object to an absolute URL
+const resolveImage = (value) => {
+  if (!value) return null
+
+  // Support passing the whole user object
+  if (typeof value === 'object') {
+    if (value.profile_picture_url) return value.profile_picture_url
+    value = value.profile_picture
+  }
+
+  if (!value) return null
+
+  // Accept data URLs or full URLs as-is
+  if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:'))) {
+    return value
+  }
+
+  // Build absolute URL from storage path
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+  const origin = baseUrl.replace(/\/api\/?$/, '')
+  const cleaned = String(value).replace(/^\/+/, '')
+  const path = cleaned.startsWith('storage/') ? cleaned : `storage/${cleaned}`
+  return `${origin}/${path}`
+}
+
 const getGPAClass = (gpa) => {
   if (!gpa) return 'bg-gray-100 text-gray-800'
   if (gpa >= 3.5) return 'bg-green-100 text-green-800'
