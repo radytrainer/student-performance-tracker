@@ -177,8 +177,10 @@ export const adminAPI = {
 
   // Data Import
   importStudents: async (formData) => {
-    // Do not set Content-Type manually; Axios will include the correct boundary
-    return await api.post('/admin/import/students', formData)
+    // Explicitly set multipart to avoid any global defaults interfering
+    return await api.post('/admin/import/students', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   },
 
   getImportTemplate: async (type = 'students') => {
@@ -186,7 +188,9 @@ export const adminAPI = {
   },
 
   uploadFileOnly: async (formData) => {
-  return await api.post('/admin/import/upload-file', formData)
+  return await api.post('/admin/import/upload-file', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   },
  
   getImportHistory: async () => {

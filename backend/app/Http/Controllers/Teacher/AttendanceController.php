@@ -9,9 +9,11 @@ use App\Models\Classes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Notification;
+use App\Traits\SchoolIsolation;
 
 class AttendanceController extends Controller
 {
+    use SchoolIsolation;
     /**
      * Get all attendance records with filtering
      */
@@ -299,17 +301,35 @@ class AttendanceController extends Controller
     public function getStats()
     {
         try {
+            // Get teacher's classes for school isolation
+            $teacherClasses = Classes::forSchool($this->getCurrentSchoolId())
+                ->whereHas('classTeacher', function($query) {
+                    $query->where('user_id', Auth::id());
+                })
+                ->pluck('id');
+
+            // Calculate stats only for teacher's classes
             $stats = [
-                'total_records' => Attendance::count(),
-                'present_count' => Attendance::where('status', 'present')->count(),
-                'absent_count' => Attendance::where('status', 'absent')->count(),
-                'late_count' => Attendance::where('status', 'late')->count(),
-                'today_records' => Attendance::whereDate('date', today())->count(),
+                'total_records' => Attendance::whereIn('class_id', $teacherClasses)->count(),
+                'present_count' => Attendance::whereIn('class_id', $teacherClasses)->where('status', 'present')->count(),
+                'absent_count' => Attendance::whereIn('class_id', $teacherClasses)->where('status', 'absent')->count(), 
+                'late_count' => Attendance::whereIn('class_id', $teacherClasses)->where('status', 'late')->count(),
+                'excused_count' => Attendance::whereIn('class_id', $teacherClasses)->where('status', 'excused')->count(),
+                'today_records' => Attendance::whereIn('class_id', $teacherClasses)->whereDate('date', today())->count(),
+                'classes' => $teacherClasses->map(function($classId) {
+                    $class = Classes::find($classId);
+                    $attendanceRate = $this->calculateClassAttendanceRate($classId);
+                    return [
+                        'id' => $classId,
+                        'name' => $class->class_name,
+                        'attendance_rate' => $attendanceRate
+                    ];
+                })
             ];
 
             return response()->json([
                 'success' => true,
-                'stats' => $stats
+                'data' => $stats
             ]);
 
         } catch (\Exception $e) {
@@ -319,6 +339,21 @@ class AttendanceController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Calculate attendance rate for a specific class
+     */
+    private function calculateClassAttendanceRate($classId)
+    {
+        $totalRecords = Attendance::where('class_id', $classId)->count();
+        if ($totalRecords === 0) return 0;
+        
+        $presentRecords = Attendance::where('class_id', $classId)
+            ->whereIn('status', ['present', 'late'])
+            ->count();
+            
+        return round(($presentRecords / $totalRecords) * 100);
     }
 
     /**
