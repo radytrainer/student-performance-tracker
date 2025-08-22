@@ -102,7 +102,7 @@
               v-model="reportConfig.format"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="pdf">PDF (Coming Soon)</option>
+              <option value="pdf">PDF (.pdf)</option>
               <option value="excel">Excel (.xlsx)</option>
             </select>
           </div>
