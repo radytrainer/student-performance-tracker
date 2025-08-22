@@ -27,7 +27,7 @@ class ProfileController extends Controller
             $user->load(['student', 'teacher']); // Load relationships
 
             // Normalize profile picture to URL if stored as a relative path
-            $profileUrl = null;
+            // removed legacy normalization; using $user->profile_picture_url instead
             if ($user->profile_picture) {
                 if (str_starts_with($user->profile_picture, 'http://') || str_starts_with($user->profile_picture, 'https://')) {
                     $profileUrl = $user->profile_picture;
@@ -45,7 +45,7 @@ class ProfileController extends Controller
                 'role' => $user->role,
                 'is_active' => $user->is_active,
                 'profile_picture' => $user->profile_picture,
-                'profile_picture_url' => $profileUrl,
+                'profile_picture_url' => $user->profile_picture_url,
                 'phone' => Schema::hasColumn('users', 'phone') ? ($user->phone ?? null) : null,
                 'bio' => Schema::hasColumn('users', 'bio') ? ($user->bio ?? null) : null,
                 'created_at' => $user->created_at,
@@ -213,7 +213,7 @@ class ProfileController extends Controller
 
             // Prepare response data
             // Normalize profile picture to URL if stored as a relative path
-            $profileUrl = null;
+            // removed legacy normalization; using $user->profile_picture_url instead
             if ($user->profile_picture) {
                 if (str_starts_with($user->profile_picture, 'http://') || str_starts_with($user->profile_picture, 'https://')) {
                     $profileUrl = $user->profile_picture;
@@ -231,7 +231,7 @@ class ProfileController extends Controller
                 'role' => $user->role,
                 'is_active' => $user->is_active,
                 'profile_picture' => $user->profile_picture,
-                'profile_picture_url' => $profileUrl,
+                'profile_picture_url' => $user->profile_picture_url,
                 'phone' => Schema::hasColumn('users', 'phone') ? ($user->phone ?? null) : null,
                 'bio' => Schema::hasColumn('users', 'bio') ? ($user->bio ?? null) : null,
                 'created_at' => $user->created_at,

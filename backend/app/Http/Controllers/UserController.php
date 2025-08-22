@@ -55,18 +55,7 @@ class UserController extends Controller
         $perPage = min($request->get('per_page', 10), 50); // Max 50 per page
         $users = $query->paginate($perPage);
 
-        // Transform profile picture URLs for each user
-        foreach ($users->items() as $user) {
-            if ($user->profile_picture) {
-                if (str_starts_with($user->profile_picture, 'http://') || str_starts_with($user->profile_picture, 'https://')) {
-                    $user->profile_picture_url = $user->profile_picture;
-                } else {
-                    $user->profile_picture_url = asset('storage/' . ltrim($user->profile_picture, '/'));
-                }
-            } else {
-                $user->profile_picture_url = null;
-            }
-        }
+
 
         return response()->json($users);
     }
@@ -124,15 +113,6 @@ class UserController extends Controller
             return response()->json(['error' => 'Access denied'], 403);
         }
         
-        if ($user->profile_picture) {
-            if (str_starts_with($user->profile_picture, 'http://') || str_starts_with($user->profile_picture, 'https://')) {
-                $user->profile_picture_url = $user->profile_picture;
-            } else {
-                $user->profile_picture_url = asset('storage/' . ltrim($user->profile_picture, '/'));
-            }
-        } else {
-            $user->profile_picture_url = null;
-        }
         return response()->json($user);
     }
 
