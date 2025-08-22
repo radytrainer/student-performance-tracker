@@ -353,6 +353,14 @@ class FeedbackFormController extends Controller
                     ->where('is_active', true)
                     ->firstOrFail();
 
+                // Skip if already assigned (respect unique constraint)
+                $existing = IndividualFormAssignment::where('feedback_form_id', $assignmentData['feedback_form_id'])
+                    ->where('assigned_to_user_id', $assignmentData['user_id'])
+                    ->first();
+                if ($existing) {
+                    continue;
+                }
+
                 $assignment = IndividualFormAssignment::create([
                     'feedback_form_id' => $assignmentData['feedback_form_id'],
                     'assigned_to_user_id' => $assignmentData['user_id'],
