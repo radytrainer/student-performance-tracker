@@ -14,6 +14,13 @@ app.use(router)
 
 // ✅ Initialize auth store (load token) before mounting
 const auth = useAuthStore()
-auth.initialize().then(() => {
+auth.initialize().then(async () => {
+  // Initialize realtime after auth (so Authorization header is available)
+  try {
+    const { initEcho } = await import('./realtime/echo')
+    initEcho()
+  } catch (e) {
+    console.warn('Realtime init failed:', e)
+  }
   app.mount('#app')
 })

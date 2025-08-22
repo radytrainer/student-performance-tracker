@@ -47,13 +47,16 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { notificationsAPI } from '@/api/notifications'
 
+const auth = useAuthStore()
 const open = ref(false)
 const notifications = ref([])
 const unreadCount = ref(0)
 const lastUpdated = ref(null)
 let timer = null
+let channel = null
 
 const fetchNotifications = async () => {
   try {
@@ -90,10 +93,24 @@ const formatTime = (d) => new Date(d).toLocaleTimeString()
 
 onMounted(async () => {
   await fetchNotifications()
-  timer = setInterval(fetchNotifications, 30000) // poll every 30s
+  // polling fallback
+  timer = setInterval(fetchNotifications, 30000)
+  // realtime: subscribe if Echo and user available
+  try {
+    if (window.Echo && auth?.user?.id) {
+      channel = window.Echo.private(`users.${auth.user.id}`)
+        .listen('.notification.created', async (payload) => {
+          // Either push or refetch to keep pagination consistent
+          await fetchNotifications()
+        })
+    }
+  } catch {}
 })
 
-onUnmounted(() => { if (timer) clearInterval(timer) })
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+  try { if (channel) channel.unsubscribe() } catch {}
+})
 </script>
 
 <style scoped>
