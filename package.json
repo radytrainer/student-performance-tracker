@@ -5,6 +5,7 @@
     "@fullcalendar/vue3": "^6.1.19",
     "axios": "^1.11.0",
     "chart.js": "^4.5.0",
+    "dayjs": "^1.11.13",
     "lucide-vue-next": "^0.539.0",
     "moment": "^2.30.1"
   }
