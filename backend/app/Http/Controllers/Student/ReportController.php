@@ -21,6 +21,7 @@ use App\Exports\AttendanceReportExport;
 use App\Exports\ProgressReportExport;
 use App\Exports\TranscriptExport;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Notification;
 
 class ReportController extends Controller
 {
@@ -671,6 +672,18 @@ class ReportController extends Controller
         // Update report record with file path
         $reportCard->update(['file_path' => $relativePath]);
 
+        // Create a notification for the student
+        try {
+            Notification::create([
+                'user_id' => $this->student->user_id,
+                'title' => 'Report generated',
+                'message' => 'Your ' . str_replace('_', ' ', $type) . ' is ready for download.',
+                'type' => 'success',
+                'is_read' => false,
+                'sent_at' => now(),
+            ]);
+        } catch (\Throwable $e) {}
+ 
         // Return the file for immediate download
         return response()->download($absolutePath, $filename);
     }
@@ -713,6 +726,18 @@ class ReportController extends Controller
                 'file_path' => null, // Excel files are not stored, downloaded directly
                 'generated_at' => now()
             ]);
+
+            // Create a notification for the student before returning file
+            try {
+                Notification::create([
+                    'user_id' => $this->student->user_id,
+                    'title' => 'Report generated',
+                    'message' => 'Your ' . str_replace('_', ' ', $type) . ' (Excel) is ready for download.',
+                    'type' => 'success',
+                    'is_read' => false,
+                    'sent_at' => now(),
+                ]);
+            } catch (\Throwable $e) {}
 
             return Excel::download($export, $filename);
             

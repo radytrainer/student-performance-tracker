@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import NotificationBell from '@/components/notifications/NotificationBell.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -32,6 +33,8 @@ const logout = async () => {
       >
         {{ route.name }}
       </router-link>
+
+      <NotificationBell v-if="authStore.isAuthenticated" />
       
       <button v-if="authStore.isAuthenticated" @click="logout" class="logout-btn">
         Logout
