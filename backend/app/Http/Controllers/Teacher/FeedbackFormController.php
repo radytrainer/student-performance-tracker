@@ -9,6 +9,7 @@ use App\Models\IndividualFormAssignment;
 use App\Models\FormResponse;
 use App\Models\Classes;
 use App\Models\User;
+use App\Models\StudentClass;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -267,8 +268,26 @@ class FeedbackFormController extends Controller
                 ]);
 
                 $assignments[] = $assignment;
-            }
 
+                               // Broadcast to all active students in the class so their survey list updates in realtime
+                    try {
+                    $studentIds = StudentClass::where('class_id', $assignmentData['class_id'])
+                        ->where('status', 'active')
+                        ->pluck('student_id');
+                    foreach ($studentIds as $sid) {
+                        event(new \App\Events\SurveyAssigned((int) $sid, [
+                            'assignment_id' => $assignment->id,
+                            'title' => $assignment->feedbackForm->title,
+                            'description' => $assignment->feedbackForm->description,
+                            'survey_type' => $assignment->feedbackForm->survey_type,
+                            'class_name' => optional($assignment->assignedClass)->class_name,
+                            'due_date' => $assignment->due_date,
+                            'type' => 'class'
+                        ]));
+                    }
+                } catch (\Throwable $e) {}
+            }
+ 
             return response()->json([
                 'success' => true,
                 'message' => 'Form assigned to classes successfully',
@@ -372,6 +391,20 @@ class FeedbackFormController extends Controller
 
                 $assignment->load(['assignedToUser', 'feedbackForm']);
                 $assignments[] = $assignment;
+
+                // Broadcast to the assigned user so their survey list updates in realtime
+                try {
+                    event(new \App\Events\SurveyAssigned((int) $assignmentData['user_id'], [
+                        'assignment_id' => $assignment->id,
+                        'title' => $assignment->feedbackForm->title,
+                        'description' => $assignment->feedbackForm->description,
+                        'survey_type' => $assignment->feedbackForm->survey_type,
+                        'class_name' => $assignment->assignedToUser->role === 'student' ? null : null,
+                        'due_date' => $assignment->due_date,
+                        'type' => 'individual'
+                    ]));
+                } catch (\Throwable $e) {}
+
             }
 
             return response()->json([
