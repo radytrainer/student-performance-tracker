@@ -43,6 +43,20 @@ onMounted(() => {
             type: payload?.type || 'info'
           })
         })
+        .listen('.survey.assigned', (payload) => {
+          pushToast({
+            title: 'New Survey Assigned',
+            message: payload?.title || 'A new survey is available',
+            type: 'info'
+          })
+        })
+        .listen('.survey.completed', (payload) => {
+          pushToast({
+            title: 'Survey Completed',
+            message: `${payload?.form_title || 'Survey'} completed with score ${payload?.average_score ?? ''}`,
+            type: 'success'
+          })
+        })
     }
   } catch {}
 })
