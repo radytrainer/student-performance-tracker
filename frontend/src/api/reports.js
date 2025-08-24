@@ -27,6 +27,12 @@ export const reportsAPI = {
       responseType: 'blob'
     })
     return response
+  },
+
+  // Student vs class comparison (per subject)
+  getComparison: async (params = {}) => {
+    const response = await axios.get('/student/comparison', { params })
+    return response.data
   }
 }
 

@@ -2,6 +2,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { usersAPI } from '@/api/users'
 import axios from '@/api/axiosConfig'
 
+import { resolveImageUrl } from '@/utils/imageUrl'
+
 export function useActiveUsers() {
   const activeUsers = ref([])
   const totalActiveUsers = ref(0)
@@ -25,8 +27,6 @@ export function useActiveUsers() {
       })
       
       // Handle paginated response structure
-      console.log('API Response:', response.data)
-      
       const responseData = response.data
       let users = []
       let total = 0
@@ -39,8 +39,6 @@ export function useActiveUsers() {
         users = responseData
         total = users.length
       }
-      
-      console.log('Processed users:', users)
       
       if (users.length > 0) {
         // Shuffle users for random display
@@ -79,11 +77,7 @@ export function useActiveUsers() {
 
   // Get user profile image or fallback
   const getUserImage = (user) => {
-    if (user?.profile_picture) {
-      // Backend already returns full URLs, so use as-is
-      return user.profile_picture
-    }
-    return null
+    return resolveImageUrl(user)
   }
 
   // Get user initials as fallback

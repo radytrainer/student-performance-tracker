@@ -203,5 +203,21 @@ export const adminAPI = {
 
   deleteUploadedFile: async (id) => {
     return await api.delete(`/admin/import/uploads/${id}`)
+  },
+
+  // Google Sheets helpers (Admin)
+  getGoogleAuthUrl: async () => {
+    return await api.get('/admin/google/auth-url')
+  },
+  getGoogleStatus: async () => {
+    return await api.get('/admin/google/status')
+  },
+  previewGoogleSheet: async (payload) => {
+    // { sheet_id, sheet_name?, range?, limit? }
+    return await api.post('/admin/google/sheets/preview', payload)
+  },
+  importFromGoogle: async (payload) => {
+    // { sheet_id, sheet_name?, range?, default_class_id }
+    return await api.post('/admin/import/google', payload)
   }
 }

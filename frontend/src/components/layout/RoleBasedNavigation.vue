@@ -26,11 +26,29 @@
         <!-- User Menu -->
         <div class="flex items-center space-x-4">
           <!-- Notifications -->
-          <button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="relative">
+          <button @click="showNotif = !showNotif" class="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5V12a7 7 0 10-14 0v5l-2 2v1h16v-1l-2-2V12z"/>
-            </svg>
-          </button>
+              </svg>
+               <span v-if="unreadCount > 0" class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-600 rounded-full">{{ unreadCount }}</span>
+             </button>
+             <div v-show="showNotif" @click="showNotif=false" class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-50 py-2">
+               <div class="px-4 py-2 border-b text-sm font-semibold text-gray-700">Notifications</div>
+               <div v-if="notifications.length === 0" class="p-4 text-sm text-gray-500">No notifications</div>
+               <div v-else class="max-h-72 overflow-y-auto">
+                 <div v-for="n in notifications" :key="n.id" class="px-4 py-3 border-b last:border-b-0 hover:bg-gray-50">
+                   <div class="text-sm font-medium text-gray-800">{{ n.title || 'Notification' }}</div>
+                   <div class="text-xs text-gray-600" v-if="n.message">{{ n.message }}</div>
+                   <div class="mt-1 text-[11px] text-gray-400">{{ formatDate(n.sent_at) }}</div>
+                 </div>
+               </div>
+               <div class="px-4 py-2 flex items-center justify-between">
+                 <button @click.stop="markAllRead" class="text-xs text-blue-600 hover:text-blue-800">Mark all as read</button>
+                 <button @click.stop="refreshNotif" class="text-xs text-gray-600 hover:text-gray-800">Refresh</button>
+               </div>
+             </div>
+           </div>
 
           <!-- Role Badge -->
           <span 
@@ -197,12 +215,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileImage } from '@/composables/useProfileImage'
 import ImageUpload from '@/components/ImageUpload.vue'
+import notificationsAPI from '@/api/notifications'
 
 const route = useRoute()
 const router = useRouter()
@@ -223,6 +242,44 @@ const { profileImage } = useProfileImage()
 // Component state
 const showUserMenu = ref(false)
 const showMobileMenu = ref(false)
+const showNotif = ref(false)
+const notifications = ref([])
+const unreadCount = computed(() => notifications.value.filter(n => !n.is_read).length)
+
+let notifTimer = null
+
+const loadNotifications = async () => {
+  try {
+    const resp = await notificationsAPI.list({ per_page: 10 })
+    const payload = resp.data?.data
+    const items = payload?.data || payload || []
+    notifications.value = items
+  } catch (e) {
+    // fail silent
+  }
+}
+
+const refreshNotif = async () => {
+  await loadNotifications()
+}
+
+const markAllRead = async () => {
+  try {
+    await notificationsAPI.markRead([])
+    await loadNotifications()
+  } catch {}
+}
+
+const formatDate = (d) => d ? new Date(d).toLocaleString() : ''
+
+onMounted(async () => {
+  await loadNotifications()
+  notifTimer = setInterval(loadNotifications, 20000)
+})
+
+onUnmounted(() => {
+  if (notifTimer) clearInterval(notifTimer)
+})
 
 const userInitials = computed(() => {
   if (!user.value) return ''

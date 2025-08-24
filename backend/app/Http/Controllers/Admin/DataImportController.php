@@ -21,6 +21,166 @@ use Illuminate\Support\Str;
 class DataImportController extends Controller
 {
     /**
+     * Import students from a Google Sheet (teacher/admin).
+     */
+    public function importFromGoogleSheet(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'sheet_id' => 'required|string',
+                'sheet_name' => 'nullable|string',
+                'range' => 'nullable|string',
+                'default_class_id' => 'required|exists:classes,id',
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Load Google token for current user
+            $token = \App\Models\GoogleToken::where('user_id', auth()->id())->first();
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Google account not connected'
+                ], 422);
+            }
+
+            $client = new \Google_Client();
+            $client->setClientId(config('services.google.client_id'));
+            $client->setClientSecret(config('services.google.client_secret'));
+            $client->setRedirectUri(config('services.google.redirect'));
+            $client->setAccessToken(json_decode($token->access_token, true));
+            if ($client->isAccessTokenExpired() && $token->refresh_token) {
+                $client->fetchAccessTokenWithRefreshToken($token->refresh_token);
+                $newToken = $client->getAccessToken();
+                $token->access_token = json_encode($newToken);
+                $token->expires_at = now()->addSeconds($newToken['expires_in'] ?? 3600);
+                $token->save();
+            }
+
+            $service = new \Google_Service_Sheets($client);
+            $range = $request->input('range');
+            $sheetName = $request->input('sheet_name');
+            if (!$range) {
+                $range = ($sheetName ?: 'Sheet1') . '!A1:Z10000';
+            }
+            $resp = $service->spreadsheets_values->get($request->input('sheet_id'), $range);
+            $values = $resp->getValues();
+            if (!$values || count($values) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No data found in sheet'
+                ], 422);
+            }
+
+            // Build associative rows from headers
+            $headers = array_map(function ($h) {
+                $h = trim((string)$h);
+                $h = preg_replace('/\s+/', ' ', $h);
+                return strtolower(str_replace(' ', '_', $h));
+            }, $values[0]);
+
+            $rows = [];
+            for ($i = 1; $i < count($values); $i++) {
+                $assoc = [];
+                foreach ($headers as $idx => $h) {
+                    $assoc[$h] = $values[$i][$idx] ?? '';
+                }
+                if (count(array_filter($assoc, fn($v) => $v !== '' && $v !== null)) === 0) continue;
+                $rows[] = $assoc;
+            }
+
+            $defaultClassId = (int)$request->input('default_class_id');
+            DB::beginTransaction();
+
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($rows as $index => $row) {
+                try {
+                    if (empty(array_filter($row))) continue;
+
+                    $studentCode = $this->generateStudentCode();
+
+                    if (empty($row['email'])) {
+                        $row['email'] = strtolower(($row['first_name'] ?? 'student') . '.' . ($row['last_name'] ?? 'user') . '@student.school.com');
+                    }
+
+                    if (User::where('email', $row['email'])->exists()) {
+                        $errors[] = "Row " . ($index + 1) . ": Email {$row['email']} already exists";
+                        $errorCount++;
+                        continue;
+                    }
+
+                    $user = User::create([
+                        'first_name' => $row['first_name'] ?? '',
+                        'last_name' => $row['last_name'] ?? '',
+                        'email' => $row['email'],
+                        'username' => $row['email'],
+                        'password_hash' => Hash::make('password123'),
+                        'role' => 'student',
+                        'is_active' => true
+                    ]);
+
+                    Student::create([
+                        'user_id' => $user->id,
+                        'student_code' => $studentCode,
+                        'date_of_birth' => $row['date_of_birth'] ?? null,
+                        'gender' => $row['gender'] ?? null,
+                        'address' => $row['address'] ?? null,
+                        'parent_name' => $row['parent_name'] ?? null,
+                        'parent_phone' => $row['parent_phone'] ?? null,
+                        'current_class_id' => $row['class_id'] ?? $defaultClassId,
+                        'enrollment_date' => now()
+                    ]);
+
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
+                    $errorCount++;
+                }
+            }
+
+            DB::commit();
+
+            // Notify current user (admin/teacher)
+            try {
+            $n = \App\Models\Notification::create([
+                'user_id' => auth()->id(),
+            'title' => 'Google Sheet Import Completed',
+            'message' => "{$successCount} students imported, {$errorCount} errors",
+            'type' => 'success',
+                'is_read' => false,
+                    'sent_at' => now(),
+                ]);
+                event(new \App\Events\NotificationCreated($n));
+            } catch (\Throwable $e) {}
+ 
+            return response()->json([
+                'success' => true,
+                'message' => "Import completed. {$successCount} students imported successfully.",
+                'data' => [
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                    'errors' => $errors
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Google sheet import failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to import from Google Sheet'
+            ], 500);
+        }
+    }
+
+    /**
      * Constructor to ensure only admins can access these methods
      */
     public function __construct()
@@ -176,10 +336,23 @@ class DataImportController extends Controller
 
             DB::commit();
 
+            // Create a notification for the current user
+            try {
+                $n = \App\Models\Notification::create([
+                    'user_id' => auth()->id(),
+                    'title' => 'Import Completed',
+                    'message' => "{$successCount} students imported, {$errorCount} errors",
+                    'type' => 'announcement',
+                    'is_read' => false,
+                    'sent_at' => now(),
+                ]);
+                event(new \App\Events\NotificationCreated($n));
+            } catch (\Throwable $e) {}
+
             // Log the import
             Log::info('Admin imported students from file', [
                 'admin_id' => auth()->id(),
-                'file_name' => $file->getClientOriginalName(),
+                'file_name' => (isset($file) ? $file->getClientOriginalName() : ($uploaded->original_name ?? 'uploaded')),
                 'success_count' => $successCount,
                 'error_count' => $errorCount,
                 'timestamp' => now()

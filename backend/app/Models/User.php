@@ -11,23 +11,26 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = [
-        'username',
-        'email',
-        'password_hash',
-        'role',
-        'school_id',
-        'is_super_admin',
-        'first_name',
-        'last_name',
-        'profile_picture',
-        'phone',
-        'bio',
-        'is_active',
-        'last_login',
-    ];
+protected $fillable = [
+'username',
+'email',
+'password_hash',
+'role',
+'school_id',
+'is_super_admin',
+'first_name',
+'last_name',
+'profile_picture',
+'phone',
+'bio',
+'is_active',
+'last_login',
+];
+
+        // Always include computed profile_picture_url in JSON responses
+        protected $appends = ['profile_picture_url'];
 
     protected $hidden = [
         'password_hash',
@@ -62,10 +65,23 @@ class User extends Authenticatable
         return date('d-M-y', strtotime($value));
     }
 
-    // Accessor for full image URL
+    // Accessor for full image URL (legacy)
     public function getImageUrlAttribute()
     {
-        return asset('storage/' . $this->profile_picture);
+        return $this->getProfilePictureUrlAttribute();
+    }
+
+    // Accessor for profile_picture_url (absolute URL or null)
+    public function getProfilePictureUrlAttribute()
+    {
+        if (!$this->profile_picture) {
+            return null;
+        }
+        $pp = $this->profile_picture;
+        if (str_starts_with($pp, 'http://') || str_starts_with($pp, 'https://')) {
+            return $pp;
+        }
+        return asset('storage/' . ltrim($pp, '/'));
     }
 
     // Accessor for formatted created_at

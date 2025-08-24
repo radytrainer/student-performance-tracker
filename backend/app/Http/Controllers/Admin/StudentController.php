@@ -59,11 +59,60 @@ class StudentController extends Controller
                 $query->where('users.is_active', false);
             }
 
-            $students = $query->select('students.*')
-                ->orderBy('users.first_name')
-                ->paginate($perPage);
+            // Sorting (with optional GPA/Attendance derived columns)
+            $sortBy = strtolower($request->get('sort_by', 'name'));
+            $sortDir = strtolower($request->get('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
 
-            // Add computed fields
+            // Optional subqueries for GPA/Attendance when sorting on those metrics
+            $useDerived = in_array($sortBy, ['gpa','attendance'], true);
+            if ($useDerived) {
+                $gpaSub = DB::table('grades')
+                    ->selectRaw("student_id, AVG(CASE grade_letter \
+                        WHEN 'A+' THEN 4.0 WHEN 'A' THEN 4.0 WHEN 'A-' THEN 3.7 \
+                        WHEN 'B+' THEN 3.3 WHEN 'B' THEN 3.0 WHEN 'B-' THEN 2.7 \
+                        WHEN 'C+' THEN 2.3 WHEN 'C' THEN 2.0 WHEN 'C-' THEN 1.7 \
+                        WHEN 'D+' THEN 1.3 WHEN 'D' THEN 1.0 WHEN 'F' THEN 0.0 ELSE 0 END) as gpa_calc")
+                    ->groupBy('student_id');
+
+                $attendanceSub = DB::table('attendances')
+                    ->selectRaw("student_id, (SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0)) * 100 as att_pct")
+                    ->where('date', '>=', now()->subDays(30))
+                    ->groupBy('student_id');
+
+                $query->leftJoinSub($gpaSub, 'gpa', function($join){
+                    $join->on('gpa.student_id', '=', 'students.user_id');
+                });
+                $query->leftJoinSub($attendanceSub, 'att', function($join){
+                    $join->on('att.student_id', '=', 'students.user_id');
+                });
+            }
+
+            $sortMap = [
+                'name' => ['u_first_name', 'u_last_name'],
+                'email' => ['u_email'],
+                'student_code' => ['students.student_code'],
+                'created_at' => ['u_created_at'],
+                'gpa' => ['gpa_calc'],
+                'attendance' => ['att_pct'],
+            ];
+            $orderColumns = $sortMap[$sortBy] ?? $sortMap['name'];
+
+            $students = $query->select(
+                'students.*',
+                'users.first_name as u_first_name',
+                'users.last_name as u_last_name',
+                'users.email as u_email',
+                'users.created_at as u_created_at'
+            );
+            if ($useDerived) {
+                $students->addSelect(DB::raw('gpa_calc'), DB::raw('att_pct'));
+            }
+            foreach ($orderColumns as $col) {
+                $students = $students->orderBy($col, $sortDir);
+            }
+            $students = $students->paginate($perPage);
+
+            // Add computed fields and normalize user profile image URL
             $students->getCollection()->transform(function ($student) {
                 $student->full_name = trim($student->user->first_name . ' ' . $student->user->last_name);
                 $student->current_gpa = $this->calculateGPA($student);
@@ -191,7 +240,7 @@ class StudentController extends Controller
             $student->full_name = trim($student->user->first_name . ' ' . $student->user->last_name);
             $student->current_gpa = $this->calculateGPA($student);
             $student->attendance_rate = $this->calculateAttendanceRate($student);
-
+ 
             return response()->json([
                 'success' => true,
                 'data' => $student
