@@ -246,21 +246,31 @@ class FeedbackSurveyController extends Controller
             'completion_method' => $request->completion_method ?? 'manual'
             ]);
 
-            // Broadcast realtime event to the teacher who owns the form
+            // Notify + broadcast realtime event to the teacher who owns the form
             try {
             $teacherId = (int) ($assignment->feedbackForm->created_by_teacher_id ?? $assignment->assigned_by_teacher_id);
             if ($teacherId) {
-            event(new \App\Events\SurveyCompleted($teacherId, [
-                'assignment_id' => $assignmentId,
-                'form_id' => $assignment->feedback_form_id,
-                'form_title' => $assignment->feedbackForm->title,
-                'student_id' => $studentId,
-                'average_score' => round($response->average_score, 2),
-                'submitted_at' => $response->submitted_at,
-                ]));
+            // Bell notification
+            \App\Models\Notification::create([
+            'user_id' => $teacherId,
+            'title' => 'Survey Completed',
+            'message' => $assignment->feedbackForm->title,
+            'type' => 'success',
+            'is_read' => false,
+                'sent_at' => now(),
+                ]);
+                    // Realtime
+                    event(new \App\Events\SurveyCompleted($teacherId, [
+                        'assignment_id' => $assignmentId,
+                        'form_id' => $assignment->feedback_form_id,
+                        'form_title' => $assignment->feedbackForm->title,
+                        'student_id' => $studentId,
+                        'average_score' => round($response->average_score, 2),
+                        'submitted_at' => $response->submitted_at,
+                    ]));
                 }
             } catch (\Throwable $e) {}
- 
+
             return response()->json([
                 'success' => true,
                 'message' => 'Survey completion recorded successfully',

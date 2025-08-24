@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
 
 class FeedbackFormController extends Controller
 {
@@ -275,6 +276,16 @@ class FeedbackFormController extends Controller
                         ->where('status', 'active')
                         ->pluck('student_id');
                     foreach ($studentIds as $sid) {
+                        // Create bell notification
+                        Notification::create([
+                            'user_id' => (int) $sid,
+                            'title' => 'New Survey Assigned',
+                            'message' => $assignment->feedbackForm->title,
+                            'type' => 'info',
+                            'is_read' => false,
+                            'sent_at' => now(),
+                        ]);
+                        // Broadcast realtime
                         event(new \App\Events\SurveyAssigned((int) $sid, [
                             'assignment_id' => $assignment->id,
                             'title' => $assignment->feedbackForm->title,
@@ -392,14 +403,22 @@ class FeedbackFormController extends Controller
                 $assignment->load(['assignedToUser', 'feedbackForm']);
                 $assignments[] = $assignment;
 
-                // Broadcast to the assigned user so their survey list updates in realtime
+                // Bell notification + realtime to assigned user
                 try {
+                    Notification::create([
+                        'user_id' => (int) $assignmentData['user_id'],
+                        'title' => 'New Survey Assigned',
+                        'message' => $assignment->feedbackForm->title,
+                        'type' => 'info',
+                        'is_read' => false,
+                        'sent_at' => now(),
+                    ]);
                     event(new \App\Events\SurveyAssigned((int) $assignmentData['user_id'], [
                         'assignment_id' => $assignment->id,
                         'title' => $assignment->feedbackForm->title,
                         'description' => $assignment->feedbackForm->description,
                         'survey_type' => $assignment->feedbackForm->survey_type,
-                        'class_name' => $assignment->assignedToUser->role === 'student' ? null : null,
+                        'class_name' => null,
                         'due_date' => $assignment->due_date,
                         'type' => 'individual'
                     ]));
