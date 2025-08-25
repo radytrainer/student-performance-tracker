@@ -1,14 +1,25 @@
-# frontend
+# Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + Vite SPA for Student Performance Tracker.
 
-## Recommended IDE Setup
+## API Base URL
+Set in `.env`:
+```
+VITE_API_BASE_URL=http://localhost:8000/api
+```
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Google Sheets Import (UI)
+- Teacher: Reports → Data Import
+- Admin: Admin → Data Import
 
-## Customize configuration
+Steps:
+1) Click “Connect Google” (OAuth via backend), complete consent.
+2) Paste Google Sheet URL or ID. Optionally set Sheet name and Range and click Preview.
+3) Select Default Class and click “Import from Google”.
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+Required headers: `first_name`, `last_name`, `email`, `date_of_birth`, `gender` (optional: `address`, `parent_name`, `parent_phone`, `class_id`).
+
+Sample template: docs/student_import_template.csv
 
 ## Project Setup
 

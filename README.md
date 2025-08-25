@@ -131,6 +131,16 @@ npm run preview               # Preview production build
 - Google Sheets import for Admin/Teacher: connect, preview, and import students
 - Server-side PDF generation for Student Reports (storage/app/public/reports)
 
+#### Import from Google Sheets (quick steps)
+1. Configure backend `.env` with `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` (see backend/config/services.php). Restart backend.
+2. In the app, go to Admin → Data Import or Teacher → Data Import, click “Connect Google,” complete consent.
+3. Paste a Google Sheet URL or ID. Optionally set Sheet name and Range, click Preview to confirm headers.
+4. Select a Default Class and click “Import from Google.”
+
+Required headers: `first_name`, `last_name`, `email`, `date_of_birth`, `gender` (optional: `address`, `parent_name`, `parent_phone`, `class_id`).
+
+Sample template: docs/student_import_template.csv
+
 ### Key Features Implemented
 - ✅ **Authentication & Authorization**: Role-based access with Laravel Sanctum
 - ✅ **Grade Management**: CRUD operations for student grades
