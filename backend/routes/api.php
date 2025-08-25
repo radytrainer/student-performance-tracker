@@ -176,6 +176,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Audit Logs (admin)
         Route::get('admin/audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index']);
 
+        // Backups (admin)
+        Route::get('admin/backups', [App\Http\Controllers\Admin\BackupController::class, 'index']);
+        Route::get('admin/backups/download', [App\Http\Controllers\Admin\BackupController::class, 'download']);
+
         // Performance Alerts (admin)
         Route::get('admin/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'index']);
         Route::post('admin/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'store']);

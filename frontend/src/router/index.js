@@ -180,7 +180,37 @@ const routes = [
       title: 'Performance Alerts'
     }
   },
-
+  {
+    path: '/admin/audit-logs',
+    name: 'AdminAuditLogs',
+    component: () => import('@/views/admin/AdminAuditLogs.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Audit Logs'
+    }
+  },
+  {
+    path: '/admin/backups',
+    name: 'AdminBackups',
+    component: () => import('@/views/admin/AdminBackups.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Backups'
+    }
+  },
+  {
+    path: '/admin/notes',
+    name: 'AdminNotes',
+    component: () => import('@/views/teacher/TeacherNotes.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Student Notes'
+    }
+  },
+  
   // Teacher routes
   {
     path: '/teacher',

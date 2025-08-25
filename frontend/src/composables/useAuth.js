@@ -132,7 +132,11 @@ export function useAuth() {
         { name: 'Data Import', path: '/admin/import', icon: 'fas fa-file-import' },
         { name: 'System Settings', path: '/admin/settings', icon: 'fas fa-cog' },
         { name: 'Reports', path: '/admin/reports', icon: 'fas fa-chart-bar' },
-        { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
+        { name: 'Alerts', path: '/admin/alerts', icon: 'fas fa-exclamation-triangle' },
+         { name: 'Audit Logs', path: '/admin/audit-logs', icon: 'fas fa-history' },
+         { name: 'Backups', path: '/admin/backups', icon: 'fas fa-database' },
+         { name: 'Notes', path: '/admin/notes', icon: 'fas fa-sticky-note' },
+         { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
       ],
       teacher: [
         { name: 'Teacher Dashboard', path: '/teacher/dashboard', icon: 'fas fa-chalkboard-teacher' },

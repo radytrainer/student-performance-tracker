@@ -71,7 +71,7 @@ student-performance-tracker/
 ### Installation
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-username/student-performance-tracker.git
+git clone https://github.com/radytrainer/student-performance-tracker.git
 cd student-performance-tracker
 
 # 2. Backend setup
@@ -156,6 +156,21 @@ Sample template: docs/student_import_template.csv
 - Backend event: [NotificationCreated](file:///c:/Users/Dell/Desktop/student-performance-tracker/backend/app/Events/NotificationCreated.php) is broadcast on `users.{id}` private channels.
 - Frontend bell: [NotificationBell.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/components/notifications/NotificationBell.vue) polls `/notifications` and listens via Echo.
 - Enable realtime (optional): set `PUSHER_*` in backend `.env` and `VITE_PUSHER_APP_KEY`, `VITE_PUSHER_APP_CLUSTER` in frontend `.env`. Echo is initialized in [main.js](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/main.js#L15-L25), config in [echo.js](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/realtime/echo.js).
+
+Backend (.env):
+```
+BROADCAST_DRIVER=pusher
+PUSHER_APP_ID=your-app-id
+PUSHER_APP_KEY=your-app-key
+PUSHER_APP_SECRET=your-app-secret
+PUSHER_APP_CLUSTER=mt1
+```
+
+Frontend (.env):
+```
+VITE_PUSHER_APP_KEY=your-app-key
+VITE_PUSHER_APP_CLUSTER=mt1
+```
 
 ### Performance Alerts
 - Admin: list/create/resolve alerts; generate alerts from thresholds.

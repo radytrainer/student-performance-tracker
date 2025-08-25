@@ -18,8 +18,18 @@ class PerformanceAlertsTest extends TestCase
         $this->artisan('migrate');
         $admin = User::factory()->create(['role' => 'admin']);
         $studentUser = User::factory()->create(['role' => 'student']);
-        Student::create(['user_id' => $studentUser->id, 'student_code' => 'STU0001']);
-        $term = Term::factory()->create(['is_current' => true]);
+        \App\Models\Student::updateOrCreate(
+            ['user_id' => $studentUser->id],
+            ['student_code' => 'STU0001', 'enrollment_date' => now()]
+        );
+        $term = \App\Models\Term::create([
+            'term_name' => 'Fall 2025',
+            'academic_year' => date('Y'),
+            'start_date' => now()->subMonth()->toDateString(),
+            'end_date' => now()->addMonth()->toDateString(),
+            'is_current' => true,
+            'status' => 'active',
+        ]);
 
         Sanctum::actingAs($admin);
 
@@ -46,6 +56,11 @@ class PerformanceAlertsTest extends TestCase
     {
         $this->artisan('migrate');
         $teacher = User::factory()->create(['role' => 'teacher']);
+        // Ensure teacher profile exists for role-based scoping
+        \App\Models\Teacher::updateOrCreate(
+            ['user_id' => $teacher->id],
+            ['teacher_code' => 'T001', 'hire_date' => now()]
+        );
         Sanctum::actingAs($teacher);
         $this->getJson('/api/teacher/alerts')->assertStatus(200);
     }

@@ -17,12 +17,20 @@ class StudentNotesTest extends TestCase
         $this->artisan('migrate');
         $admin = User::factory()->create(['role' => 'admin']);
         $studentUser = User::factory()->create(['role' => 'student']);
-        Student::create(['user_id' => $studentUser->id, 'student_code' => 'STU001']);
+        \App\Models\Student::updateOrCreate(
+            ['user_id' => $studentUser->id],
+            ['student_code' => 'STU001', 'enrollment_date' => now()]
+        );
         Sanctum::actingAs($admin);
+
+        // Admin must supply a valid teacher_id (FK to teachers)
+        $teacherUser = User::factory()->create(['role' => 'teacher']);
+        \App\Models\Teacher::updateOrCreate(['user_id' => $teacherUser->id], ['teacher_code' => 'T999', 'hire_date' => now()]);
 
         // Create
         $create = $this->postJson('/api/admin/notes', [
             'student_id' => $studentUser->id,
+            'teacher_id' => $teacherUser->id,
             'title' => 'Behavior',
             'note' => 'Needs improvement',
             'is_private' => true
