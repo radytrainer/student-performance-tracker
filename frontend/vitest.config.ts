@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitest/config'
-import vue from '@vitejs/plugin-vue'
+import { mergeConfig } from 'vite'
+import viteConfig from './vite.config.js'
 
-export default defineConfig({
-  plugins: [vue()],
+export default mergeConfig(viteConfig, defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: [],
@@ -10,4 +10,4 @@ export default defineConfig({
     css: true,
     coverage: { reporter: ['text', 'html'] }
   }
-})
+}))
