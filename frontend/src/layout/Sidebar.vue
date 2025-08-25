@@ -14,7 +14,7 @@
     <transition name="slide">
       <aside
         v-show="isOpen"
-        class="fixed md:relative top-0 left-0 h-screen-100 w-100 bg-gradient-to-b from-blue-600 via-blue-600 to-indigo-700 text-white z-40 md:translate-x-0 transform transition-all duration-300 shadow-2xl"
+        class="fixed md:relative top-0 left-0 h-screen-200 w-100 bg-gradient-to-b from-blue-600 via-blue-600 to-indigo-700 text-white z-40 md:translate-x-0 transform transition-all duration-300 shadow-2xl"
         :class="{ '-translate-x-full': !isOpen && isMobile }"
       >
         <!-- System Branding Section -->
