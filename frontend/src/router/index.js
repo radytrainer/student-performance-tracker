@@ -203,7 +203,7 @@ const routes = [
   {
     path: '/admin/notes',
     name: 'AdminNotes',
-    component: () => import('@/views/teacher/TeacherNotes.vue'),
+    component: () => import('@/views/admin/AdminNotes.vue'),
     meta: {
       requiresAuth: true,
       requiresRole: 'admin',
