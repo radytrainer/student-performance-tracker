@@ -372,7 +372,7 @@ const selectedReportId = ref(null)
 const reportConfig = reactive({
   type: 'academic_summary',
   period: 'current_quarter',
-  format: 'excel'
+  format: 'pdf'
 })
 
 // Data

@@ -40,12 +40,12 @@ return new class extends Migration {
                 });
             }
         } catch (\Throwable $e) {
-            // best-effort
+            // no-op, best-effort indexing
         }
     }
 
     public function down(): void
     {
-        // no down
+        // no down: indexes are safe to keep
     }
 };
