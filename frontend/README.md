@@ -21,6 +21,21 @@ Required headers: `first_name`, `last_name`, `email`, `date_of_birth`, `gender` 
 
 Sample template: docs/student_import_template.csv
 
+## PDF Reports
+
+Generate student reports as server-side PDFs and download them from the app.
+
+Steps (My Reports page):
+1) Open the Reports/My Reports view.
+2) Pick Report Type, Time Period, and select Format = PDF.
+3) Click Generate. Your browser downloads the PDF (blob). The entry appears in Recent Reports.
+4) Later, you can re-download any completed report via the Download action.
+
+Notes:
+- The UI for this flow lives in [TeacherReports.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/views/teacher/TeacherReports.vue).
+- API calls are in [reports.js](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/api/reports.js).
+- The backend stores PDFs under storage/app/public/reports so Recent Reports can serve them later.
+
 ## Project Setup
 
 ```sh
