@@ -136,13 +136,21 @@
 
       <!-- Comparison: My vs Class Average -->
       <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-            <BarChart3 class="w-5 h-5 text-white" />
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
+              <BarChart3 class="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">My vs Class Average</h3>
+              <p class="text-sm text-gray-600">Comparison by subject</p>
+            </div>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-gray-900">My vs Class Average</h3>
-            <p class="text-sm text-gray-600">Comparison by subject (current term)</p>
+            <select v-model="selectedTermId" @change="onChangeTerm" class="px-3 py-2 border rounded-lg text-sm">
+              <option value="">Current term</option>
+              <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.term_name }}</option>
+            </select>
           </div>
         </div>
         <div class="h-80">
@@ -253,6 +261,10 @@ import { useAuth } from '@/composables/useAuth'
 import BarChart from '@/components/charts/BarChart.vue'
 import { reportsAPI } from '@/api/reports'
 const { user } = useAuth()
+
+// Term selector state
+const terms = ref([])
+const selectedTermId = ref('')
 
 // Sample student data
 const studentData = ref({
@@ -603,7 +615,8 @@ const updateCharts = async () => {
 
 const loadComparison = async () => {
   try {
-    const resp = await reportsAPI.getComparison()
+    const params = selectedTermId.value ? { term_id: selectedTermId.value } : {}
+    const resp = await reportsAPI.getComparison(params)
     const rows = resp?.data || []
     if (rows.length) {
       comparisonChartData.value = {
@@ -621,8 +634,21 @@ const loadComparison = async () => {
   }
 }
 
-onMounted(async () => {
+const loadTerms = async () => {
+  try {
+    const resp = await reportsAPI.getTerms()
+    terms.value = resp?.data || []
+  } catch {
+    terms.value = []
+  }
+}
+
+const onChangeTerm = async () => {
   await loadComparison()
+}
+
+onMounted(async () => {
+  await Promise.all([loadTerms(), loadComparison()])
   updateCharts()
 })
 </script>

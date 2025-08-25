@@ -70,7 +70,13 @@
         <div class="p-4 sm:p-8">
           <!-- Comparison Chart -->
           <div class="mb-8 bg-white rounded-xl shadow border border-gray-200 p-4">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">Performance vs Class Average</h3>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-semibold text-gray-900">Performance vs Class Average</h3>
+              <select v-model="selectedTermId" @change="onChangeTerm" class="px-3 py-2 border rounded-lg text-sm">
+                <option value="">Current term</option>
+                <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.term_name }}</option>
+              </select>
+            </div>
             <div class="h-64">
               <BarChart v-if="comparisonChartData" :chartData="comparisonChartData" :chartOptions="comparisonChartOptions" />
               <div v-else class="text-sm text-gray-500">No comparison data available</div>
@@ -207,6 +213,7 @@
 import { ref, onMounted } from 'vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import { teacherAPI } from '@/api/teacher'
+import { reportsAPI } from '@/api/reports'
 import { useRoute } from 'vue-router'
 
 // Sample student data
@@ -231,6 +238,10 @@ const comparisonChartOptions = {
   plugins: { legend: { display: true } },
   scales: { x: { grid: { display: false } }, y: { beginAtZero: true, max: 100 } }
 }
+
+// Terms
+const terms = ref([])
+const selectedTermId = ref('')
 
 // Methods
 const getInitials = (name) => {
@@ -293,12 +304,21 @@ const deleteStudent = () => {
   }
 }
 
-onMounted(async () => {
-  // Load student data from API based on route params (placeholder)
+const loadTerms = async () => {
+  try {
+    const resp = await reportsAPI.getTerms()
+    terms.value = resp?.data || []
+  } catch {
+    terms.value = []
+  }
+}
+
+const loadComparison = async () => {
   const route = useRoute()
   const sid = Number(route.params.id || student.value.id)
   try {
-    const resp = await teacherAPI.getStudentComparison(sid)
+    const params = selectedTermId.value ? { term_id: selectedTermId.value } : {}
+    const resp = await teacherAPI.getStudentComparison(sid, params)
     const rows = resp?.data?.data || []
     if (rows.length) {
       comparisonChartData.value = {
@@ -314,5 +334,13 @@ onMounted(async () => {
   } catch (e) {
     comparisonChartData.value = null
   }
+}
+
+const onChangeTerm = async () => {
+  await loadComparison()
+}
+
+onMounted(async () => {
+  await Promise.all([loadTerms(), loadComparison()])
 })
 </script>
