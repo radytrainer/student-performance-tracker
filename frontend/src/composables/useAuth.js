@@ -143,6 +143,8 @@ export function useAuth() {
         { name: 'Data Import', path: '/teacher/import', icon: 'fas fa-file-import' },
         { name: 'Feedback Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-poll' },
         { name: 'Reports', path: '/teacher/reports', icon: 'fas fa-file-alt' },
+        { name: 'Alerts', path: '/teacher/alerts', icon: 'fas fa-exclamation-triangle' },
+        { name: 'Notes', path: '/teacher/notes', icon: 'fas fa-sticky-note' },
         { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
       ],
       student: [

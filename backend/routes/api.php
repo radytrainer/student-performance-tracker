@@ -155,6 +155,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('admin/subjects/departments', [App\Http\Controllers\Admin\SubjectController::class, 'getDepartments']);
         Route::get('admin/subjects-stats', [App\Http\Controllers\Admin\SubjectController::class, 'getSubjectStats']);
 
+        // Student Notes (admin)
+        Route::get('admin/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'index']);
+        Route::post('admin/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'store']);
+        Route::put('admin/notes/{id}', [App\Http\Controllers\Admin\StudentNoteController::class, 'update']);
+        Route::delete('admin/notes/{id}', [App\Http\Controllers\Admin\StudentNoteController::class, 'destroy']);
+
         // Term Management
         Route::apiResource('admin/terms', App\Http\Controllers\Admin\TermController::class);
         Route::post('admin/terms/{term}/set-current', [App\Http\Controllers\Admin\TermController::class, 'setCurrent']);
@@ -166,6 +172,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/settings/reset', [App\Http\Controllers\Admin\SettingsController::class, 'reset']);
         Route::post('admin/settings/backup', [App\Http\Controllers\Admin\SettingsController::class, 'backup']);
         Route::post('admin/settings/maintenance', [App\Http\Controllers\Admin\SettingsController::class, 'maintenance']);
+
+        // Audit Logs (admin)
+        Route::get('admin/audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index']);
 
         // Performance Alerts (admin)
         Route::get('admin/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'index']);
@@ -259,7 +268,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('student/surveys/{assignmentId}', [FeedbackSurveyController::class, 'show']);
         Route::post('student/surveys/{assignmentId}/complete', [FeedbackSurveyController::class, 'markCompleted']);
         Route::get('student/survey-stats', [FeedbackSurveyController::class, 'getStats']);
-    });
+        });
+        
+     // Teacher Notes
+     Route::middleware(['role:teacher'])->group(function () {
+         Route::get('teacher/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'index']);
+         Route::post('teacher/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'store']);
+         Route::put('teacher/notes/{id}', [App\Http\Controllers\Admin\StudentNoteController::class, 'update']);
+         Route::delete('teacher/notes/{id}', [App\Http\Controllers\Admin\StudentNoteController::class, 'destroy']);
+     });
 });
 
 // Routes for testing role-based access

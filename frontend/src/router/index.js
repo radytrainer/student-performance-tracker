@@ -35,6 +35,17 @@ const routes = [
     }
   },
   {
+    path: '/super-admin/schools/:id',
+    name: 'SuperAdminSchoolDetails',
+    component: () => import('@/views/superAdmin/SuperAdminSchoolDetails.vue'),
+    props: true,
+    meta: {
+      requiresAuth: true,
+      requiresPermission: 'super_admin.view_all_schools',
+      title: 'School Details'
+    }
+  },
+  {
     path: '/super-admin/import',
     name: 'SuperAdminImport',
     component: () => import('@/views/admin/AdminImport.vue'),
@@ -103,6 +114,16 @@ const routes = [
       requiresRole: 'admin',
       requiresPermission: 'admin.manage_system',
       title: 'System Settings'
+    }
+  },
+  {
+    path: '/admin/audit-logs',
+    name: 'AdminAuditLogs',
+    component: () => import('@/views/admin/AdminAuditLogs.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Audit Logs'
     }
   },
   {
