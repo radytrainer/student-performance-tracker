@@ -145,6 +145,7 @@ class SubjectController extends Controller
         try {
             $subject->load([
                 'classSubjects.class',
+                'classSubjects.class.students',
                 'classSubjects.teacher.user',
                 'grades' => function ($query) {
                     $query->with('student.user');

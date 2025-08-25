@@ -16,23 +16,25 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Admin User
-        $admin = User::create([
-            'username' => 'admin',
-            'email' => 'admin@school.com',
-            'password_hash' => Hash::make('admin123'),
-            'role' => 'admin',
-            'first_name' => 'System',
-            'last_name' => 'Administrator',
-            'is_active' => true,
-            'school_id' => 1,
-        ]);
+        // Admin User (idempotent)
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@school.com'],
+            [
+                'username' => 'admin',
+                'password_hash' => Hash::make('admin123'),
+                'role' => 'admin',
+                'first_name' => 'System',
+                'last_name' => 'Administrator',
+                'is_active' => true,
+                'school_id' => 1,
+            ]
+        );
 
         // Teacher Users
         $teachers = [
             [
                 'username' => 'seavmey.yem',
-                'email' => 'seaymey.yem@gmail.com',
+                'email' => 'seavmey.yem@school.com',
                 'first_name' => 'Seavmey',
                 'last_name' => 'Yem',
                 'teacher_code' => 'TCH001',
@@ -119,25 +121,29 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($teachers as $teacherData) {
-            $teacher = User::create([
-                'username' => $teacherData['username'],
-                'email' => $teacherData['email'],
-                'password_hash' => Hash::make('teacher123'),
-                'role' => 'teacher',
-                'first_name' => $teacherData['first_name'],
-                'last_name' => $teacherData['last_name'],
-                'is_active' => true,
-                'school_id' => $teacherData['school_id'] ?? null,
-            ]);
+            $user = User::updateOrCreate(
+                ['username' => $teacherData['username']],
+                [
+                    'email' => $teacherData['email'],
+                    'password_hash' => Hash::make('teacher123'),
+                    'role' => 'teacher',
+                    'first_name' => $teacherData['first_name'],
+                    'last_name' => $teacherData['last_name'],
+                    'is_active' => true,
+                    'school_id' => $teacherData['school_id'] ?? null,
+                ]
+            );
 
-            Teacher::create([
-                'user_id' => $teacher->id,
-                'teacher_code' => $teacherData['teacher_code'],
-                'department' => $teacherData['department'],
-                'qualification' => $teacherData['qualification'],
-                'specialization' => $teacherData['specialization'],
-                'hire_date' => $teacherData['hire_date'],
-            ]);
+            Teacher::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'teacher_code' => $teacherData['teacher_code'],
+                    'department' => $teacherData['department'],
+                    'qualification' => $teacherData['qualification'],
+                    'specialization' => $teacherData['specialization'],
+                    'hire_date' => $teacherData['hire_date'],
+                ]
+            );
         }
 
         // Student Users
@@ -263,26 +269,30 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($students as $studentData) {
-            $student = User::create([
-                'username' => $studentData['username'],
-                'email' => $studentData['email'],
-                'password_hash' => Hash::make('student123'),
-                'role' => 'student',
-                'first_name' => $studentData['first_name'],
-                'last_name' => $studentData['last_name'],
-                'is_active' => true,
-            ]);
+            $user = User::updateOrCreate(
+                ['email' => $studentData['email']],
+                [
+                    'username' => $studentData['username'],
+                    'password_hash' => Hash::make('student123'),
+                    'role' => 'student',
+                    'first_name' => $studentData['first_name'],
+                    'last_name' => $studentData['last_name'],
+                    'is_active' => true,
+                ]
+            );
 
-            Student::create([
-                'user_id' => $student->id,
-                'student_code' => $studentData['student_code'],
-                'date_of_birth' => $studentData['date_of_birth'],
-                'gender' => $studentData['gender'],
-                'address' => $studentData['address'],
-                'parent_name' => $studentData['parent_name'],
-                'parent_phone' => $studentData['parent_phone'],
-                'enrollment_date' => $studentData['enrollment_date'],
-            ]);
+            Student::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'student_code' => $studentData['student_code'],
+                    'date_of_birth' => $studentData['date_of_birth'],
+                    'gender' => $studentData['gender'],
+                    'address' => $studentData['address'],
+                    'parent_name' => $studentData['parent_name'],
+                    'parent_phone' => $studentData['parent_phone'],
+                    'enrollment_date' => $studentData['enrollment_date'],
+                ]
+            );
         }
     }
 }
