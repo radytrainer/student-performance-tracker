@@ -260,8 +260,12 @@ const filteredClasses = computed(() => classes.value)
 
 // Methods
 const viewClass = (cls) => {
-  // TODO: Navigate to class details view
-  console.log('View class:', cls)
+  try { 
+    // @ts-ignore
+    window.location.href = `/admin/classes/${cls.id}`
+  } catch (e) {
+    console.log('View class:', cls)
+  }
 }
 
 const editClass = (cls) => {

@@ -95,6 +95,18 @@ const routes = [
     }
   },
   {
+    path: '/admin/classes/:id',
+    name: 'AdminClassDetails',
+    component: () => import('@/views/admin/AdminClassDetails.vue'),
+    props: true,
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_classes',
+      title: 'Class Details'
+    }
+  },
+  {
     path: '/admin/subjects',
     name: 'AdminSubjects',
     component: () => import('@/views/admin/AdminSubjects.vue'),
@@ -103,6 +115,18 @@ const routes = [
       requiresRole: 'admin',
       requiresPermission: 'admin.manage_subjects',
       title: 'Manage Subjects'
+    }
+  },
+  {
+    path: '/admin/subjects/:id',
+    name: 'AdminSubjectDetails',
+    component: () => import('@/views/admin/AdminSubjectDetails.vue'),
+    props: true,
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_subjects',
+      title: 'Subject Details'
     }
   },
   {
