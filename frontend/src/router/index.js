@@ -230,15 +230,26 @@ const routes = [
       title: 'Reports'
     }
   },
+   {
+   path: '/teacher/analytics',
+   name: 'TeacherAnalytics',
+  component: () => import('@/views/teacher/TeacherAnalytics.vue'),
+  meta: {
+   requiresAuth: true,
+     requiresRole: 'teacher',
+      requiresPermission: 'teacher.view_analytics',
+      title: 'Survey Analytics'
+    }
+  },
 
   // Student routes
   {
-    path: '/student',
-    redirect: '/student/dashboard',
-    meta: { requiresAuth: true, requiresRole: 'student' }
+  path: '/student',
+  redirect: '/student/dashboard',
+  meta: { requiresAuth: true, requiresRole: 'student' }
   },
   {
-    path: '/student/dashboard',
+  path: '/student/dashboard',
     name: 'StudentDashboard',
     component: () => import('@/views/student/StudentDashboard.vue'),
     meta: { 
