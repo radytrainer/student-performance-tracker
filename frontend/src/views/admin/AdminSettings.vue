@@ -262,42 +262,35 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { settingsAPI } from '@/api/settings'
 
 const { hasPermission } = useAuth()
 
 // State
 const loading = ref(true)
 const settings = ref({
-  // General
+  // Defaults (will be replaced by API on mount)
   schoolName: 'Riverside High School',
   academicYear: '2024-2025',
   timeZone: 'America/New_York',
-  
-  // Academic
   gradingScale: 'letter',
   passingGrade: 60,
   requiredAttendance: 75,
   allowLateSubmissions: true,
-  
-  // Notifications
   emailNotifications: true,
   smsNotifications: false,
   parentNotifications: true,
-  
-  // Security
   sessionTimeout: 120,
   requireTwoFactor: false,
   enforcePasswordPolicy: true,
-  
-  // Backup
   backupFrequency: 'daily'
 })
 
 // Methods
 const saveSettings = async () => {
   try {
-    // TODO: Implement API call to save settings
-    console.log('Saving settings:', settings.value)
+    const payload = { ...settings.value }
+    await settingsAPI.save(payload)
     alert('Settings saved successfully!')
   } catch (error) {
     console.error('Error saving settings:', error)
@@ -305,16 +298,21 @@ const saveSettings = async () => {
   }
 }
 
-const resetSettings = () => {
-  if (confirm('Are you sure you want to reset all settings to defaults?')) {
-    // TODO: Reset to default values
-    console.log('Resetting settings to defaults')
+const resetSettings = async () => {
+  if (!confirm('Are you sure you want to reset all settings to defaults?')) return
+  try {
+    const res = await settingsAPI.reset()
+    const data = res.data?.data || {}
+    settings.value = { ...settings.value, ...data }
+  } catch (error) {
+    console.error('Error resetting settings:', error)
+    alert('Failed to reset settings. Please try again.')
   }
 }
 
 const initiateBackup = async () => {
   try {
-    console.log('Initiating manual backup...')
+    await settingsAPI.initiateBackup()
     alert('Backup initiated successfully!')
   } catch (error) {
     console.error('Error initiating backup:', error)
@@ -323,22 +321,22 @@ const initiateBackup = async () => {
 }
 
 const runMaintenance = async () => {
-  if (confirm('Running system maintenance may temporarily affect system performance. Continue?')) {
-    try {
-      console.log('Running system maintenance...')
-      alert('System maintenance completed successfully!')
-    } catch (error) {
-      console.error('Error running maintenance:', error)
-      alert('Failed to run maintenance. Please try again.')
-    }
+  if (!confirm('Running system maintenance may temporarily affect system performance. Continue?')) return
+  try {
+    await settingsAPI.runMaintenance()
+    alert('System maintenance completed successfully!')
+  } catch (error) {
+    console.error('Error running maintenance:', error)
+    alert('Failed to run maintenance. Please try again.')
   }
 }
 
 const loadSettings = async () => {
   try {
     loading.value = true
-    // TODO: Load settings from API
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const res = await settingsAPI.get()
+    const data = res.data?.data || {}
+    settings.value = { ...settings.value, ...data }
   } catch (error) {
     console.error('Error loading settings:', error)
   } finally {

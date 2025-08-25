@@ -160,6 +160,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/terms/{term}/set-current', [App\Http\Controllers\Admin\TermController::class, 'setCurrent']);
         Route::get('admin/terms/current', [App\Http\Controllers\Admin\TermController::class, 'getCurrent']);
 
+        // System Settings
+        Route::get('admin/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index']);
+        Route::put('admin/settings', [App\Http\Controllers\Admin\SettingsController::class, 'update']);
+        Route::post('admin/settings/reset', [App\Http\Controllers\Admin\SettingsController::class, 'reset']);
+        Route::post('admin/settings/backup', [App\Http\Controllers\Admin\SettingsController::class, 'backup']);
+        Route::post('admin/settings/maintenance', [App\Http\Controllers\Admin\SettingsController::class, 'maintenance']);
+
         // Data Import (admin paths)
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
         Route::post('admin/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
