@@ -5,6 +5,7 @@ import { watchEffect, computed, ref } from 'vue'
 import RoleBasedNavigation from '@/components/layout/RoleBasedNavigation.vue'
 import Sidebar from '@/layout/Sidebar.vue'
 import Footer from '@/layout/Footer.vue'
+import ToastHub from '@/components/notifications/ToastHub.vue'
 // import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 
 const authStore = useAuthStore()
@@ -46,8 +47,8 @@ const isLoading = ref(false)
     <!-- Footer when authenticated -->
     <Footer v-if="isAuthenticated" class="main-footer" />
     
-    <!-- Global notification/toast component -->
-    <!-- <ToastNotification /> -->
+    <!-- Global realtime toast notifications -->
+    <ToastHub />
   </div>
 </template>
 

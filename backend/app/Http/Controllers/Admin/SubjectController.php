@@ -53,7 +53,12 @@ class SubjectController extends Controller
                 $query->where('is_core', $isCore === '1');
             }
 
-            $subjects = $query->orderBy('subject_name')->paginate($perPage);
+            // Sorting
+            $sortBy = strtolower($request->get('sort_by', 'subject_name'));
+            $sortDir = strtolower($request->get('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+            $allowed = ['subject_name', 'subject_code', 'department', 'credit_hours', 'created_at'];
+            if (!in_array($sortBy, $allowed, true)) { $sortBy = 'subject_name'; }
+            $subjects = $query->orderBy($sortBy, $sortDir)->paginate($perPage);
 
             // Add computed fields
             $subjects->getCollection()->transform(function ($subject) {

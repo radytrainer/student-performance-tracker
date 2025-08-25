@@ -3,7 +3,7 @@
     <div class="max-w-6xl mx-auto space-y-6">
       <!-- Header -->
       <div class="text-center md:text-left mb-8">
-        <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
+        <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
           My Performance Dashboard
         </h1>
         <p class="text-gray-600 text-lg">Track Your Academic Progress</p>

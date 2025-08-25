@@ -17,7 +17,10 @@
               </div>
               <div class="ml-4">
                 <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Classes</p>
-                <p class="text-3xl font-bold text-gray-900">{{ classes.length }}</p>
+                <p class="text-3xl font-bold text-gray-900">
+                  <Loader v-if="loadingClasses" class="w-8 h-8 animate-spin" />
+                  <span v-else>{{ classes.length }}</span>
+                </p>
               </div>
             </div>
           </div>
@@ -31,7 +34,10 @@
               </div>
               <div class="ml-4">
                 <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total Students</p>
-                <p class="text-3xl font-bold text-gray-900">{{ totalStudents }}</p>
+                <p class="text-3xl font-bold text-gray-900">
+                  <Loader v-if="loadingClasses" class="w-8 h-8 animate-spin" />
+                  <span v-else>{{ totalStudents }}</span>
+                </p>
               </div>
             </div>
           </div>
@@ -45,7 +51,10 @@
               </div>
               <div class="ml-4">
                 <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Avg Attendance</p>
-                <p class="text-3xl font-bold text-gray-900">87%</p>
+                <p class="text-3xl font-bold text-gray-900">
+                  <Loader v-if="loadingStats" class="w-8 h-8 animate-spin" />
+                  <span v-else>{{ averageAttendance }}%</span>
+                </p>
               </div>
             </div>
           </div>
@@ -59,7 +68,10 @@
               </div>
               <div class="ml-4">
                 <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Avg Performance</p>
-                <p class="text-3xl font-bold text-gray-900">B+</p>
+                <p class="text-3xl font-bold text-gray-900">
+                  <Loader v-if="loadingClasses" class="w-8 h-8 animate-spin" />
+                  <span v-else>{{ averagePerformance }}</span>
+                </p>
               </div>
             </div>
           </div>
@@ -67,16 +79,40 @@
 
         <!-- Classes Grid -->
         <div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-6">Your Classes</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-gray-900">Your Classes</h3>
+            <div class="flex space-x-3">
+              <button @click="refreshData" 
+                class="flex items-center bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+                <RefreshCw class="w-4 h-4 mr-2" :class="{ 'animate-spin': loading }" />
+                Refresh
+              </button>
+              <button @click="handleExportAttendance"
+                class="flex items-center bg-gradient-to-r from-amber-100 to-orange-200 hover:from-amber-200 hover:to-orange-300 text-orange-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+                <Download class="w-4 h-4 mr-2" />
+                Export
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="loadingClasses" class="flex justify-center py-12">
+            <Loader class="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+          
+          <div v-else-if="classes.length === 0" class="text-center py-12">
+            <BookOpen class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p class="text-gray-500 text-lg">No classes found</p>
+          </div>
+          
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div v-for="classItem in classes" :key="classItem.id"
               class="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl hover:scale-105 transition-all duration-300 overflow-hidden">
               <div class="h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
               <div class="p-6">
                 <div class="flex items-start justify-between mb-6">
                   <div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-1">{{ classItem.name }}</h3>
-                    <p class="text-sm text-gray-500 font-medium">{{ classItem.academicYear }}</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-1">{{ classItem.class_name || classItem.name }}</h3>
+                    <p class="text-sm text-gray-500 font-medium">{{ classItem.academic_year || classItem.academicYear || '2024-2025' }}</p>
                   </div>
                   <span
                     class="px-3 py-1 bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800 text-xs font-semibold rounded-full shadow-sm">Active</span>
@@ -88,28 +124,32 @@
                       class="w-8 h-8 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg flex items-center justify-center mr-3">
                       <MapPin class="w-4 h-4 text-gray-500" />
                     </div>
-                    <span class="font-medium">Room {{ classItem.room }}</span>
+                    <span class="font-medium">Room {{ getClassRoom(classItem) }}</span>
                   </div>
                   <div class="flex items-center text-sm text-gray-600">
                     <div
                       class="w-8 h-8 bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg flex items-center justify-center mr-3">
                       <Users class="w-4 h-4 text-blue-500" />
                     </div>
-                    <span class="font-medium">{{ classItem.studentCount }} Students</span>
+                    <span class="font-medium">{{ getClassStudentCount(classItem) }} Students</span>
                   </div>
                   <div class="flex items-center text-sm text-gray-600">
                     <div
                       class="w-8 h-8 bg-gradient-to-r from-purple-100 to-purple-200 rounded-lg flex items-center justify-center mr-3">
                       <Clock class="w-4 h-4 text-purple-500" />
                     </div>
-                    <span class="font-medium">{{ classItem.schedule }}</span>
+                    <span class="font-medium">{{ getClassSchedule(classItem) }}</span>
                   </div>
                 </div>
 
                 <div class="flex flex-wrap gap-2 mb-6">
-                  <span v-for="subject in classItem.subjects" :key="subject"
+                  <span v-for="subject in getClassSubjects(classItem)" :key="subject"
                     class="px-3 py-1 bg-gradient-to-r from-indigo-100 to-indigo-200 text-indigo-800 text-xs font-semibold rounded-full shadow-sm">
                     {{ subject }}
+                  </span>
+                  <span v-if="getClassSubjects(classItem).length === 0"
+                    class="px-3 py-1 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 text-xs font-semibold rounded-full shadow-sm">
+                    No subjects assigned
                   </span>
                 </div>
 
@@ -138,12 +178,12 @@
         <!-- Breadcrumb and Actions -->
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
-            <button @click="selectedClass = null"
+            <button @click="clearSelectedClass"
               class="flex items-center text-gray-600 hover:text-gray-900 px-4 py-2 rounded-xl hover:bg-white/60 backdrop-blur-sm transition-all duration-200 shadow-md">
               <ArrowLeft class="w-5 h-5 mr-2" />
               Back to Classes
             </button>
-            <div class="text-sm text-gray-500 font-medium">Classes / {{ selectedClass.name }}</div>
+            <div class="text-sm text-gray-500 font-medium">Classes / {{ selectedClass.class_name || selectedClass.name }}</div>
           </div>
           <div class="flex space-x-3">
             <button @click="showNotes = true"
@@ -163,14 +203,13 @@
         <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
           <div class="flex items-start justify-between mb-8">
             <div>
-              <h2 class="text-4xl font-bold text-gray-900 mb-2">{{ selectedClass.name }}</h2>
-              <p class="text-gray-600 text-lg font-medium">{{ selectedClass.academicYear }} • Room {{ selectedClass.room
-                }}</p>
+              <h2 class="text-4xl font-bold text-gray-900 mb-2">{{ selectedClass.class_name || selectedClass.name }}</h2>
+              <p class="text-gray-600 text-lg font-medium">{{ selectedClass.academic_year || selectedClass.academicYear || '2024-2025' }} • Room {{ getClassRoom(selectedClass) }}</p>
             </div>
             <div
               class="text-right bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-2xl shadow-md border border-white/20">
               <p class="text-sm text-gray-500 font-semibold uppercase tracking-wide mb-1">Class Teacher</p>
-              <p class="font-bold text-gray-900 text-lg">Ms. Sarah Johnson</p>
+              <p class="font-bold text-gray-900 text-lg">{{ selectedClass.class_teacher?.first_name }} {{ selectedClass.class_teacher?.last_name || 'Not Assigned' }}</p>
             </div>
           </div>
 
@@ -179,7 +218,10 @@
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-blue-700 font-bold text-sm uppercase tracking-wide mb-1">Students</p>
-                  <p class="text-3xl font-bold text-blue-900">{{ selectedClass.studentCount }}</p>
+                  <p class="text-3xl font-bold text-blue-900">
+                    <Loader v-if="loadingStudents" class="w-8 h-8 animate-spin" />
+                    <span v-else>{{ getClassStudentCount(selectedClass) }}</span>
+                  </p>
                 </div>
                 <div class="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg">
                   <Users class="w-8 h-8 text-white" />
@@ -192,7 +234,10 @@
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-orange-700 font-bold text-sm uppercase tracking-wide mb-1">Attendance Rate</p>
-                  <p class="text-3xl font-bold text-orange-900">{{ selectedClass.attendanceRate }}%</p>
+                  <p class="text-3xl font-bold text-orange-900">
+                    <Loader v-if="loadingStats" class="w-8 h-8 animate-spin" />
+                    <span v-else>{{ getClassAttendanceRate(selectedClass) }}%</span>
+                  </p>
                 </div>
                 <div class="p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl shadow-lg">
                   <Calendar class="w-8 h-8 text-white" />
@@ -205,7 +250,10 @@
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-purple-700 font-bold text-sm uppercase tracking-wide mb-1">Average Grade</p>
-                  <p class="text-3xl font-bold text-purple-900">{{ selectedClass.avgGrade }}</p>
+                  <p class="text-3xl font-bold text-purple-900">
+                    <Loader v-if="loading" class="w-8 h-8 animate-spin" />
+                    <span v-else>{{ getClassAverageGrade(selectedClass) }}</span>
+                  </p>
                 </div>
                 <div class="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg">
                   <TrendingUp class="w-8 h-8 text-white" />
@@ -255,15 +303,26 @@
                     Export
                   </button>
                   <button @click="showBulkAssign = true"
-                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
-                    <Plus class="w-4 h-4 mr-2 inline" />
+                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                    :disabled="loading">
+                    <Loader v-if="loading" class="w-4 h-4 mr-2 inline animate-spin" />
+                    <Plus v-else class="w-4 h-4 mr-2 inline" />
                     Add Student
                   </button>
                 </div>
               </div>
 
               <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl overflow-hidden shadow-lg">
-                <table class="min-w-full divide-y divide-gray-200">
+                <div v-if="loadingStudents" class="flex justify-center py-12">
+                  <Loader class="w-8 h-8 animate-spin text-blue-600" />
+                </div>
+                
+                <div v-else-if="filteredStudents.length === 0" class="text-center py-12">
+                  <Users class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p class="text-gray-500 text-lg">No students found</p>
+                </div>
+                
+                <table v-else class="min-w-full divide-y divide-gray-200">
                   <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
                     <tr>
                       <th class="px-8 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Student
@@ -280,7 +339,7 @@
                     </tr>
                   </thead>
                   <tbody class="bg-white/40 backdrop-blur-sm divide-y divide-gray-200">
-                    <tr v-for="student in filteredStudents" :key="student.id"
+                    <tr v-for="student in filteredStudents" :key="student.id || student.user_id"
                       class="hover:bg-white/60 transition-colors duration-200">
                       <td class="px-8 py-6 whitespace-nowrap">
                         <div class="flex items-center">
@@ -289,29 +348,29 @@
                             <User class="w-6 h-6 text-white" />
                           </div>
                           <div class="ml-4">
-                            <div class="text-sm font-bold text-gray-900">{{ student.name }}</div>
+                            <div class="text-sm font-bold text-gray-900">{{ formatStudentName(student) }}</div>
                           </div>
                         </div>
                       </td>
-                      <td class="px-8 py-6 whitespace-nowrap text-sm font-bold text-gray-900">{{ student.code }}</td>
-                      <td class="px-8 py-6 whitespace-nowrap text-sm text-gray-600 font-medium">{{ student.email }}</td>
+                      <td class="px-8 py-6 whitespace-nowrap text-sm font-bold text-gray-900">{{ formatStudentCode(student) }}</td>
+                      <td class="px-8 py-6 whitespace-nowrap text-sm text-gray-600 font-medium">{{ formatStudentEmail(student) }}</td>
                       <td class="px-8 py-6 whitespace-nowrap">
                         <span :class="[
-                          'px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm',
-                          student.status === 'active'
+                          'px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm capitalize',
+                          formatStudentStatus(student) === 'active'
                             ? 'bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800'
                             : 'bg-gradient-to-r from-red-100 to-red-200 text-red-800'
                         ]">
-                          {{ student.status }}
+                          {{ formatStudentStatus(student) }}
                         </span>
                       </td>
                       <td class="px-8 py-6 whitespace-nowrap">
                         <div class="flex items-center">
                           <div class="w-20 bg-gray-200 rounded-full h-3 mr-3 shadow-inner">
                             <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full shadow-sm"
-                              :style="`width: ${student.attendance}%`"></div>
+                              :style="`width: ${formatAttendanceRate(student)}%`"></div>
                           </div>
-                          <span class="text-sm font-bold text-gray-900">{{ student.attendance }}%</span>
+                          <span class="text-sm font-bold text-gray-900">{{ formatAttendanceRate(student) }}%</span>
                         </div>
                       </td>
                       <td class="px-8 py-6 whitespace-nowrap text-sm font-medium">
@@ -336,29 +395,47 @@
               </div>
             </div>
 
+            <!-- Attendance Tab -->
+            <div v-if="activeTab === 'attendance'" class="space-y-6">
+              <AttendanceTracker :selected-class="selectedClass" />
+            </div>
+
             <!-- Subjects Tab -->
             <div v-if="activeTab === 'subjects'" class="space-y-8">
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div v-for="subject in selectedClass.subjectDetails" :key="subject.id"
+              <div v-if="loading" class="flex justify-center py-12">
+                <Loader class="w-8 h-8 animate-spin text-blue-600" />
+              </div>
+              
+              <div v-else-if="currentClassSubjects.length === 0" class="text-center py-12">
+                <BookOpen class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p class="text-gray-500 text-lg">No subjects assigned</p>
+              </div>
+              
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div v-for="subject in currentClassSubjects" :key="subject.id"
                   class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 hover:shadow-xl hover:scale-105 transition-all duration-300 shadow-lg">
                   <div class="flex items-start justify-between mb-6">
                     <div>
-                      <h4 class="font-bold text-gray-900 text-xl mb-1">{{ subject.name }}</h4>
-                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher }}</p>
+                      <h4 class="font-bold text-gray-900 text-xl mb-1">{{ subject.subject?.subject_name || subject.name || 'Unknown Subject' }}</h4>
+                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher?.first_name }} {{ subject.teacher?.last_name || 'Not Assigned' }}</p>
                     </div>
                     <span
                       class="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 text-xs font-bold rounded-full shadow-sm">
-                      {{ subject.code }}
+                      {{ subject.subject?.subject_code || subject.code || 'N/A' }}
                     </span>
                   </div>
                   <div class="space-y-4 mb-8">
                     <div class="flex justify-between text-sm">
-                      <span class="text-gray-600 font-medium">Average Grade:</span>
-                      <span class="font-bold text-gray-900">{{ subject.avgGrade }}</span>
+                      <span class="text-gray-600 font-medium">Credit Hours:</span>
+                      <span class="font-bold text-gray-900">{{ subject.subject?.credit_hours || 'N/A' }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
-                      <span class="text-gray-600 font-medium">Assignments:</span>
-                      <span class="font-bold text-gray-900">{{ subject.assignments }}</span>
+                      <span class="text-gray-600 font-medium">Department:</span>
+                      <span class="font-bold text-gray-900">{{ subject.subject?.department || 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-600 font-medium">Type:</span>
+                      <span class="font-bold text-gray-900">{{ subject.subject?.is_core ? 'Core' : 'Elective' }}</span>
                     </div>
                   </div>
                   <div class="flex space-x-3">
@@ -367,6 +444,7 @@
                       Gradebook
                     </button>
                     <button
+                      @click="activeTab = 'attendance'"
                       class="flex-1 bg-gradient-to-r from-amber-100 to-orange-200 hover:from-amber-200 hover:to-orange-300 text-orange-700 px-4 py-3 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
                       Attendance
                     </button>
@@ -420,29 +498,39 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
                   <h4 class="font-bold text-gray-900 mb-6 text-xl">Attendance Overview</h4>
-                  <div class="space-y-6">
+                  <div v-if="loadingStats" class="flex justify-center py-8">
+                    <Loader class="w-6 h-6 animate-spin text-blue-600" />
+                  </div>
+                  <div v-else class="space-y-6">
                     <div class="flex justify-between items-center">
                       <span class="text-sm text-gray-600 font-medium">Present</span>
-                      <span class="text-sm font-bold text-emerald-600">87%</span>
+                      <span class="text-sm font-bold text-emerald-600">{{ getClassAttendanceRate(selectedClass) }}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                       <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 h-3 rounded-full shadow-sm"
-                        style="width: 87%"></div>
+                        :style="`width: ${getClassAttendanceRate(selectedClass)}%`"></div>
                     </div>
                     <div class="flex justify-between items-center">
                       <span class="text-sm text-gray-600 font-medium">Absent</span>
-                      <span class="text-sm font-bold text-red-600">13%</span>
+                      <span class="text-sm font-bold text-red-600">{{ 100 - getClassAttendanceRate(selectedClass) }}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                       <div class="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full shadow-sm"
-                        style="width: 13%"></div>
+                        :style="`width: ${100 - getClassAttendanceRate(selectedClass)}%`"></div>
                     </div>
                   </div>
                 </div>
 
                 <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
                   <h4 class="font-bold text-gray-900 mb-6 text-xl">Grade Distribution</h4>
-                  <div class="space-y-4">
+                  <div v-if="loading" class="flex justify-center py-8">
+                    <Loader class="w-6 h-6 animate-spin text-blue-600" />
+                  </div>
+                  <div v-else-if="gradeDistribution.length === 0" class="text-center py-8">
+                    <TrendingUp class="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p class="text-gray-500 text-sm">No grade data available</p>
+                  </div>
+                  <div v-else class="space-y-4">
                     <div v-for="grade in gradeDistribution" :key="grade.grade"
                       class="flex justify-between items-center">
                       <span class="text-sm text-gray-600 font-medium">Grade {{ grade.grade }}</span>
@@ -460,16 +548,23 @@
 
               <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-lg">
                 <h4 class="font-bold text-gray-900 mb-6 text-xl">Subject Performance</h4>
-                <div class="space-y-6">
-                  <div v-for="subject in selectedClass.subjectDetails" :key="subject.id"
+                <div v-if="loading" class="flex justify-center py-8">
+                  <Loader class="w-6 h-6 animate-spin text-blue-600" />
+                </div>
+                <div v-else-if="currentClassSubjects.length === 0" class="text-center py-8">
+                  <BookOpen class="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <p class="text-gray-500 text-sm">No subjects found</p>
+                </div>
+                <div v-else class="space-y-6">
+                  <div v-for="subject in currentClassSubjects" :key="subject.id"
                     class="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-md border border-white/20">
                     <div>
-                      <p class="font-bold text-gray-900 text-lg">{{ subject.name }}</p>
-                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher }}</p>
+                      <p class="font-bold text-gray-900 text-lg">{{ subject.subject?.subject_name || subject.name || 'Unknown Subject' }}</p>
+                      <p class="text-sm text-gray-600 font-medium">{{ subject.teacher?.first_name }} {{ subject.teacher?.last_name || 'Not Assigned' }}</p>
                     </div>
                     <div class="text-right">
-                      <p class="text-2xl font-bold text-gray-900">{{ subject.avgGrade }}</p>
-                      <p class="text-sm text-gray-600 font-medium">Class Average</p>
+                      <p class="text-2xl font-bold text-gray-900">{{ subject.average_grade || 'N/A' }}</p>
+                      <p class="text-sm text-gray-600 font-medium">{{ subject.subject?.credit_hours || 0 }} Credits</p>
                     </div>
                   </div>
                 </div>
@@ -550,12 +645,19 @@
         <div class="p-6 space-y-6">
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-3">Select Students</label>
-            <div class="max-h-48 overflow-y-auto bg-gray-50/50 rounded-xl p-3 space-y-2 border border-gray-200">
-              <label v-for="student in availableStudents" :key="student.id"
+            <div v-if="loading" class="flex justify-center py-8">
+              <Loader class="w-6 h-6 animate-spin text-blue-600" />
+            </div>
+            <div v-else-if="availableStudentsForClass.length === 0" class="text-center py-8">
+              <Users class="w-12 h-12 text-gray-400 mx-auto mb-2" />
+              <p class="text-gray-500 text-sm">No available students</p>
+            </div>
+            <div v-else class="max-h-48 overflow-y-auto bg-gray-50/50 rounded-xl p-3 space-y-2 border border-gray-200">
+              <label v-for="student in availableStudentsForClass" :key="student.id || student.user_id"
                 class="flex items-center space-x-3 p-2 hover:bg-white/60 rounded-lg transition-colors duration-200">
-                <input type="checkbox" :value="student.id" v-model="selectedStudentsForBulk"
+                <input type="checkbox" :value="student.id || student.user_id" v-model="selectedStudentsForBulk"
                   class="rounded text-blue-600 focus:ring-blue-500">
-                <span class="text-sm font-medium">{{ student.name }} ({{ student.code }})</span>
+                <span class="text-sm font-medium">{{ formatStudentName(student) }} ({{ formatStudentCode(student) }})</span>
               </label>
             </div>
           </div>
@@ -564,9 +666,11 @@
               class="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200">
               Cancel
             </button>
-            <button
-              class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
-              Add Students
+            <button @click="handleBulkAddStudents"
+              class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              :disabled="loading || selectedStudentsForBulk.length === 0">
+              <Loader v-if="loading" class="w-4 h-4 mr-2 inline animate-spin" />
+              Add Students ({{ selectedStudentsForBulk.length }})
             </button>
           </div>
         </div>
@@ -612,6 +716,9 @@
         </div>
       </div>
     </div>
+    
+    <!-- Toast Notifications -->
+    <ToastNotification />
   </div>
 </template>
 
@@ -620,107 +727,95 @@ import { ref, computed } from 'vue'
 import {
   BookOpen, Users, Calendar, TrendingUp, MapPin, Clock, Plus, User,
   MoreHorizontal, ArrowLeft, StickyNote, Settings, Search, Download,
-  Eye, Printer, X
+  Eye, Printer, X, RefreshCw, Loader
 } from 'lucide-vue-next'
 import HeaderTeacher from '@/components/teacher/Classes/HeaderTeacher.vue'
+import ToastNotification from '@/components/common/ToastNotification.vue'
+import AttendanceTracker from '@/components/teacher/AttendanceTracker.vue'
+import { useTeacherClasses } from '@/composables/useTeacherClasses'
 
-// Reactive data
-const selectedClass = ref(null)
+// Use the teacher classes composable
+const {
+  // State
+  classes,
+  selectedClass,
+  students,
+  classStudents,
+  classSubjects,
+  terms,
+  currentTerm,
+  attendanceStats,
+  gradeDistribution,
+  classNotes,
+  availableStudents,
+  
+  // Loading states
+  loading,
+  loadingClasses,
+  loadingStudents,
+  loadingStats,
+  
+  // Computed
+  totalStudents,
+  averageAttendance,
+  averagePerformance,
+  
+  // Methods
+  fetchClasses,
+  selectClass,
+  clearSelectedClass,
+  bulkAddStudents,
+  exportAttendance,
+  initializeData
+} = useTeacherClasses()
+
+// Local reactive data
 const activeTab = ref('students')
 const selectedStudent = ref(null)
 const showBulkAssign = ref(false)
 const showNotes = ref(false)
+const showClassModal = ref(false)
+const showGradeModal = ref(false)
 const studentSearch = ref('')
 const statusFilter = ref('')
 const selectedStudentsForBulk = ref([])
 const newNote = ref('')
 
-// Mock data
-const classes = ref([
-  {
-    id: 1,
-    name: 'Grade 10A',
-    academicYear: '2024-2025',
-    room: '101',
-    studentCount: 28,
-    schedule: 'Mon-Fri 8:00-14:00',
-    subjects: ['Mathematics', 'Physics', 'Chemistry'],
-    attendanceRate: 87,
-    avgGrade: 'B+',
-    subjectDetails: [
-      { id: 1, name: 'Mathematics', teacher: 'Mr. Smith', code: 'MATH10', avgGrade: 'B+', assignments: 12 },
-      { id: 2, name: 'Physics', teacher: 'Dr. Johnson', code: 'PHYS10', avgGrade: 'A-', assignments: 8 },
-      { id: 3, name: 'Chemistry', teacher: 'Ms. Davis', code: 'CHEM10', avgGrade: 'B', assignments: 10 }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Grade 11B',
-    academicYear: '2024-2025',
-    room: '205',
-    studentCount: 25,
-    schedule: 'Mon-Fri 9:00-15:00',
-    subjects: ['Biology', 'English', 'History'],
-    attendanceRate: 92,
-    avgGrade: 'A-',
-    subjectDetails: [
-      { id: 4, name: 'Biology', teacher: 'Dr. Wilson', code: 'BIO11', avgGrade: 'A-', assignments: 9 },
-      { id: 5, name: 'English', teacher: 'Ms. Brown', code: 'ENG11', avgGrade: 'B+', assignments: 15 },
-      { id: 6, name: 'History', teacher: 'Mr. Taylor', code: 'HIST11', avgGrade: 'A', assignments: 7 }
-    ]
-  },
-  {
-    id: 3,
-    name: 'Grade 12C',
-    academicYear: '2024-2025',
-    room: '301',
-    studentCount: 22,
-    schedule: 'Mon-Fri 10:00-16:00',
-    subjects: ['Advanced Math', 'Computer Science'],
-    attendanceRate: 89,
-    avgGrade: 'A',
-    subjectDetails: [
-      { id: 7, name: 'Advanced Mathematics', teacher: 'Dr. Anderson', code: 'AMATH12', avgGrade: 'A', assignments: 14 },
-      { id: 8, name: 'Computer Science', teacher: 'Mr. Garcia', code: 'CS12', avgGrade: 'A-', assignments: 11 }
-    ]
-  }
-])
+// Form data
+const classForm = ref({
+  name: '',
+  academic_year: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+  room_number: '',
+  schedule: ''
+})
 
-const students = ref([
-  { id: 1, name: 'Alice Johnson', code: 'STU001', email: 'alice@school.edu', status: 'active', attendance: 95, classId: 1 },
-  { id: 2, name: 'Bob Smith', code: 'STU002', email: 'bob@school.edu', status: 'active', attendance: 88, classId: 1 },
-  { id: 3, name: 'Carol Davis', code: 'STU003', email: 'carol@school.edu', status: 'active', attendance: 92, classId: 1 },
-  { id: 4, name: 'David Wilson', code: 'STU004', email: 'david@school.edu', status: 'inactive', attendance: 76, classId: 1 },
-  { id: 5, name: 'Emma Brown', code: 'STU005', email: 'emma@school.edu', status: 'active', attendance: 94, classId: 2 },
-  { id: 6, name: 'Frank Miller', code: 'STU006', email: 'frank@school.edu', status: 'active', attendance: 87, classId: 2 }
-])
+const gradeForm = ref({
+  student_id: null,
+  class_subject_id: null,
+  term_id: null,
+  assessment_type: 'exam',
+  max_score: 100,
+  score_obtained: 0,
+  remarks: ''
+})
 
-const availableStudents = ref([
-  { id: 7, name: 'Grace Taylor', code: 'STU007' },
-  { id: 8, name: 'Henry Anderson', code: 'STU008' },
-  { id: 9, name: 'Ivy Garcia', code: 'STU009' },
-  { id: 10, name: 'Jack Martinez', code: 'STU010' }
-])
-
-const classNotes = ref([
-  { id: 1, content: 'Remember to prepare for the upcoming parent-teacher conference next week.', date: '2024-01-15' },
-  { id: 2, content: 'Several students need extra help with algebra concepts.', date: '2024-01-10' }
-])
-
+// Tabs configuration
 const tabs = [
   { id: 'students', name: 'Students', icon: Users },
+  { id: 'attendance', name: 'Attendance', icon: Calendar },
   { id: 'subjects', name: 'Subjects', icon: BookOpen },
-  { id: 'schedule', name: 'Schedule', icon: Calendar },
+  { id: 'schedule', name: 'Schedule', icon: Clock },
   { id: 'performance', name: 'Performance', icon: TrendingUp }
 ]
 
+// Mock schedule data (until backend endpoint is implemented)
 const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const periods = [
   {
     time: '08:00-09:00',
     schedule: {
       Monday: 'Mathematics',
-      Tuesday: 'Physics',
+      Tuesday: 'Physics', 
       Wednesday: 'Mathematics',
       Thursday: 'Chemistry',
       Friday: 'Mathematics'
@@ -748,49 +843,65 @@ const periods = [
   }
 ]
 
-const gradeDistribution = [
-  { grade: 'A', count: 8, percentage: 30 },
-  { grade: 'B', count: 12, percentage: 45 },
-  { grade: 'C', count: 6, percentage: 20 },
-  { grade: 'D', count: 2, percentage: 5 }
-]
-
 // Computed properties
-const totalStudents = computed(() => {
-  return classes.value.reduce((total, cls) => total + cls.studentCount, 0)
-})
 
 const filteredStudents = computed(() => {
-  if (!selectedClass.value) return []
-  let filtered = students.value.filter(student => student.classId === selectedClass.value.id)
+  if (!classStudents.value) return []
+  let filtered = classStudents.value
 
   if (studentSearch.value) {
     filtered = filtered.filter(student =>
-      student.name.toLowerCase().includes(studentSearch.value.toLowerCase()) ||
-      student.code.toLowerCase().includes(studentSearch.value.toLowerCase())
+      (student.name || student.first_name + ' ' + student.last_name)
+        .toLowerCase().includes(studentSearch.value.toLowerCase()) ||
+      (student.code || student.student_code || '')
+        .toLowerCase().includes(studentSearch.value.toLowerCase())
     )
   }
 
   if (statusFilter.value) {
-    filtered = filtered.filter(student => student.status === statusFilter.value)
+    filtered = filtered.filter(student => 
+      (student.status || (student.is_active ? 'active' : 'inactive')) === statusFilter.value
+    )
   }
 
   return filtered
 })
 
+const availableStudentsForClass = computed(() => {
+  if (!availableStudents.value || !classStudents.value) return availableStudents.value || []
+  
+  const classStudentIds = new Set(classStudents.value.map(s => s.id || s.user_id))
+  return availableStudents.value.filter(student => 
+    !classStudentIds.has(student.id || student.user_id)
+  )
+})
+
+const currentClassSubjects = computed(() => {
+  if (!selectedClass.value || !classSubjects.value) return []
+  return classSubjects.value.filter(cs => cs.class_id === selectedClass.value.id)
+})
+
 // Methods
-const viewClassDetails = (classItem) => {
-  selectedClass.value = classItem
+const viewClassDetails = async (classItem) => {
+  await selectClass(classItem)
   activeTab.value = 'students'
 }
 
-const viewStudents = (classItem) => {
-  selectedClass.value = classItem
+const viewStudents = async (classItem) => {
+  await selectClass(classItem)
   activeTab.value = 'students'
 }
 
 const viewStudentProfile = (student) => {
   selectedStudent.value = student
+}
+
+const handleBulkAddStudents = async () => {
+  if (!selectedClass.value || selectedStudentsForBulk.value.length === 0) return
+  
+  await bulkAddStudents(selectedClass.value.id, selectedStudentsForBulk.value)
+  selectedStudentsForBulk.value = []
+  showBulkAssign.value = false
 }
 
 const addNote = () => {
@@ -802,5 +913,72 @@ const addNote = () => {
     })
     newNote.value = ''
   }
+}
+
+const handleExportAttendance = async () => {
+  const params = {}
+  if (selectedClass.value) {
+    params.class_id = selectedClass.value.id
+  }
+  if (currentTerm.value) {
+    params.term_id = currentTerm.value.id
+  }
+  
+  await exportAttendance(params)
+}
+
+const refreshData = async () => {
+  await initializeData()
+}
+
+// Format helper functions
+const formatStudentName = (student) => {
+  return student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim()
+}
+
+const formatStudentCode = (student) => {
+  return student.code || student.student_code || 'N/A'
+}
+
+const formatStudentEmail = (student) => {
+  return student.email || 'N/A'
+}
+
+const formatStudentStatus = (student) => {
+  return student.status || (student.is_active ? 'active' : 'inactive')
+}
+
+const formatAttendanceRate = (student) => {
+  return student.attendance || student.attendance_rate || 0
+}
+
+const getClassStudentCount = (classItem) => {
+  return classItem.student_count || classItem.students?.length || 0
+}
+
+const getClassAttendanceRate = (classItem) => {
+  return classItem.attendance_rate || classItem.attendanceRate || 87
+}
+
+const getClassAverageGrade = (classItem) => {
+  return classItem.average_grade || classItem.avgGrade || 'B+'
+}
+
+const getClassRoom = (classItem) => {
+  return classItem.room_number || classItem.room || 'N/A'
+}
+
+const getClassSchedule = (classItem) => {
+  return classItem.schedule || 'Mon-Fri 8:00-14:00'
+}
+
+const getClassSubjects = (classItem) => {
+  if (classItem.subjects && Array.isArray(classItem.subjects)) {
+    return classItem.subjects
+  }
+  if (classItem.class_subjects) {
+    return classItem.class_subjects.map(cs => cs.subject?.name || cs.name).filter(Boolean)
+  }
+  return []
 }
 </script>

@@ -4,7 +4,7 @@
     <div class="flex-1 overflow-auto p-6">
       <div class="flex justify-between items-center mb-6">
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-800">Attendance</h1>
+          <h1 class="text-3xl font-bold text-gray-800">My Attendance</h1>
           <p class="text-gray-600 mt-1">View your attendance recode</p>
         </div>
       </div>
@@ -22,60 +22,67 @@
       </div>
 
       <div v-if="!loading && !error">
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div class="bg-green-100 p-4 rounded-2xl shadow flex items-start">
-            <div class="bg-green-200 p-3 rounded-full mr-3">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+          
+          <!-- Total Present -->
+          <div class="bg-white p-5 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center">
+            <div class="bg-green-100 p-3 rounded-xl mr-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-green-800">Total Present</h2>
-              <p class="text-2xl font-bold text-green-900">{{ summary.present }}</p>
-              <p class="text-sm text-green-700">{{ presentPercentage }}% of total</p>
+              <p class="text-sm text-gray-500">Present</p>
+              <p class="text-2xl font-bold text-green-700">{{ summary.present }}</p>
+              <p class="text-xs text-gray-400">{{ presentPercentage }}%</p>
             </div>
           </div>
-          
-          <div class="bg-red-100 p-4 rounded-2xl shadow flex items-start">
-            <div class="bg-red-200 p-3 rounded-full mr-3">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+          <!-- Total Absent -->
+          <div class="bg-white p-5 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center">
+            <div class="bg-red-100 p-3 rounded-xl mr-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-red-800">Total Absent</h2>
-              <p class="text-2xl font-bold text-red-900">{{ summary.absent }}</p>
-              <p class="text-sm text-red-700">{{ absentPercentage }}% of total</p>
+              <p class="text-sm text-gray-500">Absent</p>
+              <p class="text-2xl font-bold text-red-700">{{ summary.absent }}</p>
+              <p class="text-xs text-gray-400">{{ absentPercentage }}%</p>
             </div>
           </div>
-          
-          <div class="bg-blue-100 p-4 rounded-2xl shadow flex items-start">
-            <div class="bg-blue-200 p-3 rounded-full mr-3">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+          <!-- Attendance % -->
+          <div class="bg-white p-5 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center">
+            <div class="bg-blue-100 p-3 rounded-xl mr-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-blue-800">Attendance %</h2>
-              <p class="text-2xl font-bold text-blue-900">{{ attendancePercentage }}%</p>
-              <p class="text-sm text-blue-700">Overall attendance rate</p>
+              <p class="text-sm text-gray-500">Attendance %</p>
+              <p class="text-2xl font-bold text-blue-700">{{ attendancePercentage }}%</p>
+              <p class="text-xs text-gray-400">Rate</p>
             </div>
           </div>
-          
-          <div class="bg-yellow-100 p-4 rounded-2xl shadow flex items-start">
-            <div class="bg-yellow-200 p-3 rounded-full mr-3">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+          <!-- Total Attendance -->
+          <div class="bg-white p-5 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center">
+            <div class="bg-yellow-100 p-3 rounded-xl mr-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-yellow-800">Total Attendance</h2>
-              <p class="text-2xl font-bold text-yellow-900">{{ summary.total }}</p>
-              <p class="text-sm text-yellow-700">All attendance records</p>
+              <p class="text-sm text-gray-500">Total</p>
+              <p class="text-2xl font-bold text-yellow-700">{{ summary.total }}</p>
+              <p class="text-xs text-gray-400">Records</p>
             </div>
           </div>
-  
+
         </div>
+
+
 
     
         <div class="bg-white p-6 mb-6 rounded-xl shadow">
@@ -151,7 +158,7 @@
               <tr>
                 <th class="px-6 py-3 text-left font-semibold">Date</th>
                 <th class="px-6 py-3 text-left font-semibold">Status</th>
-                <th class="px-6 py-3 text-left font-semibold">Subject</th>
+                <th class="px-6 py-3 text-left font-semibold">Subjects</th>
                 <th class="px-6 py-3 text-left font-semibold">Time</th>
               </tr>
             </thead>

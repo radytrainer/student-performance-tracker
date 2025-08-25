@@ -1,454 +1,1128 @@
 <template>
-  <div class="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold mb-6 text-gray-800">Student Data Import</h2>
+  <div class="teacher-import-root">
+    <div class="p-6">
+      <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Data Import</h1>
+        <p class="text-gray-600 mt-1">Import student data from CSV or Excel files</p>
+      </div>
 
-    <div class="mb-8">
-      <div class="flex items-center">
-        <div v-for="(step, index) in steps" :key="index" class="flex items-center">
-          <div 
-            @click="currentStep > index && goToStep(index)"
-            :class="{
-              'bg-blue-600 text-white': currentStep >= index,
-              'bg-gray-200 text-gray-600': currentStep < index,
-              'cursor-pointer': currentStep > index
-            }"
-            class="w-8 h-8 rounded-full flex items-center justify-center font-medium"
-          >
-            {{ index + 1 }}
+      <!-- Success Message -->
+      <div v-if="successMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-check-circle text-green-400"></i>
           </div>
-          <div 
-            v-if="index < steps.length - 1"
-            :class="{
-              'bg-blue-600': currentStep > index,
-              'bg-gray-200': currentStep <= index
-            }"
-            class="h-1 w-12 mx-1"
-          ></div>
-        </div>
-      </div>
-      <div class="flex justify-between mt-2 text-sm text-gray-600">
-        <span v-for="(step, index) in steps" :key="'label'+index">{{ step.label }}</span>
-      </div>
-    </div>
-
-    <div v-show="currentStep === 0" class="bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 transition-all duration-300">
-      <div class="text-center">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-        </svg>
-        <h3 class="mt-2 text-lg font-medium text-gray-900">Upload student data file</h3>
-        <p class="mt-1 text-sm text-gray-500">CSV or Excel files only (max 5MB)</p>
-        
-        <div class="mt-4">
-          <label class="cursor-pointer inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-            Select file
-            <input type="file" @change="handleFileUpload" class="sr-only" accept=".csv, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-          </label>
-        </div>
-        
-        <div v-if="file" class="mt-4 p-3 bg-blue-50 rounded-md inline-flex items-start max-w-md">
-          <svg class="h-5 w-5 text-blue-500 mr-2 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-          </svg>
-          <div>
-            <p class="text-sm font-medium text-blue-800">File selected</p>
-            <p class="text-xs text-blue-700">{{ file.name }} ({{ formatFileSize(file.size) }})</p>
-            <button @click="removeFile" class="mt-1 text-xs text-blue-600 hover:text-blue-800 focus:outline-none">
-              Remove file
-            </button>
+          <div class="ml-3">
+            <p class="text-sm text-green-700">{{ successMessage }}</p>
           </div>
         </div>
       </div>
-      
-      <div class="mt-6 flex justify-end">
-        <button
-          @click="nextStep"
-          :disabled="!file"
-          :class="{'opacity-50 cursor-not-allowed': !file}"
-          class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Next
-        </button>
-      </div>
-    </div>
 
-
-    <div v-show="currentStep === 1" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-      <h3 class="text-lg font-medium text-gray-900 mb-4">Data Preview</h3>
-      
-      <div v-if="previewLoading" class="flex justify-center py-8">
-        <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </div>
-      
-      <div v-else>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-100">
-              <tr>
-                <th v-for="(header, index) in previewHeaders" :key="index" scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {{ header }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="(row, rowIndex) in previewData" :key="rowIndex">
-                <td v-for="(cell, cellIndex) in row" :key="cellIndex" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ cell }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <div class="mt-4 text-sm text-gray-500">
-          Showing first {{ previewData.length }} rows of {{ totalRows }} total rows
-        </div>
-      </div>
-      
-      <div class="mt-6 flex justify-between">
-        <button
-          @click="prevStep"
-          class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Back
-        </button>
-        <button
-          @click="nextStep"
-          class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
-
-    <div v-show="currentStep === 2" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-      <h3 class="text-lg font-medium text-gray-900 mb-4">Import Settings</h3>
-      
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Import Type</label>
-          <div class="mt-1 space-y-2">
-            <div class="flex items-center">
-              <input id="import-type-add" v-model="importSettings.type" type="radio" value="add" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
-              <label for="import-type-add" class="ml-3 block text-sm font-medium text-gray-700">Add new records only</label>
-            </div>
-            <div class="flex items-center">
-              <input id="import-type-update" v-model="importSettings.type" type="radio" value="update" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
-              <label for="import-type-update" class="ml-3 block text-sm font-medium text-gray-700">Update existing records</label>
-            </div>
-            <div class="flex items-center">
-              <input id="import-type-overwrite" v-model="importSettings.type" type="radio" value="overwrite" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
-              <label for="import-type-overwrite" class="ml-3 block text-sm font-medium text-gray-700">Overwrite all records</label>
-            </div>
-            <button @click="clearFile" class="text-gray-400 hover:text-gray-600">
-              <i class="fas fa-times"></i>
-            </button>
+      <!-- Error Message -->
+      <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-circle text-red-400"></i>
           </div>
-
-          <!-- Default Class -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Default Class (optional)</label>
-            <select v-model="defaultClassId" class="w-full border rounded p-2 text-sm">
-              <option value="">Select class</option>
-              <option v-for="cls in classes" :key="cls.id" :value="cls.id">
-                {{ cls.class_name }}
-              </option>
-            </select>
-            <p class="mt-1 text-xs text-gray-500">
-              If your file has <code>current_class_id</code> column, that value will be used.
-              Otherwise this default class will be applied to every row.
-            </p>
-          </div>
-
-          <!-- Import Btn -->
-          <button
-            @click="importStudents"
-            :disabled="!selectedFile || importing"
-            class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            <span v-if="importing"><i class="fas fa-spinner fa-spin mr-2"></i> Importing...</span>
-            <span v-else><i class="fas fa-upload mr-2"></i> Import Students</span>
-          </button>
-
-          <!-- Template hint -->
-          <div class="text-xs text-gray-500">
-            Required headers: <code>first_name,last_name,username,email,student_code,date_of_birth,gender,address,parent_name,parent_phone,enrollment_date,current_class_id</code>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">Import Error</h3>
+            <p class="text-sm text-red-700 mt-1">{{ error }}</p>
           </div>
         </div>
-        
-        <div>
-          <label for="import-name" class="block text-sm font-medium text-gray-700">Import Name (optional)</label>
-          <input type="text" id="import-name" v-model="importSettings.name" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-          <p class="mt-1 text-sm text-gray-500">Give this import a name for future reference</p>
-        </div>
       </div>
-      
-      <div class="mt-6 flex justify-between">
-        <button
-          @click="prevStep"
-          class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Back
-        </button>
-        <button
-          @click="confirmImport"
-          class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Confirm Import
-        </button>
-      </div>
-    </div>
 
-    <!-- Step 4: Import Progress -->
-    <div v-show="currentStep === 3" class="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center">
-      <svg v-if="importStatus === 'processing'" class="mx-auto h-12 w-12 text-blue-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      
-      <svg v-else-if="importStatus === 'success'" class="mx-auto h-12 w-12 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-      
-      <svg v-else-if="importStatus === 'error'" class="mx-auto h-12 w-12 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-      </svg>
-      
-      <h3 class="mt-4 text-lg font-medium text-gray-900">
-        <span v-if="importStatus === 'processing'">Importing student data...</span>
-        <span v-else-if="importStatus === 'success'">Import completed successfully!</span>
-        <span v-else-if="importStatus === 'error'">Import failed</span>
-      </h3>
-      
-      <div v-if="importStatus === 'processing'" class="mt-4">
-        <div class="w-full bg-gray-200 rounded-full h-2.5">
-          <div class="bg-blue-600 h-2.5 rounded-full" :style="{width: progress + '%'}"></div>
-        </div>
-        <p class="mt-2 text-sm text-gray-600">{{ progress }}% complete</p>
-      </div>
-      
-      <div v-if="importResult" class="mt-4 text-left bg-white p-4 rounded-md shadow-sm">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <p class="text-sm font-medium text-gray-500">Total Records</p>
-            <p class="text-lg font-semibold">{{ importResult.total }}</p>
-          </div>
-          <div>
-            <p class="text-sm font-medium text-gray-500">Successfully Imported file</p>
-            <p class="text-lg font-semibold text-green-600">{{ importResult.success }}</p>
-          </div>
-          <div>
-            <p class="text-sm font-medium text-gray-500">Skipped the import</p>
-            <p class="text-lg font-semibold text-yellow-600">{{ importResult.skipped }}</p>
-          </div>
-          <div>
-            <p class="text-sm font-medium text-gray-500">Failed import</p>
-            <p class="text-lg font-semibold text-red-600">{{ importResult.failed }}</p>
-          </div>
-        </div>
-        
-        <div v-if="importResult.errors && importResult.errors.length > 0" class="mt-4">
-          <p class="text-sm font-medium text-gray-700 mb-2">Error Details:</p>
-          <ul class="text-sm text-red-600 space-y-1">
-            <li v-for="(error, index) in importResult.errors" :key="index">
-              Row {{ error.row }}: {{ error.message }}
-            </li>
-          </ul>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Import Section -->
+        <div class="space-y-6">
+          <!-- File Upload -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Upload Student Data</h3>
+            
+            <div class="space-y-4">
+              <!-- File Input -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select File</label>
+                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
+                     :class="{ 'border-blue-400 bg-blue-50': isDragOver }"
+                     @dragover.prevent="isDragOver = true"
+                     @dragleave.prevent="isDragOver = false"
+                     @drop.prevent="handleFileDrop">
+                  <div class="space-y-1 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <div class="flex text-sm text-gray-600">
+                      <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                        <span>Upload a file</span>
+                        <input id="file-upload" name="file-upload" type="file" class="sr-only" @change="handleFileSelect" accept=".csv,.xlsx,.xls">
+                      </label>
+                      <p class="pl-1">or drag and drop</p>
+                    </div>
+                    <p class="text-xs text-gray-500">CSV, XLSX up to 2MB</p>
+                  </div>
+                </div>
+              </div>
 
-          <button @click="loadImportHistory" class="mt-4 text-blue-600 hover:underline">Refresh</button>
-        </div>
-      </div>
-      
-      <div class="mt-6">
-        <button
-          v-if="importStatus === 'success' || importStatus === 'error'"
-          @click="startNewImport"
-          class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Start New Import file
-        </button>
-      </div>
-    </div>
-    <div class="mt-8">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold text-gray-700">Recent Imports file</h3>
-        <button 
-          @click="refreshHistory"
-          class="text-sm text-blue-600 hover:text-blue-800 flex items-center focus:outline-none"
-          :disabled="historyLoading"
-        >
-          <svg v-if="historyLoading" class="animate-spin -ml-1 mr-1 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span v-else>
-            <svg class="-ml-1 mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </span>
-          Refresh
-        </button>
-      </div>
-      
-      <div class="overflow-hidden border border-gray-200 rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="(item, index) in history" :key="index">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatDate(item.created_at) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ item.name || 'Untitled import' }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatImportType(item.import_type) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ item.records_processed }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="getStatusClass(item.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                  {{ item.status }}
+              <!-- Selected File Display -->
+              <div v-if="selectedFile" class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-center">
+                  <i class="fas fa-file-excel text-green-600 text-xl mr-3"></i>
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">{{ selectedFile.name }}</p>
+                    <p class="text-sm text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
+                    <p v-if="missingHeaders.length" class="text-xs text-red-600 mt-1">Missing columns: {{ missingHeaders.join(', ') }}</p>
+                  </div>
+                  <button @click="clearFile" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                <div class="mt-3 border rounded overflow-auto" v-if="localPreviewHeaders.length">
+                  <table class="min-w-full text-xs">
+                    <thead class="bg-gray-100">
+                      <tr>
+                        <th v-for="(h,i) in localPreviewHeaders" :key="i" class="px-2 py-1 text-left">{{ h }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, idx) in localPreviewRows" :key="idx" class="border-b">
+                        <td v-for="(h,i) in localPreviewHeaders" :key="i" class="px-2 py-1">{{ row[h] }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div v-else-if="localPreviewLoading" class="mt-3 text-sm text-gray-500">Parsing preview...</div>
+              </div>
+
+              <!-- Sheet selection (Excel only) -->
+              <div v-if="selectedFile && (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls'))">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sheet</label>
+                <select v-model="selectedLocalSheetName" @change="onChangeLocalSheet" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                  <option v-for="n in localSheetNames" :key="n" :value="n">{{ n }}</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Selected sheet will be used for preview and import.</p>
+              </div>
+
+              <!-- Default Class Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Default Class</label>
+                <select
+                  v-model="defaultClassId"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select a default class</option>
+                  <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Students without a specified class will be assigned to this class</p>
+              </div>
+
+              <!-- Optional Subjects Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Assign Subjects to Class (optional)</label>
+                <select multiple v-model="subjectIds" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[110px]">
+                  <option v-for="sub in subjects" :key="sub.id" :value="sub.id">{{ sub.subject_name }}</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">If selected, these subjects will be added to the chosen class</p>
+              </div>
+
+              <!-- Import Button -->
+              <button
+                @click="importStudents"
+                :disabled="!selectedFile || !defaultClassId || importing"
+                class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                <span v-if="importing" class="flex items-center">
+                  <i class="fas fa-spinner fa-spin mr-2"></i>
+                  Importing...
                 </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <button @click="viewImportDetails(item)" class="text-blue-600 hover:text-blue-900 mr-3">Details</button>
-                <button v-if="item.status === 'completed'" @click="downloadImportReport(item)" class="text-green-600 hover:text-green-900">Report</button>
-              </td>
-            </tr>
-            <tr v-if="history.length === 0 && !historyLoading">
-              <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
-                No import history found
-              </td>
-            </tr>
-            <tr v-if="historyLoading">
-              <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
-                <svg class="animate-spin mx-auto h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <span v-else class="flex items-center">
+                  <i class="fas fa-upload mr-2"></i>
+                  Import Students
+                </span>
+              </button>
+
+              <!-- Or upload file only -->
+              <div class="pt-2">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" v-model="fileOnly" class="mr-2">
+                  <span class="text-sm text-gray-700">Upload file only (store without processing)</span>
+                </label>
+              </div>
+              <button
+                @click="uploadFileOnly"
+                :disabled="!selectedFile || importing"
+                class="w-full mt-2 bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                <span v-if="importing && fileOnly" class="flex items-center">
+                  <i class="fas fa-spinner fa-spin mr-2"></i>
+                  Uploading...
+                </span>
+                <span v-else class="flex items-center">
+                  <i class="fas fa-file-upload mr-2"></i>
+                  Upload File Only
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Template Download -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Download Template</h3>
+            <p class="text-sm text-gray-600 mb-4">
+              Download a CSV template with the required columns and sample data to ensure your import is successful.
+            </p>
+            
+            <div class="space-y-3">
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="font-medium text-gray-900 mb-2">Required Columns:</h4>
+                <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                  <div>• first_name</div>
+                  <div>• last_name</div>
+                  <div>• email</div>
+                  <div>• date_of_birth</div>
+                  <div>• gender</div>
+                  <div>• address (optional)</div>
+                  <div>• parent_name (optional)</div>
+                  <div>• parent_phone (optional)</div>
+                  <div>• class_id (optional)</div>
+                </div>
+              </div>
+              
+              <button
+                @click="downloadTemplate"
+                class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+              >
+                <i class="fas fa-download mr-2"></i>
+                Download CSV Template
+              </button>
+            </div>
+          </div>
+
+          <!-- Import from Google Sheets -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Import from Google Sheets</h3>
+
+            <div class="flex items-center justify-between mb-4">
+              <div class="text-sm" :class="googleConnected ? 'text-green-700' : 'text-gray-600'">
+                <span class="font-medium">Connection:</span>
+                <span v-if="googleConnected" class="ml-1">Connected</span>
+                <span v-else class="ml-1">Not connected</span>
+              </div>
+              <button
+                @click="connectGoogle"
+                :disabled="googleLoading"
+                class="px-3 py-2 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+              >
+                <i v-if="googleLoading" class="fas fa-spinner fa-spin mr-2"></i>
+                {{ googleConnected ? 'Reconnect' : 'Connect Google' }}
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              <label class="block text-sm font-medium text-gray-700">Google Sheet URL or ID</label>
+              <input v-model="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/.. or ID"
+                     class="w-full px-3 py-2 border rounded-lg" />
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Sheet name (optional)</label>
+                  <input v-model="gsSheetName" type="text" placeholder="Sheet1" class="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Range (optional)</label>
+                  <input v-model="gsRange" type="text" placeholder="Sheet1!A1:Z1000" class="w-full px-3 py-2 border rounded-lg" />
+                </div>
+              </div>
+
+              <div class="flex gap-3">
+                <button @click="previewGoogle"
+                        :disabled="!sheetUrl || gsPreviewLoading"
+                        class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50">
+                  <i v-if="gsPreviewLoading" class="fas fa-spinner fa-spin mr-2"></i>
+                  Preview
+                </button>
+                <button @click="importFromGoogle"
+                        :disabled="!sheetUrl || !defaultClassId || importing"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  <i v-if="importing" class="fas fa-spinner fa-spin mr-2"></i>
+                  Import from Google
+                </button>
+              </div>
+
+              <div v-if="gsPreviewHeaders.length" class="mt-3 border rounded overflow-auto">
+                <table class="min-w-full text-xs">
+                  <thead class="bg-gray-100">
+                    <tr>
+                      <th v-for="(h,i) in gsPreviewHeaders" :key="i" class="px-2 py-1 text-left">{{ h }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, idx) in gsPreviewRows" :key="idx" class="border-b">
+                      <td v-for="(h,i) in gsPreviewHeaders" :key="i" class="px-2 py-1">{{ row[h] }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else-if="gsPreviewLoading" class="text-sm text-gray-500">Fetching preview…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Uploaded Files -->
+        <div class="space-y-6">
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Uploaded Files</h3>
+
+            <div class="flex items-center justify-between mb-3 gap-3">
+              <input v-model="searchUploaded" type="text" placeholder="Search files..." class="border rounded px-3 py-2 w-full max-w-sm" />
+              <label class="text-sm flex items-center gap-2">
+                <input type="checkbox" v-model="autoRefreshUploads" /> Auto refresh
+              </label>
+            </div>
+
+            <div v-if="loadingUploads" class="flex justify-center py-8">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            </div>
+
+            <div v-else-if="uploadedFiles.length === 0" class="text-center py-8">
+              <i class="fas fa-history text-gray-400 text-3xl mb-3"></i>
+              <p class="text-gray-500">No uploaded files yet</p>
+            </div>
+
+            <!-- Compact table-like list -->
+            <div v-else class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2 text-left w-6"></th>
+                    <th class="px-4 py-2 text-left">File name</th>
+                    <th class="px-4 py-2 text-left hidden lg:table-cell">Size</th>
+                    <th class="px-4 py-2 text-left hidden lg:table-cell">Uploaded</th>
+                    <th class="px-4 py-2 text-left">Class</th>
+                    <th class="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr v-for="file in filteredUploadedFiles" :key="file.id" class="hover:bg-gray-50">
+                    <td class="px-4 py-2"><i class="fas fa-file-csv text-blue-600"></i></td>
+                    <td class="px-4 py-2">
+                      <a v-if="file.url" :href="file.url" target="_blank" class="text-blue-600 hover:underline">{{ file.original_name }}</a>
+                      <span v-else>{{ file.original_name }}</span>
+                      <div v-if="file.label" class="text-xs text-gray-500">{{ file.label }}</div>
+                    </td>
+                    <td class="px-4 py-2 hidden lg:table-cell">{{ file.size_bytes ? (file.size_bytes/1024).toFixed(1) + ' KB' : '-' }}</td>
+                    <td class="px-4 py-2 hidden lg:table-cell">{{ formatDate(file.uploaded_at) }}</td>
+                    <td class="px-4 py-2">
+                      <select v-model="rowClassSelection[file.id]" class="border rounded px-2 py-1 min-w-[160px]">
+                        <option value="">Default</option>
+                        <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.class_name }}</option>
+                      </select>
+                    </td>
+                    <td class="px-4 py-2">
+                      <div class="flex items-center gap-3">
+                        <button @click="openFileEditor(file)" class="text-gray-700 hover:text-gray-900">Preview/Edit</button>
+                        <button @click="importFromUploadWithRow(file)" class="text-blue-600 hover:text-blue-800">Import</button>
+                        <button @click="confirmDelete(file)" class="text-red-600 hover:text-red-800">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex justify-between items-center mt-4" v-if="uploadsMeta">
+              <button
+                @click="prevUploadsPage"
+                :disabled="uploadsMeta.current_page <= 1"
+                class="px-3 py-1 border rounded disabled:opacity-50"
+              >Prev</button>
+              <div class="text-sm text-gray-600">Page {{ uploadsMeta.current_page }} of {{ uploadsMeta.last_page }}</div>
+              <button
+                @click="nextUploadsPage"
+                :disabled="uploadsMeta.current_page >= uploadsMeta.last_page"
+                class="px-3 py-1 border rounded disabled:opacity-50"
+              >Next</button>
+            </div>
+
+            <button
+              @click="reloadUploads"
+              class="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm transition-colors"
+            >
+              <i class="fas fa-refresh mr-1"></i>
+              Refresh Uploaded Files
+            </button>
+          </div>
+
+          <!-- Import Results -->
+          <div v-if="importResults" class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Last Import Results</h3>
+            
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                  <div class="text-2xl font-bold text-green-600">{{ importResults.success_count }}</div>
+                  <div class="text-sm text-green-700">Successfully Imported</div>
+                </div>
+                <div class="bg-red-50 rounded-lg p-4 text-center">
+                  <div class="text-2xl font-bold text-red-600">{{ importResults.error_count }}</div>
+                  <div class="text-sm text-red-700">Import Errors</div>
+                </div>
+              </div>
+
+              <div v-if="importResults.errors && importResults.errors.length > 0" class="space-y-2">
+                <h4 class="font-medium text-gray-900">Import Errors:</h4>
+                <div class="max-h-40 overflow-y-auto">
+                  <div
+                    v-for="(err, index) in importResults.errors"
+                    :key="index"
+                    class="text-sm text-red-600 bg-red-50 rounded p-2"
+                  >
+                    {{ err }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Import History -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Import History</h3>
+            <div class="flex items-center justify-between mb-3">
+              <input v-model="searchHistory" type="text" placeholder="Search history..." class="border rounded px-3 py-2 w-full max-w-sm" />
+              <button @click="loadImportHistory" class="ml-3 px-3 py-2 border rounded">Refresh</button>
+            </div>
+            <div v-if="loadingHistory" class="flex justify-center py-8">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            </div>
+            <div v-else>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-2 text-left">Date</th>
+                      <th class="px-4 py-2 text-left">Name</th>
+                      <th class="px-4 py-2 text-left">Type</th>
+                      <th class="px-4 py-2 text-left">Records</th>
+                      <th class="px-4 py-2 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200">
+                    <tr v-for="(item, i) in filteredHistory" :key="i">
+                      <td class="px-4 py-2">{{ formatDate(item.created_at) }}</td>
+                      <td class="px-4 py-2">{{ item.name || 'Untitled' }}</td>
+                      <td class="px-4 py-2">{{ item.import_type || 'students' }}</td>
+                      <td class="px-4 py-2">{{ item.records_processed ?? '-' }}</td>
+                      <td class="px-4 py-2">
+                        <span :class="getStatusClass(item.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">{{ item.status }}</span>
+                      </td>
+                    </tr>
+                    <tr v-if="filteredHistory.length === 0">
+                      <td colspan="5" class="px-4 py-6 text-center text-gray-500">No history found</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Errors modal -->
-  <div v-if="showErrors" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-4">
+  <!-- File Editor Modal -->
+  <div v-if="showEditor" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl p-4">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold">Import errors</h3>
-        <button @click="showErrors=false" class="text-gray-600 hover:text-gray-800">✕</button>
+        <h3 class="text-lg font-semibold">Preview/Edit: {{ editorFileName }}</h3>
+        <button @click="closeEditor" class="text-gray-600 hover:text-gray-800">✕</button>
       </div>
-      <div class="max-h-80 overflow-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-left border-b">
-              <th class="py-2 pr-3">Row</th>
-              <th class="py-2">Message</th>
+      <div class="overflow-auto max-h-[60vh] border rounded">
+        <div class="p-2">
+          <div v-if="editorMissingHeaders.length" class="text-xs text-red-600 mb-2">Missing columns: {{ editorMissingHeaders.join(', ') }}</div>
+          <div v-if="editorExtraHeaders.length" class="text-xs text-yellow-700 mb-2">Extra columns: {{ editorExtraHeaders.join(', ') }}</div>
+        </div>
+        <div class="px-2 pb-2" v-if="editorSheetNames.length">
+          <label class="text-xs text-gray-600 mr-2">Sheet:</label>
+          <select v-model="selectedEditorSheetName" @change="reparseEditorSheet" class="border rounded px-2 py-1 text-xs">
+            <option v-for="n in editorSheetNames" :key="n" :value="n">{{ n }}</option>
+          </select>
+        </div>
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th v-for="(h,i) in editorHeaders" :key="i" class="px-2 py-1 text-left">{{ h }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(e,i) in errorsList" :key="i" class="border-b">
-              <td class="py-2 pr-3">{{ e.row ?? '-' }}</td>
-              <td class="py-2">{{ e.message ?? e }}</td>
+            <tr v-for="(row,r) in editorRows" :key="r" class="border-b">
+              <td v-for="(h,c) in editorHeaders" :key="c" class="px-2 py-1">
+                <input v-model="editorRows[r][h]" :class="['border rounded px-1 py-0.5 w-full', editorCellInvalid(r,h) ? 'border-red-500 bg-red-50' : 'border-gray-300']" />
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="mt-3 text-right">
-        <button @click="showErrors=false" class="bg-blue-600 text-white px-4 py-2 rounded">Close</button>
+      <div class="mt-3 flex justify-between">
+        <div class="text-xs text-gray-500">Rows: {{ editorRows.length }}</div>
+        <div class="space-x-2">
+          <button @click="downloadEditedCsv" class="px-3 py-2 border rounded">Download edited CSV</button>
+          <button @click="uploadEditedCsv" class="px-3 py-2 bg-gray-700 text-white rounded">Upload edited CSV</button>
+          <button @click="importEditedCsv" class="px-3 py-2 bg-blue-600 text-white rounded" :disabled="!defaultClassId">Import edited (uses selected class)</button>
+        </div>
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import dayjs from 'dayjs'
 import { teacherAPI } from '@/api/teacher'
+import { useAuth } from '@/composables/useAuth'
+import * as XLSX from 'xlsx'
 
+// Google Sheets state
+ const googleConnected = ref(false)
+ const googleLoading = ref(false)
+ const sheetUrl = ref('')
+ const gsSheetName = ref('')
+ const gsRange = ref('')
+ const gsPreviewHeaders = ref([])
+ const gsPreviewRows = ref([])
+ const gsPreviewLoading = ref(false)
+ 
+ // State
 const selectedFile = ref(null)
 const defaultClassId = ref('')
+const sheetName = ref('')
 const classes = ref([])
 const importing = ref(false)
+const isDragOver = ref(false)
 const successMessage = ref('')
 const error = ref('')
 const importHistory = ref([])
 const loadingHistory = ref(false)
+const historyPage = ref(1)
+const historyPerPage = 10
+const importResults = ref(null)
+const fileOnly = ref(false)
 
-// File select
-const handleFileSelect = (e) => { selectedFile.value = e.target.files[0] }
-const clearFile = () => { selectedFile.value = null }
+// Expected template headers
+const expectedHeaders = ref([])
 
-// Helpers
-const formatFileSize = (bytes) => {
-  if (!bytes) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  let i = 0
-  while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++ }
-  return `${bytes.toFixed(2)} ${units[i]}`
+// Subjects
+const subjects = ref([])
+const subjectIds = ref([])
+
+// Uploaded files state
+const uploadedFiles = ref([])
+const uploadsMeta = ref(null)
+const loadingUploads = ref(false)
+let uploadsPage = 1
+const uploadsPerPage = 10
+const searchUploaded = ref('')
+const filteredUploadedFiles = computed(() => {
+  const q = searchUploaded.value.toLowerCase().trim()
+  if (!q) return uploadedFiles.value
+  return uploadedFiles.value.filter(f => (f.original_name || f.label || '').toLowerCase().includes(q))
+})
+
+// Per-row class selection
+const rowClassSelection = ref({})
+
+// Auto refresh uploads
+const autoRefreshUploads = ref(true)
+let uploadsTimer = null
+
+// Editor modal state
+const showEditor = ref(false)
+const editorHeaders = ref([])
+const editorRows = ref([])
+const editorFileName = ref('')
+const editorOriginalFile = ref(null)
+const editorSheetNames = ref([])
+const selectedEditorSheetName = ref('')
+const editorMissingHeaders = ref([])
+const editorExtraHeaders = ref([])
+
+const requiredHeaders = computed(() => expectedHeaders.value.length ? expectedHeaders.value : minimalHeaders)
+
+const editorCellInvalid = (rowIndex, header) => {
+  const val = editorRows.value[rowIndex]?.[header]
+  if (requiredHeaders.value.includes(header)) {
+    if (header === 'email') return !!val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
+    return val === undefined || val === null || String(val).trim() === ''
+  }
+  if (header === 'date_of_birth') {
+    return val && isNaN(Date.parse(val))
+  }
+  if (header === 'gender') {
+    return val && !['male','female','other','m','f'].includes(String(val).toLowerCase())
+  }
+  return false
 }
 
-const prettyJson = (raw) => {
-  try {
-    if (typeof raw === 'string') return JSON.stringify(JSON.parse(raw), null, 2)
-    return JSON.stringify(raw, null, 2)
-  } catch { return raw }
-}
+// School context
+const { user } = useAuth()
+const schoolId = computed(() => user.value?.school_id || user.value?.schoolId || null)
 
-const formatDate = (d) => (d ? dayjs(d).format('YYYY-MM-DD HH:mm') : '')
+// Local preview state (before upload)
+const localPreviewHeaders = ref([])
+const localPreviewRows = ref([])
+const localPreviewLoading = ref(false)
+const missingHeaders = ref([])
+const minimalHeaders = ['first_name','last_name','email']
 
-// Load classes
-const loadClasses = async () => {
+// Local sheet support
+const localSheetNames = ref([])
+const selectedLocalSheetName = ref('')
+
+const parseLocalFile = async (file) => {
   try {
-    const res = await teacherAPI.getClasses()
-    classes.value = res.data?.data ?? res.data ?? []
-  } catch (err) {
-    console.error(err)
-    error.value = 'Failed to load classes'
+    localPreviewLoading.value = true
+    localPreviewHeaders.value = []
+    localPreviewRows.value = []
+    localSheetNames.value = []
+    const buffer = await file.arrayBuffer()
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      const wb = XLSX.read(buffer, { type: 'array' })
+      localSheetNames.value = wb.SheetNames
+      const name = selectedLocalSheetName.value || wb.SheetNames[0]
+      selectedLocalSheetName.value = name
+      sheetName.value = name
+      const sheet = wb.Sheets[name]
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+      if (json.length) {
+        localPreviewHeaders.value = Object.keys(json[0])
+        localPreviewRows.value = json.slice(0, 10)
+      }
+    } else {
+      const text = new TextDecoder().decode(buffer)
+      const lines = text.split(/\r?\n/).filter(Boolean)
+      if (lines.length) {
+        const headers = lines[0].split(',')
+        localPreviewHeaders.value = headers
+        localPreviewRows.value = lines.slice(1, 11).map(l => {
+          const cells = l.split(',')
+          return Object.fromEntries(headers.map((h,i)=>[h, cells[i] ?? '']))
+        })
+      }
+      localSheetNames.value = ['CSV']
+      selectedLocalSheetName.value = 'CSV'
+    }
+    // Soft validation: show missing headers using template if available
+    const baseline = expectedHeaders.value.length ? expectedHeaders.value : minimalHeaders
+    missingHeaders.value = baseline.filter(h => !localPreviewHeaders.value.includes(h))
+  } catch (e) {
+    console.error('Failed to parse local file', e)
+  } finally {
+    localPreviewLoading.value = false
   }
 }
 
-// Load history
+const onChangeLocalSheet = async () => {
+  if (!selectedFile.value) return
+  await parseLocalFile(selectedFile.value)
+}
+
+// Methods
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    selectedFile.value = file
+    parseLocalFile(file)
+  }
+}
+
+const handleFileDrop = (event) => {
+  isDragOver.value = false
+  const file = event.dataTransfer.files[0]
+  if (file && (file.type === 'text/csv' || file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+    selectedFile.value = file
+    parseLocalFile(file)
+  }
+}
+
+const clearFile = () => {
+  selectedFile.value = null
+}
+
+const extractSheetId = (input) => {
+  try {
+    // If it's a URL, extract the /d/{id}/ segment
+    if (/^https?:\/\//i.test(input)) {
+      const m = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/)
+      if (m && m[1]) return m[1]
+    }
+    // Otherwise assume it's already an ID
+    return input.trim()
+  } catch { return input }
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatDate = (dateString) => {
+  return dayjs(dateString).format('YYYY-MM-DD HH:mm')
+}
+
+const capitalizeFirst = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+const getStatusClass = (status) => {
+  const classes = {
+    completed: 'bg-green-100 text-green-800',
+    failed: 'bg-red-100 text-red-800',
+    processing: 'bg-yellow-100 text-yellow-800'
+  }
+  return classes[status] || 'bg-gray-100 text-gray-800'
+}
+
+const showSuccessMessage = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 5000)
+}
+
+const loadClasses = async () => {
+  try {
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getClasses(params)
+    classes.value = response.data.data?.data || response.data.data || response.data || []
+  } catch (err) {
+    console.error('Error loading classes:', err)
+  }
+}
+
+const loadTemplateHeaders = async () => {
+  try {
+    const resp = await teacherAPI.getImportTemplate('students')
+    expectedHeaders.value = resp?.data?.data?.headers || []
+  } catch (e) {
+    console.warn('Could not load template headers', e)
+  }
+}
+
+const loadSubjects = async () => {
+  try {
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getSubjectsForImport(params)
+    subjects.value = response.data.data || []
+  } catch (err) {
+    console.error('Error loading subjects:', err)
+  }
+}
+
 const loadImportHistory = async () => {
   try {
     loadingHistory.value = true
-    const res = await teacherAPI.getImportHistory()
-    importHistory.value = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
+    const params = schoolId.value ? { school_id: schoolId.value } : {}
+    const response = await teacherAPI.getImportHistory(params)
+    importHistory.value = response.data.data || response.data || []
   } catch (err) {
-    console.error(err)
-    error.value = 'Failed to load import history'
+    console.error('Error loading import history:', err)
   } finally {
     loadingHistory.value = false
   }
 }
 
-// Import
-const importStudents = async () => {
-  if (!selectedFile.value) {
-    error.value = 'Please select a file'
+const searchHistory = ref('')
+const filteredHistory = computed(() => {
+  const q = searchHistory.value.toLowerCase().trim()
+  if (!q) return importHistory.value
+  return importHistory.value.filter(i =>
+    (i.name || '').toLowerCase().includes(q) ||
+    (i.status || '').toLowerCase().includes(q) ||
+    (i.import_type || '').toLowerCase().includes(q)
+  )
+})
+
+const loadUploadedFiles = async (page = 1) => {
+  try {
+    loadingUploads.value = true
+    const params = { page, per_page: uploadsPerPage }
+    if (schoolId.value) params.school_id = schoolId.value
+    const response = await teacherAPI.getUploadedFiles(params)
+    const payload = response.data.data
+    uploadedFiles.value = payload.data || payload || []
+    uploadsMeta.value = payload && payload.data ? payload : null
+    uploadsPage = uploadsMeta.value ? uploadsMeta.value.current_page : page
+  } catch (err) {
+    console.error('Error loading uploaded files:', err)
+  } finally {
+    loadingUploads.value = false
+  }
+}
+
+const prevUploadsPage = async () => {
+  if (uploadsMeta.value && uploadsMeta.value.current_page > 1) {
+    await loadUploadedFiles(uploadsMeta.value.current_page - 1)
+  }
+}
+
+const nextUploadsPage = async () => {
+  if (uploadsMeta.value && uploadsMeta.value.current_page < uploadsMeta.value.last_page) {
+    await loadUploadedFiles(uploadsMeta.value.current_page + 1)
+  }
+}
+
+const reloadUploads = async () => {
+  await loadUploadedFiles(uploadsPage)
+}
+
+const importFromUploadWithRow = async (file) => {
+  const chosen = rowClassSelection.value[file.id] || defaultClassId.value
+  if (!chosen) {
+    error.value = 'Please select a class for this file (or set Default Class)'
     return
   }
-  
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+
+    const formData = new FormData()
+    formData.append('uploaded_file_id', file.id)
+    formData.append('default_class_id', chosen)
+    if (sheetName.value) formData.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
+    if (schoolId.value) formData.append('school_id', schoolId.value)
+
+    const response = await teacherAPI.importStudents(formData)
+    importResults.value = response.data.data
+    showSuccessMessage(response.data.message || 'Import completed')
+
+    await Promise.all([loadImportHistory(), loadClasses()])
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
+    console.error('Import from uploaded file error:', err)
+  } finally {
+    importing.value = false
+  }
+}
+
+const confirmDelete = async (file) => {
+  if (!confirm(`Delete ${file.original_name}?`)) return
+  try {
+    await teacherAPI.deleteUploadedFile(file.id)
+    showSuccessMessage('File deleted')
+    await loadUploadedFiles(uploadsMeta.value?.current_page || 1)
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Failed to delete file'
+  }
+}
+
+// File editor helpers
+const closeEditor = () => { showEditor.value = false }
+
+const getFetchableUrl = (url) => {
+  try {
+    const u = new URL(url, window.location.origin)
+    // If it points to Laravel public storage, always use path-only so Vite proxy handles it
+    if (u.pathname.startsWith('/storage')) {
+      return u.pathname
+    }
+    // Common localhost patterns
+    if ((u.hostname === 'localhost' || u.hostname === '127.0.0.1') && (u.port === '8000' || u.host === 'localhost:8000')) {
+      if (u.pathname.startsWith('/storage')) return u.pathname
+    }
+    return u.toString()
+  } catch {
+    return url
+  }
+}
+
+const openFileEditor = async (file) => {
+  try {
+    editorOriginalFile.value = file
+    editorFileName.value = file.original_name || file.label || 'uploaded.csv'
+    editorHeaders.value = []
+    editorRows.value = []
+    editorSheetNames.value = []
+    selectedEditorSheetName.value = ''
+    editorMissingHeaders.value = []
+    editorExtraHeaders.value = []
+    showEditor.value = true
+    if (!file.url) {
+      error.value = 'This file has no accessible URL to preview.'
+      return
+    }
+    const res = await fetch(getFetchableUrl(file.url), { credentials: 'include' })
+    const arrayBuffer = await res.arrayBuffer()
+    const wb = XLSX.read(arrayBuffer, { type: 'array' })
+    editorSheetNames.value = wb.SheetNames
+    const name = wb.SheetNames[0]
+    selectedEditorSheetName.value = name
+    const sheet = wb.Sheets[name]
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+    if (json.length) {
+      editorHeaders.value = Object.keys(json[0])
+      editorRows.value = json
+    } else {
+      // Try CSV fallback
+      const text = new TextDecoder().decode(arrayBuffer)
+      const rows = text.split(/\r?\n/).filter(Boolean).map(l => l.split(','))
+      if (rows.length) {
+        editorHeaders.value = rows[0]
+        editorRows.value = rows.slice(1).map(r => Object.fromEntries(editorHeaders.value.map((h,i)=>[h, r[i] ?? ''])))
+      }
+    }
+    // header diff
+    if (expectedHeaders.value.length) {
+      const set = new Set(editorHeaders.value)
+      editorMissingHeaders.value = expectedHeaders.value.filter(h => !set.has(h))
+      editorExtraHeaders.value = editorHeaders.value.filter(h => !expectedHeaders.value.includes(h))
+    }
+  } catch (e) {
+    console.error('Preview failed', e)
+    error.value = 'Failed to preview file'
+  }
+}
+
+const reparseEditorSheet = async () => {
+  try {
+    if (!editorOriginalFile.value || !selectedEditorSheetName.value) return
+    const res = await fetch(getFetchableUrl(editorOriginalFile.value.url), { credentials: 'include' })
+    const arrayBuffer = await res.arrayBuffer()
+    const wb = XLSX.read(arrayBuffer, { type: 'array' })
+    const sheet = wb.Sheets[selectedEditorSheetName.value]
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+    editorHeaders.value = json.length ? Object.keys(json[0]) : []
+    editorRows.value = json
+    if (expectedHeaders.value.length) {
+      const set = new Set(editorHeaders.value)
+      editorMissingHeaders.value = expectedHeaders.value.filter(h => !set.has(h))
+      editorExtraHeaders.value = editorHeaders.value.filter(h => !expectedHeaders.value.includes(h))
+    }
+  } catch (e) {
+    console.error('Reparse failed', e)
+  }
+}
+
+const toCsv = (headers, rows) => {
+  const head = headers.join(',')
+  const body = rows.map(r => headers.map(h => (r[h] ?? '').toString().replace(/"/g,'""')).map(v=>`"${v}"`).join(',')).join('\n')
+  return head + '\n' + body
+}
+
+const downloadEditedCsv = () => {
+  const csv = toCsv(editorHeaders.value, editorRows.value)
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const checkGoogleStatus = async () => {
+  try {
+    const resp = await teacherAPI.getGoogleStatus()
+    googleConnected.value = !!resp?.data?.connected
+  } catch {
+    googleConnected.value = false
+  }
+}
+
+const connectGoogle = async () => {
+  try {
+    googleLoading.value = true
+    const resp = await teacherAPI.getGoogleAuthUrl()
+    const url = resp?.data?.auth_url
+    if (url) window.location.href = url
+  } catch (e) {
+    console.error('Google auth url error', e)
+    error.value = 'Failed to start Google authorization'
+  } finally {
+    googleLoading.value = false
+  }
+}
+
+const previewGoogle = async () => {
+  try {
+    gsPreviewLoading.value = true
+    gsPreviewHeaders.value = []
+    gsPreviewRows.value = []
+    const payload = {
+      sheet_id: extractSheetId(sheetUrl.value),
+      sheet_name: gsSheetName.value || undefined,
+      range: gsRange.value || undefined,
+      limit: 50
+    }
+    const resp = await teacherAPI.previewGoogleSheet(payload)
+    gsPreviewHeaders.value = resp?.data?.headers || []
+    gsPreviewRows.value = resp?.data?.rows || []
+  } catch (e) {
+    console.error('Preview Google sheet failed', e)
+    error.value = 'Failed to preview Google Sheet'
+  } finally {
+    gsPreviewLoading.value = false
+  }
+}
+
+const importFromGoogle = async () => {
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+    const payload = {
+      sheet_id: extractSheetId(sheetUrl.value),
+      sheet_name: gsSheetName.value || undefined,
+      range: gsRange.value || undefined,
+      default_class_id: defaultClassId.value
+    }
+    const resp = await teacherAPI.importFromGoogle(payload)
+    importResults.value = resp?.data?.data
+    showSuccessMessage(resp?.data?.message || 'Import completed')
+    await Promise.all([loadImportHistory(), loadClasses()])
+  } catch (e) {
+    console.error('Import Google sheet failed', e)
+    error.value = e?.response?.data?.message || 'Failed to import from Google Sheet'
+  } finally {
+    importing.value = false
+  }
+}
+
+const uploadEditedCsv = async () => {
+  try {
+    const csv = toCsv(editorHeaders.value, editorRows.value)
+    const filename = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+    const file = new File([csv], filename, { type: 'text/csv;charset=utf-8' })
+    const form = new FormData()
+    form.append('file', file, filename)
+    form.append('label', filename)
+    if (schoolId.value) form.append('school_id', schoolId.value)
+    await teacherAPI.uploadFileOnly(form)
+    showSuccessMessage('Edited file uploaded')
+    await loadUploadedFiles(1)
+  } catch (e) {
+    console.error('Upload edited CSV failed', e)
+    error.value = 'Failed to upload edited CSV'
+  }
+}
+
+const importEditedCsv = async () => {
+  try {
+    // Upload edited first, then import by id
+    const csv = toCsv(editorHeaders.value, editorRows.value)
+    const filename = 'edited_' + editorFileName.value.replace(/\s+/g,'_')
+    const file = new File([csv], filename, { type: 'text/csv;charset=utf-8' })
+    const form = new FormData()
+    form.append('file', file, filename)
+    form.append('label', filename)
+    if (schoolId.value) form.append('school_id', schoolId.value)
+    const resp = await teacherAPI.uploadFileOnly(form)
+    // Try to detect id from response; fallback by reloading and taking most recent
+    let uploadedId = resp?.data?.data?.id || resp?.data?.id
+    if (!uploadedId) {
+      await loadUploadedFiles(1)
+      uploadedId = uploadedFiles.value?.[0]?.id
+    }
+    if (!uploadedId) throw new Error('Cannot determine uploaded file id')
+
+    const importForm = new FormData()
+    importForm.append('uploaded_file_id', uploadedId)
+    importForm.append('default_class_id', defaultClassId.value)
+    if (sheetName.value) importForm.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => importForm.append('subject_ids[]', id))
+    }
+    if (schoolId.value) importForm.append('school_id', schoolId.value)
+    const importResp = await teacherAPI.importStudents(importForm)
+    importResults.value = importResp.data.data
+    showSuccessMessage(importResp.data.message || 'Import completed')
+    closeEditor()
+  } catch (e) {
+    console.error('Import edited CSV failed', e)
+    error.value = 'Failed to import edited CSV'
+  }
+}
+
+const downloadTemplate = async () => {
+  try {
+    const response = await teacherAPI.getImportTemplate('students')
+    const template = response.data.data
+    
+    const headers = template.headers.join(',')
+    const sampleRow = template.sample_data[0]
+    const sampleData = template.headers.map(header => sampleRow[header] || '').join(',')
+    const csvContent = `${headers}\n${sampleData}`
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'student_import_template.csv'
+    a.click()
+    window.URL.revokeObjectURL(url)
+    
+    showSuccessMessage('Template downloaded successfully')
+  } catch (err) {
+    error.value = 'Failed to download template'
+  }
+}
+
+const importStudents = async () => {
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+    
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    formData.append('default_class_id', defaultClassId.value)
+    if (sheetName.value) {
+      formData.append('sheet_name', sheetName.value)
+    }
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
+    if (schoolId.value) {
+      formData.append('school_id', schoolId.value)
+    }
+
+    const response = await teacherAPI.importStudents(formData)
+
+    importResults.value = response.data.data
+    showSuccessMessage(response.data.message || 'Import completed')
+    
+    // Clear form
+    selectedFile.value = null
+    defaultClassId.value = ''
+    sheetName.value = ''
+    
+    // Refresh lists
+    await Promise.all([loadImportHistory(), loadClasses(), loadUploadedFiles(1)])
+    
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
+    console.error('Import error:', err)
+  } finally {
+    importing.value = false
+  }
+}
+
+const uploadFileOnly = async () => {
   try {
     importing.value = true
     error.value = ''
@@ -456,35 +1130,92 @@ const importStudents = async () => {
 
     const formData = new FormData()
     formData.append('file', selectedFile.value)
-    if (defaultClassId.value) {
-      formData.append('default_class_id', defaultClassId.value)
-    }
+    formData.append('label', selectedFile.value?.name || '')
+    if (schoolId.value) formData.append('school_id', schoolId.value)
 
-    const res = await teacherAPI.importStudents(formData)
+    const response = await teacherAPI.uploadFileOnly(formData)
+    showSuccessMessage(response.data.message || 'File uploaded')
 
-    successMessage.value = res.data.message || 'Import completed successfully'
-    if (res.data.errors && res.data.errors.length > 0) {
-      successMessage.value += `, but with ${res.data.errors.length} errors`
-    }
-    
-    // Clear form
     selectedFile.value = null
     defaultClassId.value = ''
-    
-    // Refresh history
-    await loadImportHistory()
+    sheetName.value = ''
+    fileOnly.value = false
+
+    await loadUploadedFiles(1)
+
   } catch (err) {
-    console.error(err)
-    error.value = err.response?.data?.message || 
-                 err.response?.data?.error || 
-                 'Import failed. Please check your file and try again.'
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to upload file'
+    }
+    console.error('Upload file error:', err)
   } finally {
     importing.value = false
   }
 }
 
-onMounted(() => {
+const importFromUpload = async (file) => {
+  if (!defaultClassId.value) {
+    error.value = 'Please select a Default Class before importing'
+    return
+  }
+  try {
+    importing.value = true
+    error.value = ''
+    importResults.value = null
+
+    const formData = new FormData()
+    formData.append('uploaded_file_id', file.id)
+    formData.append('default_class_id', defaultClassId.value)
+    if (sheetName.value) formData.append('sheet_name', sheetName.value)
+    if (subjectIds.value && subjectIds.value.length) {
+      subjectIds.value.forEach(id => formData.append('subject_ids[]', id))
+    }
+    if (schoolId.value) formData.append('school_id', schoolId.value)
+
+    const response = await teacherAPI.importStudents(formData)
+    importResults.value = response.data.data
+    showSuccessMessage(response.data.message || 'Import completed')
+
+    await Promise.all([loadImportHistory(), loadClasses()])
+  } catch (err) {
+    if (err?.response?.status === 422 && err.response.data?.errors) {
+      const details = Object.values(err.response.data.errors).flat().join('; ')
+      error.value = `${err.response.data.message}${details ? ': ' + details : ''}`
+    } else {
+      error.value = err.response?.data?.message || 'Failed to import students'
+    }
+    console.error('Import from uploaded file error:', err)
+  } finally {
+    importing.value = false
+  }
+}
+
+onMounted(async () => {
   loadClasses()
+  loadSubjects()
   loadImportHistory()
+  loadUploadedFiles(1)
+  loadTemplateHeaders()
+  await checkGoogleStatus()
+  // If returned from OAuth
+  const url = new URL(window.location.href)
+  const googleParam = url.searchParams.get('google')
+  if (googleParam === 'connected') {
+    showSuccessMessage('Google account connected')
+    url.searchParams.delete('google')
+    window.history.replaceState({}, '', url.toString())
+  }
+  // Start auto refresh
+  uploadsTimer = setInterval(() => {
+    if (autoRefreshUploads.value) {
+      loadUploadedFiles(uploadsPage)
+    }
+  }, 15000)
+})
+onUnmounted(() => {
+  if (uploadsTimer) clearInterval(uploadsTimer)
 })
 </script>

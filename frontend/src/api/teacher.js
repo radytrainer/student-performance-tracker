@@ -1,42 +1,58 @@
 import apiClient from './axiosConfig'
 
 export const teacherAPI = {
-  // Classes for the current teacher
-  getClasses() {
-    return apiClient.get('/attendance/my-classes')
-  },
+// Classes for the current teacher
+getClasses(params = {}) {
+return apiClient.get('/attendance/my-classes', { params })
+},
 
-  // Basic teacher import endpoints
-  getImportHistory() {
-    return apiClient.get('/teacher/import-history')
-  },
-  importStudents(formData) {
-    // Use unified teacher import endpoint (same behavior as admin import)
-    return apiClient.post('/teacher/import/students', formData)
-  },
+// Import history
+getImportHistory(params = {}) {
+return apiClient.get('/teacher/import-history', { params })
+},
 
-  // Advanced import workflow using admin endpoints (teachers are allowed)
-  uploadFileOnly(formData) {
-    return apiClient.post('/teacher/import/upload-file', formData)
-  },
-  getUploadedFiles(params = {}) {
-    return apiClient.get('/teacher/import/uploads', { params })
-  },
-  deleteUploadedFile(id) {
-    return apiClient.delete(`/teacher/import/uploads/${id}`)
-  },
-  getSubjectsForImport() {
-    return apiClient.get('/teacher/import/subjects-list')
-  },
-  importStudentsFromUpload(formData) {
-    // Supports uploaded_file_id, default_class_id, sheet_name, subject_ids[]
-    return apiClient.post('/teacher/import/students', formData)
-  },
-  getImportTemplate(type = 'students') {
-    return apiClient.get('/teacher/import/template', { params: { type } })
-  },
+importStudents(formData) {
+return apiClient.post('/teacher/import/students', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+},
 
-  async getImportHistory() {
-    return apiClient.get('/teacher/import-history')
-  }
+// File upload/manage
+uploadFileOnly(formData) {
+return apiClient.post('/teacher/import/upload-file', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+},
+getUploadedFiles(params = {}) {
+return apiClient.get('/teacher/import/uploads', { params })
+},
+deleteUploadedFile(id) {
+return apiClient.delete(`/teacher/import/uploads/${id}`)
+},
+
+// Google Sheets helpers
+getGoogleAuthUrl() {
+return apiClient.get('/google/auth-url')
+},
+getGoogleStatus() {
+  return apiClient.get('/google/status')
+},
+previewGoogleSheet(payload) {
+  // { sheet_id, sheet_name?, range?, limit? }
+ return apiClient.post('/google/sheets/preview', payload)
+},
+importFromGoogle(payload) {
+  // { sheet_id, sheet_name?, range?, default_class_id }
+  return apiClient.post('/teacher/import/google', payload)
+},
+ 
+// Lists
+getSubjectsForImport(params = {}) {
+  return apiClient.get('/teacher/import/subjects-list', { params })
+},
+ 
+importStudentsFromUpload(formData) {
+  // Supports uploaded_file_id, default_class_id, sheet_name, subject_ids[]
+return apiClient.post('/teacher/import/students', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+},
+ 
+getImportTemplate(type = 'students') {
+return apiClient.get('/teacher/import/template', { params: { type } })
+},
 }

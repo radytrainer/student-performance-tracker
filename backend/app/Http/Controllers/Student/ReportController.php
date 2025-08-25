@@ -20,11 +20,72 @@ use App\Exports\GradeReportExport;
 use App\Exports\AttendanceReportExport;
 use App\Exports\ProgressReportExport;
 use App\Exports\TranscriptExport;
-// use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Notification;
 
 class ReportController extends Controller
 {
     protected $student;
+
+    /**
+     * Return per-subject student vs class average (percentage) for current or given term.
+     * GET /api/student/comparison?term_id=optional
+     */
+    public function comparison(Request $request)
+    {
+        try {
+            $termId = $request->query('term_id');
+            if (!$termId) {
+                $termId = optional(Term::where('is_current', true)->first())->id;
+            }
+            $student = $this->student; // set by middleware
+            $classId = $student->current_class_id;
+            if (!$classId) {
+                return response()->json(['data' => []]);
+            }
+
+            // Student averages by subject
+            $studentAverages = Grade::query()
+                ->join('class_subjects', 'grades.class_subject_id', '=', 'class_subjects.id')
+                ->join('subjects', 'class_subjects.subject_id', '=', 'subjects.id')
+                ->select('subjects.id as subject_id', 'subjects.subject_name')
+                ->when($termId, function ($q) use ($termId) { $q->where('grades.term_id', $termId); })
+                ->where('grades.student_id', $student->user_id)
+                ->groupBy('subjects.id', 'subjects.subject_name')
+                ->selectRaw('CASE WHEN SUM(grades.max_score) > 0 THEN (SUM(grades.score_obtained) / SUM(grades.max_score)) * 100 ELSE 0 END as student_avg')
+                ->get()
+                ->keyBy('subject_id');
+
+            // Class averages by subject for student's current class
+            $classAverages = Grade::query()
+                ->join('class_subjects', 'grades.class_subject_id', '=', 'class_subjects.id')
+                ->join('subjects', 'class_subjects.subject_id', '=', 'subjects.id')
+                ->select('subjects.id as subject_id', 'subjects.subject_name')
+                ->when($termId, function ($q) use ($termId) { $q->where('grades.term_id', $termId); })
+                ->where('class_subjects.class_id', $classId)
+                ->groupBy('subjects.id', 'subjects.subject_name')
+                ->selectRaw('CASE WHEN SUM(grades.max_score) > 0 THEN (SUM(grades.score_obtained) / SUM(grades.max_score)) * 100 ELSE 0 END as class_avg')
+                ->get()
+                ->keyBy('subject_id');
+
+            // Merge subjects present in either set
+            $subjectIds = collect(array_unique(array_merge($studentAverages->keys()->all(), $classAverages->keys()->all())));
+            $result = $subjectIds->map(function ($sid) use ($studentAverages, $classAverages) {
+                $s = $studentAverages->get($sid);
+                $c = $classAverages->get($sid);
+                return [
+                    'subject_id' => $sid,
+                    'subject_name' => $s->subject_name ?? ($c->subject_name ?? 'Unknown'),
+                    'student_avg' => round(optional($s)->student_avg ?? 0, 1),
+                    'class_avg' => round(optional($c)->class_avg ?? 0, 1),
+                ];
+            })->values();
+
+            return response()->json(['data' => $result]);
+        } catch (\Throwable $e) {
+            return response()->json(['data' => [], 'error' => $e->getMessage()], 500);
+        }
+    }
 
     public function __construct()
     {
@@ -578,43 +639,54 @@ class ReportController extends Controller
      */
     private function generatePDFReport($type, $data)
     {
-        // For now, return a simple JSON response since DomPDF is not yet installed
-        // In production, uncomment the PDF generation code below
-        
-        // Create report record
+        // Create report record first
         $reportCard = ReportCard::create([
             'student_id' => $this->student->user_id,
             'term_id' => Term::where('is_current', true)->first()->id ?? null,
             'generated_by' => Auth::id(),
             'overall_grade' => $data['gpa'] ?? 0,
-            'attendance_percentage' => $data['attendance']['percentage'] ?? 0,
-            'file_path' => null, // Will be set when PDF is actually generated
+            'attendance_percentage' => data_get($data, 'attendance.percentage', 0),
+            'file_path' => null,
             'generated_at' => now()
         ]);
-        
-        return response()->json([
-            'message' => 'Report generated successfully',
-            'report_id' => $reportCard->id,
-            'data' => $data
-        ]);
-        
-        /*
-        // Uncomment this code after installing barryvdh/laravel-dompdf
+
+        // Render PDF from Blade view
         $viewName = "reports.{$type}";
-        
-        $pdf = PDF::loadView($viewName, $data);
-        
-        $filename = "{$type}_" . $this->student->student_code . "_" . now()->format('Y-m-d') . ".pdf";
-        
-        // Save to storage
-        $filePath = "reports/{$filename}";
-        $pdf->save(storage_path("app/public/{$filePath}"));
-        
+        if (!view()->exists($viewName)) {
+            // Fallback to a generic view or return JSON if view missing
+            return response()->json([
+                'error' => "Report view '{$viewName}' not found"
+            ], 422);
+        }
+
+        $pdf = Pdf::loadView($viewName, $data);
+        $filename = "{$type}_" . ($this->student->student_code ?? 'student') . "_" . now()->format('Y-m-d') . ".pdf";
+
+        // Persist to storage so it appears in Recent Reports and is downloadable later
+        $relativePath = "reports/{$filename}";
+        $absolutePath = storage_path("app/public/{$relativePath}");
+        // Ensure directory exists
+        @mkdir(dirname($absolutePath), 0775, true);
+        $pdf->save($absolutePath);
+
         // Update report record with file path
-        $reportCard->update(['file_path' => $filePath]);
-        
-        return $pdf->download($filename);
-        */
+        $reportCard->update(['file_path' => $relativePath]);
+
+        // Create a notification for the student
+        try {
+            $n = Notification::create([
+                'user_id' => $this->student->user_id,
+                'title' => 'Report generated',
+                'message' => 'Your ' . str_replace('_', ' ', $type) . ' is ready for download.',
+                'type' => 'success',
+                'is_read' => false,
+                'sent_at' => now(),
+            ]);
+            event(new \App\Events\NotificationCreated($n));
+        } catch (\Throwable $e) {}
+ 
+        // Return the file for immediate download
+        return response()->download($absolutePath, $filename);
     }
 
     /**
@@ -655,6 +727,19 @@ class ReportController extends Controller
                 'file_path' => null, // Excel files are not stored, downloaded directly
                 'generated_at' => now()
             ]);
+
+            // Create a notification for the student before returning file
+            try {
+                $n = Notification::create([
+                    'user_id' => $this->student->user_id,
+                    'title' => 'Report generated',
+                    'message' => 'Your ' . str_replace('_', ' ', $type) . ' (Excel) is ready for download.',
+                    'type' => 'success',
+                    'is_read' => false,
+                    'sent_at' => now(),
+                ]);
+                event(new \App\Events\NotificationCreated($n));
+            } catch (\Throwable $e) {}
 
             return Excel::download($export, $filename);
             

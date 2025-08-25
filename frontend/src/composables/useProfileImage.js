@@ -1,6 +1,7 @@
 import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import profileImageAPI from '@/api/profileImage'
+import { resolveImageUrl } from '@/utils/imageUrl'
 
 // Global reactive profile image state
 const globalProfileImage = ref(null)
@@ -19,17 +20,7 @@ export function useProfileImage() {
   )
 
   const getImageUrl = (imagePath) => {
-    if (!imagePath) return null
-    
-    // If it's already a full URL (starts with http), return as is
-    if (imagePath.startsWith('http')) return imagePath
-    
-    // If it's a data URL (base64), return as is
-    if (imagePath.startsWith('data:')) return imagePath
-    
-    // If it's a relative path, prepend the backend storage URL
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-    return `${baseUrl.replace('/api', '')}/storage/${imagePath}`
+    return resolveImageUrl(imagePath)
   }
 
   const updateProfileImage = async (file) => {

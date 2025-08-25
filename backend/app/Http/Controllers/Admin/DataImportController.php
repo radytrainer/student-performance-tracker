@@ -6,26 +6,186 @@ use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Classes;
+use App\Models\Subject;
+use App\Models\UploadedFile as UploadedFileModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Str;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
-use App\Models\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class DataImportController extends Controller
 {
+    /**
+     * Import students from a Google Sheet (teacher/admin).
+     */
+    public function importFromGoogleSheet(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'sheet_id' => 'required|string',
+                'sheet_name' => 'nullable|string',
+                'range' => 'nullable|string',
+                'default_class_id' => 'required|exists:classes,id',
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Load Google token for current user
+            $token = \App\Models\GoogleToken::where('user_id', auth()->id())->first();
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Google account not connected'
+                ], 422);
+            }
+
+            $client = new \Google_Client();
+            $client->setClientId(config('services.google.client_id'));
+            $client->setClientSecret(config('services.google.client_secret'));
+            $client->setRedirectUri(config('services.google.redirect'));
+            $client->setAccessToken(json_decode($token->access_token, true));
+            if ($client->isAccessTokenExpired() && $token->refresh_token) {
+                $client->fetchAccessTokenWithRefreshToken($token->refresh_token);
+                $newToken = $client->getAccessToken();
+                $token->access_token = json_encode($newToken);
+                $token->expires_at = now()->addSeconds($newToken['expires_in'] ?? 3600);
+                $token->save();
+            }
+
+            $service = new \Google_Service_Sheets($client);
+            $range = $request->input('range');
+            $sheetName = $request->input('sheet_name');
+            if (!$range) {
+                $range = ($sheetName ?: 'Sheet1') . '!A1:Z10000';
+            }
+            $resp = $service->spreadsheets_values->get($request->input('sheet_id'), $range);
+            $values = $resp->getValues();
+            if (!$values || count($values) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No data found in sheet'
+                ], 422);
+            }
+
+            // Build associative rows from headers
+            $headers = array_map(function ($h) {
+                $h = trim((string)$h);
+                $h = preg_replace('/\s+/', ' ', $h);
+                return strtolower(str_replace(' ', '_', $h));
+            }, $values[0]);
+
+            $rows = [];
+            for ($i = 1; $i < count($values); $i++) {
+                $assoc = [];
+                foreach ($headers as $idx => $h) {
+                    $assoc[$h] = $values[$i][$idx] ?? '';
+                }
+                if (count(array_filter($assoc, fn($v) => $v !== '' && $v !== null)) === 0) continue;
+                $rows[] = $assoc;
+            }
+
+            $defaultClassId = (int)$request->input('default_class_id');
+            DB::beginTransaction();
+
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($rows as $index => $row) {
+                try {
+                    if (empty(array_filter($row))) continue;
+
+                    $studentCode = $this->generateStudentCode();
+
+                    if (empty($row['email'])) {
+                        $row['email'] = strtolower(($row['first_name'] ?? 'student') . '.' . ($row['last_name'] ?? 'user') . '@student.school.com');
+                    }
+
+                    if (User::where('email', $row['email'])->exists()) {
+                        $errors[] = "Row " . ($index + 1) . ": Email {$row['email']} already exists";
+                        $errorCount++;
+                        continue;
+                    }
+
+                    $user = User::create([
+                        'first_name' => $row['first_name'] ?? '',
+                        'last_name' => $row['last_name'] ?? '',
+                        'email' => $row['email'],
+                        'username' => $row['email'],
+                        'password_hash' => Hash::make('password123'),
+                        'role' => 'student',
+                        'is_active' => true
+                    ]);
+
+                    Student::create([
+                        'user_id' => $user->id,
+                        'student_code' => $studentCode,
+                        'date_of_birth' => $row['date_of_birth'] ?? null,
+                        'gender' => $row['gender'] ?? null,
+                        'address' => $row['address'] ?? null,
+                        'parent_name' => $row['parent_name'] ?? null,
+                        'parent_phone' => $row['parent_phone'] ?? null,
+                        'current_class_id' => $row['class_id'] ?? $defaultClassId,
+                        'enrollment_date' => now()
+                    ]);
+
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
+                    $errorCount++;
+                }
+            }
+
+            DB::commit();
+
+            // Notify current user (admin/teacher)
+            try {
+            $n = \App\Models\Notification::create([
+                'user_id' => auth()->id(),
+            'title' => 'Google Sheet Import Completed',
+            'message' => "{$successCount} students imported, {$errorCount} errors",
+            'type' => 'success',
+                'is_read' => false,
+                    'sent_at' => now(),
+                ]);
+                event(new \App\Events\NotificationCreated($n));
+            } catch (\Throwable $e) {}
+ 
+            return response()->json([
+                'success' => true,
+                'message' => "Import completed. {$successCount} students imported successfully.",
+                'data' => [
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                    'errors' => $errors
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Google sheet import failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to import from Google Sheet'
+            ], 500);
+        }
+    }
+
     /**
      * Constructor to ensure only admins can access these methods
      */
     public function __construct()
     {
+        // Allow both admin and teacher to use these endpoints
         $this->middleware(['auth:sanctum', 'role:admin,teacher']);
     }
 
@@ -35,14 +195,11 @@ class DataImportController extends Controller
     public function importStudents(Request $request): JsonResponse
     {
         try {
+            // Support either direct file upload or previously uploaded file by ID
             $validator = Validator::make($request->all(), [
-                'file' => 'required_without:uploaded_file_id|file|mimes:csv,xlsx,xls|max:5120',
-                'uploaded_file_id' => 'required_without:file|exists:uploaded_files,id',
-                'default_class_id' => 'nullable|exists:classes,id',
-                'sheet_name' => 'nullable|string',
-                'subject_ids' => 'array',
-                'subject_ids.*' => 'exists:subjects,id',
-                'create_class_subjects' => 'boolean'
+                'file' => 'nullable|file|mimes:csv,txt,xlsx,xls|max:20480',
+                'uploaded_file_id' => 'nullable|exists:uploaded_files,id',
+                'default_class_id' => 'required|exists:classes,id'
             ]);
 
             if ($validator->fails()) {
@@ -54,23 +211,48 @@ class DataImportController extends Controller
             }
 
             $defaultClassId = $request->default_class_id;
-            $sheetName = $request->get('sheet_name');
 
-            // Determine source: uploaded file or new upload
+            // Determine data source
             $csvData = [];
-            if ($request->filled('uploaded_file_id')) {
-                $upload = UploadedFile::findOrFail($request->uploaded_file_id);
-                $path = storage_path('app/public/' . $upload->stored_path);
-                $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-                if (in_array($ext, ['xlsx', 'xls'])) {
-                    $csvData = $this->readExcelFromPath($path, $sheetName);
-                } else {
-                    $csvData = $this->readCsvFromPath($path);
-                }
-            } else {
+            if ($request->hasFile('file')) {
                 $file = $request->file('file');
-                // Read file data (CSV or Excel)
-                $csvData = $this->readUploadedFile($file);
+                $ext = strtolower($file->getClientOriginalExtension());
+                if (in_array($ext, ['csv', 'txt'])) {
+                    $csvData = $this->readCsvFile($file);
+                } elseif (in_array($ext, ['xlsx', 'xls'])) {
+                    $csvData = $this->readXlsxPath($file->getRealPath());
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unsupported file type. Please upload CSV or Excel (.xlsx/.xls)'
+                    ], 422);
+                }
+            } elseif ($request->filled('uploaded_file_id')) {
+                $uploaded = UploadedFileModel::find($request->input('uploaded_file_id'));
+                if (!$uploaded) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Uploaded file not found'
+                    ], 422);
+                }
+                $path = Storage::disk('public')->path($uploaded->stored_path);
+                if (!file_exists($path)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Uploaded file is missing on server'
+                    ], 422);
+                }
+                $lowerName = strtolower($uploaded->original_name);
+                if (str_ends_with($lowerName, '.csv') || str_ends_with($lowerName, '.txt')) {
+                    $csvData = $this->readCsvPath($path);
+                } elseif (str_ends_with($lowerName, '.xlsx') || str_ends_with($lowerName, '.xls')) {
+                    $csvData = $this->readXlsxPath($path);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unsupported file type. Only CSV or Excel files are allowed.'
+                    ], 422);
+                }
             }
             
             if (empty($csvData)) {
@@ -110,7 +292,7 @@ class DataImportController extends Controller
                     
                     // Generate email if not provided
                     if (empty($row['email'])) {
-                        $row['email'] = strtolower(($row['first_name'] ?? 'student') . '.' . ($row['last_name'] ?? Str::random(4)) . '@student.school.com');
+                        $row['email'] = strtolower($row['first_name'] . '.' . $row['last_name'] . '@student.school.com');
                     }
 
                     // Check if email already exists
@@ -122,38 +304,27 @@ class DataImportController extends Controller
 
                     // Create user account
                     $user = User::create([
-                        'first_name' => $row['first_name'] ?? 'Student',
-                        'last_name' => $row['last_name'] ?? 'User',
+                        'first_name' => $row['first_name'],
+                        'last_name' => $row['last_name'],
                         'email' => $row['email'],
                         'username' => $row['email'],
                         'password_hash' => Hash::make('password123'), // Default password
                         'role' => 'student',
-                        'is_active' => true,
-                        'school_id' => auth()->user()->school_id ?? null,
+                        'is_active' => true
                     ]);
 
                     // Create student profile
-                    $student = Student::create([
+                    Student::create([
                         'user_id' => $user->id,
                         'student_code' => $studentCode,
-                        'date_of_birth' => $row['date_of_birth'] ?? null,
-                        'gender' => $row['gender'] ?? null,
+                        'date_of_birth' => $row['date_of_birth'],
+                        'gender' => $row['gender'],
                         'address' => $row['address'] ?? null,
                         'parent_name' => $row['parent_name'] ?? null,
                         'parent_phone' => $row['parent_phone'] ?? null,
                         'current_class_id' => $row['class_id'] ?? $defaultClassId,
                         'enrollment_date' => now()
                     ]);
-
-                    // Create enrollment record for real-time class membership tracking
-                    if ($student->current_class_id) {
-                        \App\Models\StudentClass::create([
-                            'student_id' => $student->user_id,
-                            'class_id' => $student->current_class_id,
-                            'enrollment_date' => now(),
-                            'status' => 'active',
-                        ]);
-                    }
 
                     $successCount++;
 
@@ -163,25 +334,25 @@ class DataImportController extends Controller
                 }
             }
 
-            // Optionally assign selected subjects to the class (ensures class has these subjects)
-            if ($request->has('subject_ids') && is_array($request->subject_ids) && $defaultClassId) {
-                foreach ($request->subject_ids as $subjectId) {
-                    if (!\App\Models\ClassSubject::where('class_id', $defaultClassId)->where('subject_id', $subjectId)->exists()) {
-                        \App\Models\ClassSubject::create([
-                            'class_id' => $defaultClassId,
-                            'subject_id' => $subjectId,
-                            'teacher_id' => null,
-                        ]);
-                    }
-                }
-            }
-
             DB::commit();
+
+            // Create a notification for the current user
+            try {
+                $n = \App\Models\Notification::create([
+                    'user_id' => auth()->id(),
+                    'title' => 'Import Completed',
+                    'message' => "{$successCount} students imported, {$errorCount} errors",
+                    'type' => 'announcement',
+                    'is_read' => false,
+                    'sent_at' => now(),
+                ]);
+                event(new \App\Events\NotificationCreated($n));
+            } catch (\Throwable $e) {}
 
             // Log the import
             Log::info('Admin imported students from file', [
                 'admin_id' => auth()->id(),
-                'file_name' => $file->getClientOriginalName(),
+                'file_name' => (isset($file) ? $file->getClientOriginalName() : ($uploaded->original_name ?? 'uploaded')),
                 'success_count' => $successCount,
                 'error_count' => $errorCount,
                 'timestamp' => now()
@@ -208,89 +379,8 @@ class DataImportController extends Controller
     }
 
     /**
-    * Upload any file and store it without parsing
-    */
-    public function uploadFile(Request $request): JsonResponse
-    {
-    try {
-    $validator = Validator::make($request->all(), [
-                'file' => 'required|file|max:10240', // allow up to 10MB any type
-                'label' => 'nullable|string|max:255',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $file = $request->file('file');
-            $original = $file->getClientOriginalName();
-            $safeName = time() . '_' . Str::random(8) . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $original);
-
-            $path = $file->storeAs('imports/uploads', $safeName, ['disk' => 'public']);
-            $url = asset('storage/' . $path);
-
-            // Persist metadata for real-time availability
-            $uploaded = UploadedFile::create([
-                'user_id' => auth()->id(),
-                'school_id' => auth()->user()->school_id ?? null,
-                'label' => $request->get('label'),
-                'original_name' => $original,
-                'stored_path' => $path,
-                'mime_type' => $file->getClientMimeType(),
-                'size_bytes' => $file->getSize(),
-                'url' => $url,
-                'uploaded_at' => now(),
-            ]);
-
-            Log::info('File uploaded for storage', [
-                'admin_id' => auth()->id(),
-                'file_name' => $original,
-                'stored_as' => $path,
-                'label' => $request->get('label'),
-                'timestamp' => now()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'File uploaded successfully',
-                'data' => $uploaded
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error uploading file: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload file'
-            ], 500);
-        }
-    }
- 
-    /**
-     * List subjects for import (for admin and teacher)
+     * Get import template
      */
-    public function getSubjectsList(Request $request): JsonResponse
-    {
-        try {
-            $subjects = \App\Models\Subject::orderBy('subject_name')->get(['id','subject_name']);
-            return response()->json([
-                'success' => true,
-                'data' => $subjects
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error getting subjects list: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get subjects list'
-            ], 500);
-        }
-    }
-
-    /**
-      * Get import template
-      */
     public function getTemplate(Request $request): JsonResponse
     {
         try {
@@ -338,72 +428,31 @@ class DataImportController extends Controller
             ], 500);
         }
     }
-    
+
     /**
-    * Paginated list of uploaded files
-    */
-    public function listUploads(Request $request): JsonResponse
+     * Get import history
+     */
+    public function getImportHistory(): JsonResponse
     {
-    try {
-    $perPage = (int) $request->get('per_page', 10);
-    $uploads = UploadedFile::query()
-    ->orderByDesc('uploaded_at')
-    ->paginate($perPage);
-
-    return response()->json([
-    'success' => true,
-    'data' => $uploads
-    ]);
-    } catch (\Exception $e) {
-    Log::error('Error listing uploads: ' . $e->getMessage());
-    return response()->json([
-    'success' => false,
-    'message' => 'Failed to list uploads'
-    ], 500);
-    }
-    }
-
-    /**
-     * Delete an uploaded file (record + storage)
-    */
-    public function deleteUpload(int $id): JsonResponse
-    {
-    try {
-            $upload = UploadedFile::findOrFail($id);
-        // Remove file from storage
-    if ($upload->stored_path) {
-        Storage::disk('public')->delete($upload->stored_path);
-    }
-    $upload->delete();
-
-        return response()->json([
-                'success' => true,
-                'message' => 'Upload deleted successfully'
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error deleting upload: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete upload'
-            ], 500);
-        }
-    }
-
-    /**
-      * Get import history
-      */
-     public function getImportHistory(): JsonResponse
-     {
-         try {
-             // Keep quick history endpoint for UI refresh buttons: recent 25
-             $uploads = UploadedFile::query()
-                 ->orderByDesc('uploaded_at')
-                 ->limit(25)
-                 ->get();
+        try {
+            // This would typically come from a dedicated imports table
+            // For now, return mock data
+            $history = [
+                [
+                    'id' => 1,
+                    'file_name' => 'students_batch_1.csv',
+                    'type' => 'students',
+                    'records_imported' => 25,
+                    'records_failed' => 2,
+                    'imported_by' => auth()->user()->first_name . ' ' . auth()->user()->last_name,
+                    'imported_at' => now()->subDays(2),
+                    'status' => 'completed'
+                ]
+            ];
 
             return response()->json([
                 'success' => true,
-                'data' => $uploads
+                'data' => $history
             ]);
 
         } catch (\Exception $e) {
@@ -416,150 +465,75 @@ class DataImportController extends Controller
     }
 
     /**
-     * Read an uploaded file (CSV or Excel) and return row data as associative arrays
-     */
-    private function readUploadedFile($file): array
-    {
-        $ext = strtolower($file->getClientOriginalExtension());
-        if (in_array($ext, ['xlsx', 'xls'])) {
-            $sheetName = request()->get('sheet_name');
-            return $this->readExcelFile($file, $sheetName);
-        }
-        // default to CSV
-        return $this->readCsvFile($file);
-    }
-
-    /**
      * Read CSV file and return data
      */
     private function readCsvFile($file): array
     {
-        return $this->readCsvFromPath($file->getRealPath());
+        return $this->readCsvPath($file->getRealPath());
     }
 
-    private function readCsvFromPath(string $path): array
+    private function readCsvPath(string $path): array
     {
         $data = [];
         $headers = [];
 
         if (($handle = fopen($path, 'r')) !== false) {
             $isFirstRow = true;
-            
             while (($row = fgetcsv($handle, 1000, ',')) !== false) {
                 if ($isFirstRow) {
-                    $rawHeaders = array_map('trim', $row);
-                    $headers = $this->canonicalizeHeaders($rawHeaders);
+                    $headers = array_map('trim', $row);
                     $isFirstRow = false;
                     continue;
                 }
-
                 if (count($row) === count($headers)) {
-                    $assoc = array_combine($headers, array_map('trim', $row));
-                    $data[] = $this->normalizeRow($assoc);
+                    $data[] = array_combine($headers, array_map('trim', $row));
                 }
             }
-            
             fclose($handle);
         }
-
         return $data;
     }
 
     /**
-     * Read Excel file and return data
+     * Read Excel (xlsx/xls) and return an array of associative rows using first row as headers.
      */
-    private function readExcelFile($file, ?string $sheetName = null): array
+    private function readXlsxPath(string $path): array
     {
-        return $this->readExcelFromPath($file->getRealPath(), $sheetName);
-    }
-
-    private function readExcelFromPath(string $path, ?string $sheetName = null): array
-    {
-        $spreadsheet = IOFactory::load($path);
-        $sheet = $sheetName ? $spreadsheet->getSheetByName($sheetName) : $spreadsheet->getActiveSheet();
-        if (!$sheet) {
-            // fallback to first sheet if not found
+        try {
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($path);
             $sheet = $spreadsheet->getSheet(0);
-        }
-        $rows = $sheet->toArray(null, true, true, false); // rows as [ [cells...] ]
-
-        if (empty($rows)) {
+            $rows = $sheet->toArray(null, true, true, true);
+            if (empty($rows)) return [];
+            // First row headers
+            $headerRow = array_shift($rows);
+            // Normalize headers: trim and lower snake-case-ish by replacing spaces with underscores
+            $headers = [];
+            foreach ($headerRow as $cell) {
+                $h = trim((string)$cell);
+                $h = preg_replace('/\s+/', ' ', $h);
+                $h = strtolower(str_replace(' ', '_', $h));
+                $headers[] = $h;
+            }
+            $out = [];
+            foreach ($rows as $row) {
+                $assoc = [];
+                $i = 0;
+                foreach ($headerRow as $colKey => $_) {
+                    $assoc[$headers[$i] ?? ('col_'.$i)] = isset($row[$colKey]) ? trim((string)$row[$colKey]) : '';
+                    $i++;
+                }
+                // Skip empty rows
+                if (count(array_filter($assoc, fn($v) => $v !== '' && $v !== null)) === 0) {
+                    continue;
+                }
+                $out[] = $assoc;
+            }
+            return $out;
+        } catch (\Throwable $e) {
             return [];
         }
-
-        $rawHeaders = array_map(fn($h) => trim((string) $h), array_shift($rows));
-        $headers = $this->canonicalizeHeaders($rawHeaders);
-        $data = [];
-        foreach ($rows as $row) {
-            if (count($row) === 0 || count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0) {
-                continue; // skip empty rows
-            }
-            // pad/truncate to headers length
-            $row = array_slice(array_pad($row, count($headers), ''), 0, count($headers));
-            $assoc = array_combine($headers, array_map(fn($v) => is_string($v) ? trim($v) : $v, $row));
-            $data[] = $this->normalizeRow($assoc);
-        }
-        return $data;
-    }
-
-    /**
-     * Normalize a single row (date formats, gender casing, etc.)
-     */
-    private function normalizeRow(array $row): array
-    {
-        // Normalize gender to lowercase if provided
-        if (isset($row['gender']) && is_string($row['gender'])) {
-            $row['gender'] = strtolower(trim($row['gender']));
-        }
-
-        // Normalize date_of_birth (handle Excel serial dates)
-        if (isset($row['date_of_birth']) && $row['date_of_birth'] !== null && $row['date_of_birth'] !== '') {
-            $dob = $row['date_of_birth'];
-            try {
-                if (is_numeric($dob)) {
-                    $dt = ExcelDate::excelToDateTimeObject($dob);
-                    $row['date_of_birth'] = $dt->format('Y-m-d');
-                } else {
-                    // try to parse common formats
-                    $ts = strtotime((string) $dob);
-                    if ($ts !== false) {
-                        $row['date_of_birth'] = date('Y-m-d', $ts);
-                    }
-                }
-            } catch (\Throwable $e) {
-                // leave as-is; validation later may catch issues
-            }
-        }
-
-        return $row;
-    }
-
-    /**
-     * Convert provided headers to canonical snake_case lowercase keys
-     */
-    private function canonicalizeHeaders(array $headers): array
-    {
-        return array_map(function ($h) {
-            $h = trim((string) $h);
-            $h = strtolower($h);
-            // replace common separators with underscore
-            $h = str_replace([' ', '-', '.', '__'], ['_', '_', '_', '_'], $h);
-            // collapse multiple underscores
-            $h = preg_replace('/_+/', '_', $h);
-            // common synonyms
-            $map = [
-                'firstname' => 'first_name',
-                'lastname' => 'last_name',
-                'first_name' => 'first_name',
-                'last_name' => 'last_name',
-                'email_address' => 'email',
-                'dob' => 'date_of_birth',
-                'dateofbirth' => 'date_of_birth',
-                'sex' => 'gender',
-                'class' => 'class_id',
-            ];
-            return $map[$h] ?? $h;
-        }, $headers);
     }
 
     /**
@@ -573,4 +547,124 @@ class DataImportController extends Controller
 
         return $code;
     }
+
+    /**
+     * Handle file upload (store only, no processing)
+     */
+    public function uploadFile(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                // Accept CSV that may come through as text/plain on some browsers/OS
+                'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:20480',
+                'label' => 'nullable|string|max:255',
+                'school_id' => 'nullable|integer'
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $file = $request->file('file');
+            $storedPath = $file->store('imports', 'public');
+            $url = Storage::disk('public')->url($storedPath);
+
+            $uploaded = UploadedFileModel::create([
+                'user_id' => auth()->id(),
+                'school_id' => $request->input('school_id'),
+                'label' => $request->input('label'),
+                'original_name' => $file->getClientOriginalName(),
+                'stored_path' => $storedPath,
+                'mime_type' => $file->getMimeType(),
+                'size_bytes' => $file->getSize(),
+                'url' => $url,
+                'uploaded_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded successfully',
+                'data' => $uploaded
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Upload failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload file'
+            ], 500);
+        }
+    }
+
+    /**
+     * List uploaded files (paginated)
+     */
+    public function listUploads(Request $request): JsonResponse
+    {
+        $perPage = max(1, (int) $request->get('per_page', 10));
+        $query = UploadedFileModel::query()
+            ->where('user_id', auth()->id())
+            ->orderByDesc('uploaded_at')
+            ->orderByDesc('id');
+
+        if ($request->filled('school_id')) {
+            $query->where('school_id', $request->input('school_id'));
+        }
+
+        $paginator = $query->paginate($perPage);
+        return response()->json([
+            'success' => true,
+            'data' => $paginator
+        ]);
+    }
+
+    /**
+     * Delete uploaded file by id
+     */
+    public function deleteUpload(int $id): JsonResponse
+    {
+        $uploaded = UploadedFileModel::find($id);
+        if (!$uploaded) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found'
+            ], 404);
+        }
+        $user = auth()->user();
+        if ($uploaded->user_id !== $user->id && $user->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden'
+            ], 403);
+        }
+        try {
+            Storage::disk('public')->delete($uploaded->stored_path);
+            $uploaded->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'File deleted'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Delete upload failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete file'
+            ], 500);
+        }
+    }
+
+    /**
+     * Subjects list for import selectors
+     */
+    public function getSubjectsList(): JsonResponse
+    {
+        $subjects = Subject::select('id', 'subject_name')->orderBy('subject_name')->get();
+        return response()->json([
+            'success' => true,
+            'data' => $subjects
+        ]);
+    }
 }
+

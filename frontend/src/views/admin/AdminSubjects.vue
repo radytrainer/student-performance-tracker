@@ -45,24 +45,34 @@
       <!-- Header Actions -->
       <div class="flex justify-between items-center">
         <div class="flex items-center space-x-4">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search subjects..."
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <select
-            v-model="categoryFilter"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Categories</option>
-            <option value="Science">Science</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Language Arts">Language Arts</option>
-            <option value="Social Studies">Social Studies</option>
-            <option value="Arts">Arts</option>
-          </select>
-        </div>
+        <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Search subjects..."
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <select
+        v-model="categoryFilter"
+        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+        <option value="">All Categories</option>
+        <option value="Science">Science</option>
+        <option value="Mathematics">Mathematics</option>
+        <option value="Language Arts">Language Arts</option>
+        <option value="Social Studies">Social Studies</option>
+        <option value="Arts">Arts</option>
+        </select>
+          <select v-model="sortBy" class="px-3 py-2 border border-gray-300 rounded-lg">
+             <option value="subject_name">Sort: Name</option>
+             <option value="subject_code">Sort: Code</option>
+             <option value="department">Sort: Department</option>
+             <option value="credit_hours">Sort: Credit Hours</option>
+             <option value="created_at">Sort: Created</option>
+           </select>
+           <button @click="toggleSortDir" class="px-3 py-2 border border-gray-300 rounded-lg">
+             <i :class="sortDir === 'asc' ? 'fas fa-sort-amount-up' : 'fas fa-sort-amount-down' "></i>
+           </button>
+         </div>
         <button
           @click="showCreateModal = true"
           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -151,6 +161,31 @@
         <h3 class="text-lg font-medium text-gray-900 mb-2">No subjects found</h3>
         <p class="text-gray-500">Try adjusting your search or filter criteria, or create a new subject.</p>
       </div>
+
+      <!-- Pagination -->
+      <div v-if="paginationInfo.totalPages > 1" class="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
+        <div class="flex items-center">
+          <p class="text-sm text-gray-700">
+            Showing {{ paginationInfo.startItem }} to {{ paginationInfo.endItem }} of {{ paginationInfo.totalItems }} results
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="goToPage(currentPage - 1)" :disabled="!paginationInfo.hasPrevPage" class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors">
+            Previous
+          </button>
+          <div class="flex items-center space-x-1">
+            <template v-for="(page, index) in getVisiblePages()">
+              <span v-if="page === '...'" :key="`ellipsis-${index}`" class="px-3 py-2 text-sm text-gray-400">...</span>
+              <button v-else :key="`page-${page}`" @click="goToPage(page)" :class="['px-3 py-2 text-sm rounded-lg transition-colors', page === currentPage ? 'bg-blue-600 text-white' : 'border border-gray-300 hover:bg-gray-50']">
+                {{ page }}
+              </button>
+            </template>
+          </div>
+          <button @click="goToPage(currentPage + 1)" :disabled="!paginationInfo.hasNextPage" class="px-3 py-2 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors">
+            Next
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Create/Edit Modal Placeholder -->
@@ -220,9 +255,14 @@ const { hasPermission } = useAuth()
 // State
 const loading = ref(true)
 const error = ref(null)
-const subjects = ref([])
+const subjects = ref([]) // current page items
+const subjectsMeta = ref({ total: 0, last_page: 1, current_page: 1, per_page: 15, from: 0, to: 0 })
 const searchQuery = ref('')
 const categoryFilter = ref('')
+const currentPage = ref(1)
+const itemsPerPage = ref(15)
+const sortBy = ref('subject_name')
+const sortDir = ref('asc')
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedSubject = ref(null)
@@ -242,27 +282,12 @@ const subjectCategories = {
 
 // Computed
 const filteredSubjects = computed(() => {
-  let filtered = subjects.value
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(subject =>
-      subject.subject_name.toLowerCase().includes(query) ||
-      subject.subject_code.toLowerCase().includes(query) ||
-      subject.department.toLowerCase().includes(query)
-    )
-  }
-
-  if (categoryFilter.value) {
-    filtered = filtered.filter(subject => subject.department === categoryFilter.value)
-  }
-
-  return filtered.map(subject => ({
+  // Server-side filtering, only map current page items for UI props
+  return subjects.value.map(subject => ({
     ...subject,
-    // Add UI properties for display
     color: subjectCategories[subject.department]?.color || subjectCategories['Other'].color,
     icon: subjectCategories[subject.department]?.icon || subjectCategories['Other'].icon,
-    gradeRange: '9-12', // Default since this isn't in the model
+    gradeRange: '9-12',
     category: subject.department
   }))
 })
@@ -303,33 +328,96 @@ const showSuccessMessage = (message) => {
 }
 
 const loadSubjects = async () => {
-  try {
-    loading.value = true
-    error.value = null
-    
-    const params = {}
-    if (searchQuery.value) params.search = searchQuery.value
-    if (categoryFilter.value) params.department = categoryFilter.value
+try {
+loading.value = true
+error.value = null
 
-    const response = await adminAPI.getSubjects(params)
-    
-    // Handle both paginated and non-paginated responses
-    subjects.value = response.data.data.data || response.data.data || []
-    
-  } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Failed to load subjects'
-    console.error('Error loading subjects:', err)
-  } finally {
-    loading.value = false
-  }
+const params = { per_page: itemsPerPage.value, page: currentPage.value, sort_by: sortBy.value, sort_dir: sortDir.value }
+if (searchQuery.value) params.search = searchQuery.value
+if (categoryFilter.value) params.department = categoryFilter.value
+
+const response = await adminAPI.getSubjects(params)
+const payload = response.data.data || {}
+const items = payload.data || []
+subjects.value = items
+subjectsMeta.value = {
+total: payload.total || items.length,
+last_page: payload.last_page || 1,
+current_page: payload.current_page || params.page,
+per_page: payload.per_page || params.per_page,
+from: payload.from || (items.length ? (params.page - 1) * params.per_page + 1 : 0),
+to: payload.to || ((params.page - 1) * params.per_page + items.length)
 }
 
-// Watch for search changes
-watch([searchQuery, categoryFilter], () => {
+} catch (err) {
+error.value = err.response?.data?.message || err.message || 'Failed to load subjects'
+console.error('Error loading subjects:', err)
+} finally {
+loading.value = false
+}
+}
+
+// Watch for search/filter changes
+watch([searchQuery, categoryFilter, sortBy, sortDir], () => {
   if (!loading.value) {
+    currentPage.value = 1
     loadSubjects()
   }
 }, { debounce: 500 })
+
+// Pagination info and helpers
+const paginationInfo = computed(() => {
+  const meta = subjectsMeta.value || {}
+  const totalItems = meta.total || 0
+  const totalPages = meta.last_page || 1
+  const startItem = meta.from || 0
+  const endItem = meta.to || 0
+  return {
+    totalItems,
+    totalPages,
+    startItem,
+    endItem,
+    currentPage: meta.current_page || currentPage.value,
+    hasNextPage: (meta.current_page || 1) < totalPages,
+    hasPrevPage: (meta.current_page || 1) > 1
+  }
+})
+
+const goToPage = async (page) => {
+  if (page >= 1 && page <= paginationInfo.value.totalPages) {
+    currentPage.value = page
+    await loadSubjects()
+  }
+}
+
+const getVisiblePages = () => {
+  const totalPages = paginationInfo.value.totalPages
+  const current = currentPage.value
+  const pages = []
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i)
+  } else {
+    if (current <= 4) {
+      for (let i = 1; i <= 5; i++) pages.push(i)
+      if (totalPages > 6) { pages.push('...'); pages.push(totalPages) }
+    } else if (current >= totalPages - 3) {
+      pages.push(1)
+      if (totalPages > 6) pages.push('...')
+      for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i)
+    } else {
+      pages.push(1)
+      pages.push('...')
+      for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+      pages.push('...')
+      pages.push(totalPages)
+    }
+  }
+  return pages
+}
+
+const toggleSortDir = () => {
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+}
 
 onMounted(() => {
   loadSubjects()

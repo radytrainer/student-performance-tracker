@@ -98,6 +98,11 @@
         </div>
       </div>
 
+      <!-- Notifications -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <NotificationPanel :notifications="notifications" :unreadCount="unreadCount" />
+      </div>
+
       <!-- System Health & Alerts -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- System Health -->
@@ -196,6 +201,8 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import {
   Users, TrendingUp, AlertTriangle, BarChart3, PieChart, Activity, BookOpen, Shield, Database
 } from 'lucide-vue-next'
+import NotificationPanel from '@/components/Dashboard/NotificationPanel.vue'
+import { notificationsAPI } from '@/api/notifications'
 
 // --- Admin Data ---
 const adminData = ref({
@@ -364,9 +371,30 @@ const createCharts = () => {
   })
 }
 
+const notifications = ref([])
+const unreadCount = computed(() => notifications.value.filter(n => !n.is_read).length)
+
+const loadNotifications = async () => {
+  try {
+    const resp = await notificationsAPI.list({ per_page: 10 })
+    const payload = resp.data?.data
+    const items = payload?.data || payload || []
+    // Normalize times for display
+    notifications.value = items.map(n => ({
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      type: n.type || 'announcement',
+      is_read: !!n.is_read,
+      time: n.sent_at ? new Date(n.sent_at).toLocaleString() : ''
+    }))
+  } catch (e) { /* ignore */ }
+}
+
 onMounted(async () => {
   await fetchAdminStats()
   nextTick(() => createCharts())
+  await loadNotifications()
 })
 </script>
 

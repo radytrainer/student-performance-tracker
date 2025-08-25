@@ -85,6 +85,17 @@
             </div>
           </div>
           <div class="flex items-center space-x-3">
+            <!-- Sort controls -->
+            <div class="flex items-center space-x-2">
+              <select v-model="sortBy" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="name">Sort: Name</option>
+                <option value="email">Sort: Email</option>
+                <option value="created_at">Sort: Created Date</option>
+              </select>
+              <button @click="toggleSortDir" class="px-3 py-2 border border-gray-300 rounded-lg" :title="sortDir==='asc' ? 'Ascending' : 'Descending'">
+                <i :class="sortDir === 'asc' ? 'fas fa-sort-amount-up' : 'fas fa-sort-amount-down' "></i>
+              </button>
+            </div>
             <!-- Bulk Actions -->
             <div v-if="selectedUsers.length > 0" class="flex items-center space-x-2">
               <span class="text-sm text-gray-600">{{ selectedUsers.length }} selected</span>
@@ -145,9 +156,9 @@
           <div v-else-if="!error" class="space-y-1">
             <!-- User Rows -->
             <div 
-              v-for="user in paginatedUsers" 
-              :key="user.id" 
-              class="bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            v-for="user in allUsers" 
+            :key="user.id" 
+            class="bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center">
                 <div class="col-span-1">
@@ -161,8 +172,8 @@
                 <div class="col-span-3">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-10 w-10">
-                      <div v-if="user.profile_picture" class="h-10 w-10 rounded-full overflow-hidden">
-                        <img :src="user.profile_picture" :alt="getUserName(user)" class="h-full w-full object-cover">
+                      <div v-if="resolveImage(user)" class="h-10 w-10 rounded-full overflow-hidden">
+                        <img :src="resolveImage(user)" :alt="getUserName(user)" class="h-full w-full object-cover" @error="$event.target.style.display='none'">
                       </div>
                       <div v-else class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                         <span class="text-blue-600 font-medium">{{ getUserInitial(user) }}</span>
@@ -531,13 +542,15 @@ const searchLoading = ref(false)
 const error = ref(null)
 const successMessage = ref('')
 const users = ref([])
-const allUsers = ref([]) // Store all users for local filtering
+const allUsers = ref([]) // current server page
 const pagination = ref(null)
 const searchQuery = ref('')
 const roleFilter = ref('')
 const classFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
+const sortBy = ref('created_at')
+const sortDir = ref('desc')
 
 // Classes data
 const classes = ref([])
@@ -571,6 +584,9 @@ const accessLogs = ref([])
 const getUserName = (user) => {
   return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || user.email
 }
+
+import { resolveImageUrl } from '@/utils/imageUrl'
+const resolveImage = (user) => resolveImageUrl(user)
 
 // Computed filtered users for instant search
 const filteredUsers = computed(() => {
@@ -612,34 +628,32 @@ const filteredUsers = computed(() => {
   return filtered
 })
 
-// Computed paginated users
-const paginatedUsers = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage.value
-  const endIndex = startIndex + itemsPerPage.value
-  return filteredUsers.value.slice(startIndex, endIndex)
-})
+// Server-side: use API pagination; 'allUsers' already contains current page
+const paginatedUsers = computed(() => allUsers.value)
 
-// Computed pagination info
+// Computed pagination info (server-side)
 const paginationInfo = computed(() => {
-  const totalItems = filteredUsers.value.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage.value)
-  const startItem = totalItems === 0 ? 0 : (currentPage.value - 1) * itemsPerPage.value + 1
-  const endItem = Math.min(currentPage.value * itemsPerPage.value, totalItems)
-  
+  const meta = pagination.value || {}
+  const totalItems = meta.total || 0
+  const totalPages = meta.last_page || 1
+  const startItem = meta.from || 0
+  const endItem = meta.to || 0
+  const current = meta.current_page || currentPage.value
+
   return {
     totalItems,
     totalPages,
     startItem,
     endItem,
-    currentPage: currentPage.value,
-    hasNextPage: currentPage.value < totalPages,
-    hasPrevPage: currentPage.value > 1
+    currentPage: current,
+    hasNextPage: current < totalPages,
+    hasPrevPage: current > 1
   }
 })
 
 // Computed for bulk selection
 const isAllSelected = computed(() => {
-  return paginatedUsers.value.length > 0 && selectedUsers.value.length === paginatedUsers.value.length
+  return allUsers.value.length > 0 && selectedUsers.value.length === allUsers.value.length
 })
 
 // Debounced search for API calls (only when needed)
@@ -659,14 +673,17 @@ const performApiSearch = async () => {
     searchLoading.value = true
     const params = {
       page: 1,
-      per_page: 50, // Get more results for better local filtering
+      per_page: itemsPerPage.value,
       search: searchQuery.value,
-      role: roleFilter.value
+      role: roleFilter.value,
+      sort_by: sortBy.value,
+      sort_dir: sortDir.value
     }
 
     const response = await usersAPI.getUsers(params)
-    allUsers.value = response.data.data
-    pagination.value = response.data
+    const payload = response.data
+    allUsers.value = Array.isArray(payload?.data) ? payload.data : payload
+    pagination.value = payload
     currentPage.value = 1
   } catch (err) {
     console.error('Search error:', err)
@@ -711,29 +728,29 @@ const showSuccessMessage = (message) => {
 }
 
 const loadUsers = async () => {
-  try {
-    loading.value = true
-    error.value = null
-    
-    const params = {
-      page: currentPage.value,
-      per_page: 50 // Load more users for better local filtering
-    }
+try {
+loading.value = true
+error.value = null
 
-    // Only add filters for initial load or role changes
-    if (roleFilter.value) {
-      params.role = roleFilter.value
-    }
+const params = {
+page: currentPage.value,
+per_page: itemsPerPage.value,
+  sort_by: sortBy.value,
+  sort_dir: sortDir.value
+}
+if (searchQuery.value) params.search = searchQuery.value
+if (roleFilter.value) params.role = roleFilter.value
 
-    const response = await usersAPI.getUsers(params)
-    allUsers.value = response.data.data
-    pagination.value = response.data
-  } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Failed to load users'
-    console.error('Error loading users:', err)
-  } finally {
-    loading.value = false
-  }
+const response = await usersAPI.getUsers(params)
+const payload = response.data
+allUsers.value = Array.isArray(payload?.data) ? payload.data : payload
+pagination.value = payload
+} catch (err) {
+error.value = err.response?.data?.message || err.message || 'Failed to load users'
+console.error('Error loading users:', err)
+} finally {
+loading.value = false
+}
 }
 
 const applyFilters = () => {
@@ -756,16 +773,17 @@ const loadClasses = async () => {
 }
 
 const changePage = (page) => {
-  if (page >= 1 && page <= pagination.value.last_page) {
+  if (page >= 1 && page <= (pagination.value?.last_page || 1)) {
     currentPage.value = page
     loadUsers()
   }
 }
 
-// New pagination functions for client-side pagination
+// New pagination functions for server-side pagination
 const goToPage = (page) => {
   if (page >= 1 && page <= paginationInfo.value.totalPages) {
     currentPage.value = page
+    loadUsers()
   }
 }
 
@@ -902,7 +920,7 @@ const toggleSelectAll = () => {
   if (isAllSelected.value) {
     selectedUsers.value = []
   } else {
-    selectedUsers.value = paginatedUsers.value.map(user => user.id)
+    selectedUsers.value = allUsers.value.map(user => user.id)
   }
 }
 
@@ -1022,16 +1040,16 @@ const bulkDeactivate = async () => {
   }
 }
 
-// Watch for search/filter changes to reset pagination
-watch([searchQuery, roleFilter, classFilter], () => {
+// Watch for search/filter/sort changes
+watch([searchQuery, roleFilter, sortBy, sortDir], () => {
   currentPage.value = 1
-  selectedUsers.value = [] // Clear selection when filtering
+  selectedUsers.value = []
+  loadUsers()
 })
 
 onMounted(async () => {
   try {
     await loadUsers()
-    // await loadClasses() // Temporarily disabled
   } catch (error) {
     console.error('Error during component initialization:', error)
   }

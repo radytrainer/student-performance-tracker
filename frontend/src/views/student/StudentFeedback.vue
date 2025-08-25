@@ -1,6 +1,6 @@
 <template>
   <div class="p-6 max-w-4xl mx-auto">
-    <h1 class="text-4xl font-bold text-gray-900 mb-8">Submit Feedback</h1>
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">Submit Feedbacks</h1>
     
     <div class="bg-white rounded-lg shadow-lg p-8">
       <div class="p-8">

@@ -53,7 +53,12 @@ class ClassController extends Controller
                 $query->where('academic_year', $academicYear);
             }
 
-            $classes = $query->orderBy('class_name')->paginate($perPage);
+            // Sorting
+            $sortBy = strtolower($request->get('sort_by', 'class_name'));
+            $sortDir = strtolower($request->get('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+            $allowed = ['class_name', 'academic_year', 'room_number', 'created_at'];
+            if (!in_array($sortBy, $allowed, true)) { $sortBy = 'class_name'; }
+            $classes = $query->orderBy($sortBy, $sortDir)->paginate($perPage);
 
             // Add computed fields
             $classes->getCollection()->transform(function ($class) {

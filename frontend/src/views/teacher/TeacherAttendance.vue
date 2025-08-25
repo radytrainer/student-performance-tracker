@@ -474,8 +474,8 @@ const fetchAll = async () => {
       apiClient.get("/classes"),
       apiClient.get("/students"),
     ]);
-     classes.value = cls.data.data || [];
-    students.value = stu.data.data || [];
+    classes.value = cls.data?.data || cls.data || [];
+    students.value = stu.data?.data || stu.data || [];
     await fetchAttendance();
   } catch (err) {
     error.value = `Failed to load data: ${err.response?.data?.message || err.message}`;

@@ -177,8 +177,10 @@ export const adminAPI = {
 
   // Data Import
   importStudents: async (formData) => {
-    // Do not set Content-Type manually; Axios will include the correct boundary
-    return await api.post('/admin/import/students', formData)
+    // Explicitly set multipart to avoid any global defaults interfering
+    return await api.post('/admin/import/students', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   },
 
   getImportTemplate: async (type = 'students') => {
@@ -186,7 +188,9 @@ export const adminAPI = {
   },
 
   uploadFileOnly: async (formData) => {
-  return await api.post('/admin/import/upload-file', formData)
+  return await api.post('/admin/import/upload-file', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   },
  
   getImportHistory: async () => {
@@ -199,5 +203,21 @@ export const adminAPI = {
 
   deleteUploadedFile: async (id) => {
     return await api.delete(`/admin/import/uploads/${id}`)
+  },
+
+  // Google Sheets helpers (Admin)
+  getGoogleAuthUrl: async () => {
+    return await api.get('/admin/google/auth-url')
+  },
+  getGoogleStatus: async () => {
+    return await api.get('/admin/google/status')
+  },
+  previewGoogleSheet: async (payload) => {
+    // { sheet_id, sheet_name?, range?, limit? }
+    return await api.post('/admin/google/sheets/preview', payload)
+  },
+  importFromGoogle: async (payload) => {
+    // { sheet_id, sheet_name?, range?, default_class_id }
+    return await api.post('/admin/import/google', payload)
   }
 }

@@ -110,10 +110,11 @@
 
           <!-- Quick Actions -->
           <div class="hidden sm:flex items-center space-x-3">
-            <button @click="$emit('quick-add')"
-              class="relative group bg-white text-gray-700 px-6 py-3 rounded-xl hover:bg-white transition-all duration-300 font-medium shadow-lg">
-              <div
-                class="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition duration-300">
+            <button @click="$emit('quick-add')" class="relative group bg-white px-6 py-3 rounded-xl font-medium shadow-lg 
+           transition-all duration-300 hover:bg-white 
+           hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 hover:shadow-blue-200">
+              <div class="lg:hidden bg-white border-2 border-gray-200 text-gray-700 p-3 rounded-xl 
+             hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-lg">
               </div>
               <span class="relative flex items-center">
                 <Plus class="w-4 h-4 mr-2" />
@@ -121,6 +122,7 @@
               </span>
             </button>
           </div>
+
         </div>
       </div>
     </div>
