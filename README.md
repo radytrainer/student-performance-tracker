@@ -157,6 +157,16 @@ Sample template: docs/student_import_template.csv
 - Frontend bell: [NotificationBell.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/components/notifications/NotificationBell.vue) polls `/notifications` and listens via Echo.
 - Enable realtime (optional): set `PUSHER_*` in backend `.env` and `VITE_PUSHER_APP_KEY`, `VITE_PUSHER_APP_CLUSTER` in frontend `.env`. Echo is initialized in [main.js](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/main.js#L15-L25), config in [echo.js](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/realtime/echo.js).
 
+### Performance Alerts
+- Admin: list/create/resolve alerts; generate alerts from thresholds.
+- Endpoints:
+  - GET `/api/admin/alerts`
+  - POST `/api/admin/alerts`
+  - PUT `/api/admin/alerts/{id}`
+  - POST `/api/admin/alerts/generate` (creates alerts for current or given term)
+- Teacher: list/resolve own-student alerts via GET/PUT under `/api/teacher/alerts`
+- Views: [AdminAlerts.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/views/admin/AdminAlerts.vue), [TeacherAlerts.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/views/teacher/TeacherAlerts.vue)
+
 ### Analytics
 - Admin/Teacher: open Analytics page for attendance-vs-grade correlation and heatmap.
 - Class and term selectors are responsive; charts resize on mobile.

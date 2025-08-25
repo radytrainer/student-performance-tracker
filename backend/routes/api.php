@@ -167,6 +167,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/settings/backup', [App\Http\Controllers\Admin\SettingsController::class, 'backup']);
         Route::post('admin/settings/maintenance', [App\Http\Controllers\Admin\SettingsController::class, 'maintenance']);
 
+        // Performance Alerts (admin)
+        Route::get('admin/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'index']);
+        Route::post('admin/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'store']);
+        Route::put('admin/alerts/{id}', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'update']);
+        Route::post('admin/alerts/generate', function (\Illuminate\Http\Request $req) {
+            \App\Jobs\GeneratePerformanceAlerts::dispatch($req->input('term_id'));
+            return response()->json(['success' => true]);
+        });
+
         // Data Import (admin paths)
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
         Route::post('admin/import/upload-file', [App\Http\Controllers\Admin\DataImportController::class, 'uploadFile']);
@@ -195,6 +204,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('google/status', [App\Http\Controllers\GoogleAuthController::class, 'status']);
         Route::post('google/sheets/preview', [App\Http\Controllers\GoogleAuthController::class, 'preview']);
         Route::post('teacher/import/google', [App\Http\Controllers\Admin\DataImportController::class, 'importFromGoogleSheet']);
+
+        // Performance Alerts (teacher)
+        Route::get('teacher/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'index']);
+        Route::put('teacher/alerts/{id}', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'update']);
     });
 
     // Super Admin routes

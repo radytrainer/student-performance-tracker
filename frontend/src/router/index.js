@@ -149,6 +149,16 @@ const routes = [
       title: 'System Reports'
     }
   },
+  {
+    path: '/admin/alerts',
+    name: 'AdminAlerts',
+    component: () => import('@/views/admin/AdminAlerts.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Performance Alerts'
+    }
+  },
 
   // Teacher routes
   {
@@ -233,12 +243,22 @@ const routes = [
    {
    path: '/teacher/analytics',
    name: 'TeacherAnalytics',
-  component: () => import('@/views/teacher/TeacherAnalytics.vue'),
-  meta: {
+   component: () => import('@/views/teacher/TeacherAnalytics.vue'),
+   meta: {
    requiresAuth: true,
-     requiresRole: 'teacher',
-      requiresPermission: 'teacher.view_analytics',
-      title: 'Survey Analytics'
+   requiresRole: 'teacher',
+   requiresPermission: 'teacher.view_analytics',
+   title: 'Survey Analytics'
+   }
+   },
+  {
+    path: '/teacher/alerts',
+    name: 'TeacherAlerts',
+    component: () => import('@/views/teacher/TeacherAlerts.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'teacher',
+      title: 'Performance Alerts'
     }
   },
 
