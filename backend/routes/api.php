@@ -220,6 +220,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Teacher Dashboard
         Route::get('/teacher/dashboard-students', [App\Http\Controllers\Teacher\DashboardController::class, 'students']);
+        // Student analytics for teachers
+        Route::get('/teacher/students/{student}/comparison', [App\Http\Controllers\Teacher\StudentAnalyticsController::class, 'comparison']);
     });
 
     // Student routes

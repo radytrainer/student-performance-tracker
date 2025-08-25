@@ -68,6 +68,14 @@
 
         <!-- Student Details Content -->
         <div class="p-4 sm:p-8">
+          <!-- Comparison Chart -->
+          <div class="mb-8 bg-white rounded-xl shadow border border-gray-200 p-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Performance vs Class Average</h3>
+            <div class="h-64">
+              <BarChart v-if="comparisonChartData" :chartData="comparisonChartData" :chartOptions="comparisonChartOptions" />
+              <div v-else class="text-sm text-gray-500">No comparison data available</div>
+            </div>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             <!-- Personal Information -->
             <div class="space-y-6">
@@ -197,6 +205,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import BarChart from '@/components/charts/BarChart.vue'
+import { teacherAPI } from '@/api/teacher'
+import { useRoute } from 'vue-router'
 
 // Sample student data
 const student = ref({
@@ -211,6 +222,15 @@ const student = ref({
   lastLogin: '2024-01-20',
   profileImage: ''
 })
+
+// Comparison chart state
+const comparisonChartData = ref(null)
+const comparisonChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: true } },
+  scales: { x: { grid: { display: false } }, y: { beginAtZero: true, max: 100 } }
+}
 
 // Methods
 const getInitials = (name) => {
@@ -273,9 +293,26 @@ const deleteStudent = () => {
   }
 }
 
-onMounted(() => {
-  // Load student data from API based on route params
-  console.log('Student detail view mounted')
-  // In a real app: loadStudent(route.params.id)
+onMounted(async () => {
+  // Load student data from API based on route params (placeholder)
+  const route = useRoute()
+  const sid = Number(route.params.id || student.value.id)
+  try {
+    const resp = await teacherAPI.getStudentComparison(sid)
+    const rows = resp?.data?.data || []
+    if (rows.length) {
+      comparisonChartData.value = {
+        labels: rows.map(r => r.subject_name),
+        datasets: [
+          { label: 'Student', data: rows.map(r => r.student_avg), backgroundColor: '#3B82F6' },
+          { label: 'Class', data: rows.map(r => r.class_avg), backgroundColor: '#10B981' }
+        ]
+      }
+    } else {
+      comparisonChartData.value = null
+    }
+  } catch (e) {
+    comparisonChartData.value = null
+  }
 })
 </script>

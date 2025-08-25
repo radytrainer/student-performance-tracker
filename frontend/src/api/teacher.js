@@ -38,14 +38,19 @@ previewGoogleSheet(payload) {
  return apiClient.post('/google/sheets/preview', payload)
 },
 importFromGoogle(payload) {
-  // { sheet_id, sheet_name?, range?, default_class_id }
-  return apiClient.post('/teacher/import/google', payload)
+// { sheet_id, sheet_name?, range?, default_class_id }
+return apiClient.post('/teacher/import/google', payload)
 },
- 
-// Lists
-getSubjectsForImport(params = {}) {
-  return apiClient.get('/teacher/import/subjects-list', { params })
+
+// Student analytics
+getStudentComparison(studentId, params = {}) {
+return apiClient.get(`/teacher/students/${studentId}/comparison`, { params })
 },
+  
+ // Lists
+ getSubjectsForImport(params = {}) {
+   return apiClient.get('/teacher/import/subjects-list', { params })
+ },
  
 importStudentsFromUpload(formData) {
   // Supports uploaded_file_id, default_class_id, sheet_name, subject_ids[]
