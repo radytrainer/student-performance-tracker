@@ -313,7 +313,7 @@ const resetSettings = async () => {
 const initiateBackup = async () => {
   try {
     await settingsAPI.initiateBackup()
-    alert('Backup initiated successfully!')
+    alert('Backup initiated. You will receive a notification when it completes.')
   } catch (error) {
     console.error('Error initiating backup:', error)
     alert('Failed to initiate backup. Please try again.')

@@ -87,16 +87,17 @@ class SettingsController extends Controller
      */
     public function backup(Request $request)
     {
-        // In a future iteration, dispatch a job to perform a backup
+        // Dispatch background backup job
+        \App\Jobs\RunSystemBackup::dispatch(optional($request->user())->id);
         return response()->json(['success' => true, 'message' => 'Backup initiated']);
     }
 
     /**
-     * Placeholder: Run maintenance tasks (no-op for now).
+     * Run maintenance tasks (async).
      */
     public function maintenance(Request $request)
     {
-        // e.g., optimize:clear, queue:restart, etc.
+        \App\Jobs\RunMaintenanceTasks::dispatch(optional($request->user())->id);
         return response()->json(['success' => true, 'message' => 'Maintenance started']);
     }
 

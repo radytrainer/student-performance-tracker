@@ -162,6 +162,17 @@ Sample template: docs/student_import_template.csv
 - Class and term selectors are responsive; charts resize on mobile.
 - Endpoints: see [AnalyticsController.php](file:///c:/Users/Dell/Desktop/student-performance-tracker/backend/app/Http/Controllers/Admin/AnalyticsController.php).
 
+### System Settings
+- Admin: System Settings page persists to backend via REST.
+- Endpoints:
+  - GET `/api/admin/settings`
+  - PUT `/api/admin/settings`
+  - POST `/api/admin/settings/reset`
+  - POST `/api/admin/settings/backup` (async, notifies on completion)
+  - POST `/api/admin/settings/maintenance` (async, notifies on completion)
+- Controller: [SettingsController.php](file:///c:/Users/Dell/Desktop/student-performance-tracker/backend/app/Http/Controllers/Admin/SettingsController.php)
+- Frontend view: [AdminSettings.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/views/admin/AdminSettings.vue)
+
 ## 🔧 Environment Setup
 
 ### Required Environment Variables
