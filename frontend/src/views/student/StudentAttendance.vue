@@ -4,7 +4,7 @@
     <div class="flex-1 overflow-auto p-6">
       <div class="flex justify-between items-center mb-6">
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-800">My Attendance</h1>
+          <h1 class="text-3xl font-bold text-gray-800">My Attendances</h1>
           <p class="text-gray-600 mt-1">View your attendance recode</p>
         </div>
       </div>
@@ -95,7 +95,7 @@
             <div class="relative">
               <select v-model="filters.status" class="border rounded-lg p-2 pl-10 pr-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Statuses for attendance</option>
-                <option value="present">Present</option>
+                <option value="present">Presents</option>
                 <option value="absent">Absent</option>
                 <option value="late">Late</option>
               </select>

@@ -49,15 +49,15 @@
           </div>
         </div>
 
-        <!-- Course Performance Chart -->
+        <!-- Total Subject Chart -->
         <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
           <div class="flex items-center gap-3 mb-6">
             <div class="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg">
               <BarChart3 class="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 class="text-xl font-bold text-gray-900">Course Performance</h3>
-              <p class="text-sm text-gray-600">Average grades by course</p>
+              <h3 class="text-xl font-bold text-gray-900">Total Subject</h3>
+              <p class="text-sm text-gray-600">Subjects by category</p>
             </div>
           </div>
           <div class="h-80">
@@ -81,15 +81,15 @@
           </div>
         </div>
 
-        <!-- System Activity Chart -->
+        <!-- Attendent Chart -->
         <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20">
           <div class="flex items-center gap-3 mb-6">
             <div class="p-2 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg">
               <Activity class="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 class="text-xl font-bold text-gray-900">System Activity</h3>
-              <p class="text-sm text-gray-600">Daily active users</p>
+              <h3 class="text-xl font-bold text-gray-900">Attendent</h3>
+              <p class="text-sm text-gray-600">Daily attendance records</p>
             </div>
           </div>
           <div class="h-80">
@@ -252,7 +252,7 @@ const kpiData = computed(() => [
     change: '+12%'
   },
   {
-    title: 'Active Courses',
+    title: 'Total Subjects',
     value: adminData.value.activeCourses,
     icon: BookOpen,
     gradient: 'from-green-500 to-green-600',
@@ -270,7 +270,7 @@ const kpiData = computed(() => [
     change: '+0%'
   },
   {
-    title: 'Total Attendance',
+    title: 'Total Attendances',
     value: adminData.value.totalAttendance,
     icon: Activity,
     gradient: 'from-orange-500 to-orange-600',
@@ -342,13 +342,13 @@ const createCharts = () => {
       datasets: [{ label: 'Users', data: adminData.value.userGrowth.map(i => i.count), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)' }]
     }
   })
-  // Course Performance
+  // Total Subject
   if (coursePerformanceChartInstance) coursePerformanceChartInstance.destroy()
   coursePerformanceChartInstance = new Chart(coursePerformanceChart.value, {
     type: 'bar',
     data: {
       labels: adminData.value.coursePerformance.map(i => i.course),
-      datasets: [{ label: 'Average Grade', data: adminData.value.coursePerformance.map(i => i.avg), backgroundColor: '#10b981' }]
+      datasets: [{ label: 'Subject Count', data: adminData.value.coursePerformance.map(i => i.avg), backgroundColor: '#10b981' }]
     }
   })
   // User Distribution
@@ -360,13 +360,13 @@ const createCharts = () => {
       datasets: [{ data: [adminData.value.totalStudents, adminData.value.totalTeachers, adminData.value.totalAdmins], backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'] }]
     }
   })
-  // Activity
+  // Attendent
   if (activityChartInstance) activityChartInstance.destroy()
   activityChartInstance = new Chart(activityChart.value, {
     type: 'line',
     data: {
       labels: adminData.value.activity.map(i => i.date),
-      datasets: [{ label: 'Daily Active Users', data: adminData.value.activity.map(i => i.count), borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.2)' }]
+      datasets: [{ label: 'Daily Attendance', data: adminData.value.activity.map(i => i.count), borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.2)' }]
     }
   })
 }
