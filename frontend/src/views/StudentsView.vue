@@ -139,21 +139,18 @@
         </div>
       </div>
 
-      <!-- No students found -->
       <div v-if="filteredStudents.length === 0 && !loading" class="text-center py-12">
         <Users class="w-16 h-16 mx-auto text-gray-400 mb-4" />
         <h3 class="text-lg font-medium text-gray-900 mb-2">No students found</h3>
         <p class="text-gray-500 mb-4">Try adjusting your search or filter criteria.</p>
       </div>
 
-      <!-- Loading spinner -->
       <div v-if="loading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <p class="mt-2 text-gray-600">Loading students...</p>
       </div>
     </div>
 
-    <!-- Add Student Modal -->
     <div
       v-if="showAddModal"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
@@ -331,7 +328,6 @@
       </div>
     </div>
 
-    <!-- Student Details Modal -->
         <div
           v-if="showDetailsModal && selectedStudent"
           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
@@ -405,7 +401,7 @@
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
+  
     <div
       v-if="showDeleteModal && studentToDelete"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
