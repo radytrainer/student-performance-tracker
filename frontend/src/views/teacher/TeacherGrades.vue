@@ -50,7 +50,7 @@
 
       <!-- Assessment Type Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Assessment type</label>
+        <label class="block mb-1 font-medium text-gray-700">Assessment types</label>
         <select 
           v-model="filters.assessment_type" 
           @change="fetchGrades" 
