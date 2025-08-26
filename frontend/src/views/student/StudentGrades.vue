@@ -696,12 +696,26 @@ const fetchGrades = async (isInitialLoad = true) => {
     try {
       console.log('🌐 API Method 1: /student-grades/${student.value.student_id}')
       response = await apiClient.get(`/student-grades/${student.value.student_id}`)
-      if (response.data && response.data.data) {
-        allGrades = response.data.data
+      console.log('📥 Method 1 raw response:', response.data)
+      
+      // Handle different possible response structures
+      let responseGrades = null
+      if (response.data?.data) {
+        responseGrades = response.data.data
+      } else if (Array.isArray(response.data)) {
+        responseGrades = response.data
+      } else if (response.data?.grades) {
+        responseGrades = response.data.grades
+      }
+      
+      if (responseGrades && Array.isArray(responseGrades)) {
+        allGrades = responseGrades
         console.log('✅ Method 1 success:', allGrades.length, 'grades')
+      } else {
+        console.log('⚠️ Method 1: Unexpected response structure')
       }
     } catch (error1) {
-      console.warn('❌ Method 1 failed:', error1.response?.status)
+      console.warn('❌ Method 1 failed:', error1.response?.status, error1.message)
     }
 
     // Method 2: Try the general grades endpoint with student filter
