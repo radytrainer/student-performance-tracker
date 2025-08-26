@@ -38,7 +38,7 @@
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 px-4 py-6 space-y-2">
+        <nav class="flex-1 px-4 py-12 space-y-2">
           <router-link
             v-for="route in availableRoutes"
             :key="route.path"
