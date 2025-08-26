@@ -78,7 +78,7 @@ class ClassController extends Controller
     /**
      * Get grade distribution for a class
      */
-    public function getGradeDistribution($classId): JsonResponse
+    public function getGradeDistribution(Request $request, $classId): JsonResponse
     {
         try {
             $teacherId = Auth::id();
@@ -135,7 +135,7 @@ class ClassController extends Controller
     /**
      * Get class performance data
      */
-    public function getClassPerformance($classId): JsonResponse
+    public function getClassPerformance(Request $request, $classId): JsonResponse
     {
         try {
             $teacherId = Auth::id();
@@ -243,7 +243,7 @@ class ClassController extends Controller
     /**
      * Add student to class (for teachers)
      */
-    public function addStudentToClass($classId, Request $request): JsonResponse
+    public function addStudentToClass(Request $request, $classId): JsonResponse
     {
         try {
             $teacherId = Auth::id();
