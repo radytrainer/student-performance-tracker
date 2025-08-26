@@ -44,7 +44,7 @@ class ClassController extends Controller
             ->where('current_class_id', $classId)
             ->with(['user:id,first_name,last_name,email,is_active'])
             ->get()
-            ->map(function ($student) {
+            ->map(function ($student) use ($classId) {
                 return [
                     'id' => $student->user_id,
                     'user_id' => $student->user_id,
@@ -291,7 +291,7 @@ class ClassController extends Controller
     /**
      * Bulk add students to class
      */
-    public function bulkAddStudents($classId, Request $request): JsonResponse
+    public function bulkAddStudents(Request $request, $classId): JsonResponse
     {
         try {
             $teacherId = Auth::id();
