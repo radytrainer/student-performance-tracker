@@ -725,29 +725,52 @@ const fetchGrades = async (isInitialLoad = true) => {
         response = await apiClient.get('/grades', { 
           params: { 
             student_id: student.value.student_id,
-            per_page: 1000  // Get all grades
+            per_page: 1000
           }
         })
-        if (response.data && response.data.data) {
-          allGrades = response.data.data
+        console.log('📥 Method 2 raw response:', response.data)
+        
+        let responseGrades = null
+        if (response.data?.data) {
+          responseGrades = response.data.data
+        } else if (Array.isArray(response.data)) {
+          responseGrades = response.data
+        }
+        
+        if (responseGrades && Array.isArray(responseGrades)) {
+          allGrades = responseGrades
           console.log('✅ Method 2 success:', allGrades.length, 'grades')
         }
       } catch (error2) {
-        console.warn('❌ Method 2 failed:', error2.response?.status)
+        console.warn('❌ Method 2 failed:', error2.response?.status, error2.message)
       }
     }
 
-    // Method 3: Try the students API to get related grades
+    // Method 3: Try checking if grades were submitted via the teacher grades API
     if (allGrades.length === 0) {
       try {
-        console.log('🌐 API Method 3: /students/${student.value.student_id}/grades')
-        response = await apiClient.get(`/students/${student.value.student_id}/grades`)
-        if (response.data && response.data.data) {
-          allGrades = response.data.data
-          console.log('✅ Method 3 success:', allGrades.length, 'grades')
+        console.log('🌐 API Method 3: /grades (all grades) filtering by student')
+        response = await apiClient.get('/grades')
+        console.log('📥 Method 3 raw response:', response.data)
+        
+        let allServerGrades = []
+        if (response.data?.data) {
+          allServerGrades = response.data.data
+        } else if (Array.isArray(response.data)) {
+          allServerGrades = response.data
+        }
+        
+        // Filter for this student's grades
+        const studentGrades = allServerGrades.filter(grade => 
+          grade.student_id == student.value.student_id
+        )
+        
+        if (studentGrades.length > 0) {
+          allGrades = studentGrades
+          console.log('✅ Method 3 success:', allGrades.length, 'grades found by filtering')
         }
       } catch (error3) {
-        console.warn('❌ Method 3 failed:', error3.response?.status)
+        console.warn('❌ Method 3 failed:', error3.response?.status, error3.message)
       }
     }
 
@@ -772,9 +795,7 @@ const fetchGrades = async (isInitialLoad = true) => {
         letter_grade: grade.grade_letter,
         grade: grade.grade_letter,
         remarks: grade.remarks,
-        recorded_by: grade.recorded_by?.first_name && grade.recorded_by?.last_name 
-          ? `${grade.recorded_by.first_name} ${grade.recorded_by.last_name}`
-          : grade.teacher_name || 'Unknown Teacher',
+        recorded_by: getTeacherName(grade),
         recorded_at: grade.created_at || grade.recorded_at,
         date: grade.created_at || grade.recorded_at,
         assessment: grade.assessment_type,
@@ -799,7 +820,17 @@ const fetchGrades = async (isInitialLoad = true) => {
       calculateGradeSummary()
       
       console.log('✅ Real grades loaded successfully:', grades.value.length, 'total grades')
-      console.log('📊 Grade details:', grades.value.map(g => ({ id: g.id, subject: g.subject, assessment: g.assessment_type, score: g.score_obtained })))
+      console.log('📊 Grade details:', grades.value.map(g => ({ id: g.id, subject: g.subject, assessment: g.assessment_type, score: g.score_obtained, recorded_by: g.recorded_by })))
+      console.log('🧑‍🏫 Raw teacher data from first grade:', allGrades[0] ? {
+        recorded_by: allGrades[0].recorded_by,
+        teacher: allGrades[0].teacher,
+        user: allGrades[0].user,
+        teacher_name: allGrades[0].teacher_name,
+        fullGradeObject: allGrades[0]
+      } : 'No grades to check')
+      
+      // Fetch teacher names for grades that only have teacher IDs
+      await fetchTeacherNames()
     } else {
       console.warn('❌ No grades data received from any API endpoint')
       if (isInitialLoad) {
@@ -839,6 +870,124 @@ const fetchGrades = async (isInitialLoad = true) => {
     if (isInitialLoad) {
       calculateGradeSummary()
     }
+  }
+}
+
+// Cache for teacher names to avoid multiple API calls
+const teacherCache = ref(new Map())
+
+// Extract teacher name from grade data - handles multiple possible structures
+const getTeacherName = (grade) => {
+  // Method 1: recorded_by relationship (most common)
+  if (grade.recorded_by?.first_name && grade.recorded_by?.last_name) {
+    return `${grade.recorded_by.first_name} ${grade.recorded_by.last_name}`
+  }
+  
+  // Method 2: recorded_by as user object
+  if (grade.recorded_by?.user?.first_name && grade.recorded_by?.user?.last_name) {
+    return `${grade.recorded_by.user.first_name} ${grade.recorded_by.user.last_name}`
+  }
+  
+  // Method 3: teacher relationship
+  if (grade.teacher?.first_name && grade.teacher?.last_name) {
+    return `${grade.teacher.first_name} ${grade.teacher.last_name}`
+  }
+  
+  // Method 4: teacher as user object
+  if (grade.teacher?.user?.first_name && grade.teacher?.user?.last_name) {
+    return `${grade.teacher.user.first_name} ${grade.teacher.user.last_name}`
+  }
+  
+  // Method 5: direct teacher_name field
+  if (grade.teacher_name) {
+    return grade.teacher_name
+  }
+  
+  // Method 6: recorded_by as string
+  if (grade.recorded_by && typeof grade.recorded_by === 'string') {
+    return grade.recorded_by
+  }
+  
+  // Method 7: user relationship
+  if (grade.user?.first_name && grade.user?.last_name) {
+    return `${grade.user.first_name} ${grade.user.last_name}`
+  }
+  
+  // Method 8: Check if recorded_by is just a number (user ID)
+  if (grade.recorded_by && typeof grade.recorded_by === 'number') {
+    // Check cache first
+    const teacherId = grade.recorded_by
+    if (teacherCache.value.has(teacherId)) {
+      return teacherCache.value.get(teacherId)
+    }
+    
+    // For now, return a more user-friendly format
+    // We'll fetch teacher names in bulk below
+    return `Teacher ID: ${teacherId}`
+  }
+  
+  // Fallback
+  return 'Unknown Teacher'
+}
+
+// Fetch teacher names for all grades that only have teacher IDs
+const fetchTeacherNames = async () => {
+  if (!grades.value || grades.value.length === 0) return
+  
+  // Find all unique teacher IDs that need names
+  const teacherIdsNeeded = new Set()
+  grades.value.forEach(grade => {
+    if (grade.recorded_by && grade.recorded_by.startsWith('Teacher ID:')) {
+      const teacherId = grade.recorded_by.replace('Teacher ID: ', '')
+      if (!teacherCache.value.has(teacherId)) {
+        teacherIdsNeeded.add(teacherId)
+      }
+    }
+  })
+  
+  if (teacherIdsNeeded.size === 0) return
+  
+  console.log('🧑‍🏫 Fetching teacher names for IDs:', Array.from(teacherIdsNeeded))
+  
+  // Fetch teacher information
+  try {
+    for (const teacherId of teacherIdsNeeded) {
+      try {
+        const response = await apiClient.get(`/users/${teacherId}`)
+        const teacher = response.data.data || response.data
+        
+        if (teacher?.first_name && teacher?.last_name) {
+          const teacherName = `${teacher.first_name} ${teacher.last_name}`
+          teacherCache.value.set(teacherId, teacherName)
+          console.log(`✅ Teacher ${teacherId}: ${teacherName}`)
+        } else if (teacher?.username) {
+          teacherCache.value.set(teacherId, teacher.username)
+          console.log(`✅ Teacher ${teacherId}: ${teacher.username}`)
+        }
+      } catch (error) {
+        console.warn(`❌ Failed to fetch teacher ${teacherId}:`, error.response?.status)
+        teacherCache.value.set(teacherId, `Teacher ${teacherId}`)
+      }
+    }
+    
+    // Update grades with teacher names
+    grades.value = grades.value.map(grade => {
+      if (grade.recorded_by && grade.recorded_by.startsWith('Teacher ID:')) {
+        const teacherId = grade.recorded_by.replace('Teacher ID: ', '')
+        if (teacherCache.value.has(teacherId)) {
+          return {
+            ...grade,
+            recorded_by: teacherCache.value.get(teacherId)
+          }
+        }
+      }
+      return grade
+    })
+    
+    console.log('✅ Teacher names updated in grades')
+    
+  } catch (error) {
+    console.error('❌ Error fetching teacher names:', error)
   }
 }
 
@@ -938,7 +1087,7 @@ const calculateGradeSummary = () => {
 }
 
 // Handle real-time grade updates
-const handleGradeUpdate = (updateData) => {
+const handleGradeUpdate = async (updateData) => {
   console.log('🔄 Handling grade update:', updateData)
   
   const { type, grade, student_id } = updateData
@@ -972,9 +1121,7 @@ const handleGradeUpdate = (updateData) => {
         letter_grade: grade.grade_letter || updateData.metadata?.grade_letter,
         grade: grade.grade_letter || updateData.metadata?.grade_letter,
         remarks: grade.remarks,
-        recorded_by: grade.recorded_by?.first_name && grade.recorded_by?.last_name 
-          ? `${grade.recorded_by.first_name} ${grade.recorded_by.last_name}`
-          : grade.teacher_name || 'Unknown Teacher',
+        recorded_by: getTeacherName(grade),
         recorded_at: grade.created_at || grade.recorded_at || new Date().toISOString(),
         date: grade.created_at || grade.recorded_at || new Date().toISOString(),
         assessment: grade.assessment_type || updateData.metadata?.assessment_type,
@@ -983,6 +1130,10 @@ const handleGradeUpdate = (updateData) => {
       
       // Add new grade to the top of the list
       grades.value.unshift(newGrade)
+      
+      // Fetch teacher name if needed
+      await fetchTeacherNames()
+      
       showNotification('New grade added!', `You received a new ${newGrade.assessment_type} grade in ${newGrade.subject}: ${newGrade.grade_letter}`)
       break
       
@@ -1046,10 +1197,10 @@ const showNotification = (title, message) => {
 }
 
 // Watch for real-time grade updates
-watch(lastUpdate, (newUpdate) => {
+watch(lastUpdate, async (newUpdate) => {
   if (newUpdate) {
     console.log('🔄 Processing real-time update:', newUpdate)
-    handleGradeUpdate(newUpdate)
+    await handleGradeUpdate(newUpdate)
     console.log('📊 Total grades after update:', grades.value.length)
   }
 }, { deep: true })
