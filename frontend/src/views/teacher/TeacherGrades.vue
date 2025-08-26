@@ -455,7 +455,11 @@ import Chart from 'chart.js/auto'
 import * as XLSX from 'xlsx'
 import html2pdf from 'html2pdf.js'
 import apiClient from '@/api/axiosConfig'
+import { useWebSocket } from '@/composables/useWebSocket'
 
+
+// WebSocket for real-time updates
+const { connect, isConnected, send } = useWebSocket()
 
 // Reactive state
 const loading = ref(false)
@@ -1091,31 +1095,107 @@ const submitNewGrade = async () => {
   }
 
   try {
+    let response
+    let updateType = ''
+    
     if (isEditMode.value && selectedGrade.value) {
-      const res = await apiClient.put(`/grades/${selectedGrade.value.id}`, payload)
+      response = await apiClient.put(`/grades/${selectedGrade.value.id}`, payload)
       const idx = grades.value.findIndex(g => g.id === selectedGrade.value.id)
-      if (idx !== -1) grades.value[idx] = res.data.data
+      if (idx !== -1) grades.value[idx] = response.data.data
+      updateType = 'grade_updated'
     } else {
-      const res = await apiClient.post('/grades', payload)
-      grades.value.unshift(res.data.data)
+      response = await apiClient.post('/grades', payload)
+      grades.value.unshift(response.data.data)
+      updateType = 'grade_created'
     }
+
+    const gradeData = response.data.data
+
+    // Broadcast real-time update via WebSocket
+    if (isConnected.value) {
+      const updateMessage = {
+        type: updateType,
+        grade: gradeData,
+        student_id: gradeData.student_id,
+        teacher_id: user.value.id,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          subject: gradeData.class_subject?.subject?.subject_name || 'Unknown',
+          assessment_type: gradeData.assessment_type,
+          grade_letter: gradeData.grade_letter,
+          score: `${gradeData.score_obtained}/${gradeData.max_score}`
+        }
+      }
+      
+      const success = send(updateMessage)
+      if (success) {
+        console.log('✅ Real-time grade update broadcast:', updateMessage)
+      } else {
+        console.warn('⚠️ Failed to broadcast grade update via WebSocket')
+      }
+    }
+
+    // Show success notification
+    const actionText = isEditMode.value ? 'updated' : 'added'
+    const studentName = students.value.find(s => s.id === gradeData.student_id)?.user?.first_name || 'Student'
+    const subjectName = gradeData.class_subject?.subject?.subject_name || 'Unknown Subject'
+    
+    showSuccessNotification(
+      `Grade ${actionText} successfully!`,
+      `${studentName}'s ${gradeData.assessment_type} grade in ${subjectName}: ${gradeData.grade_letter} (${gradeData.score_obtained}%)`
+    )
+    
     showAddModal.value = false
     resetGradeForm()
     updateCharts()
+
   } catch (err) {
-    alert(err.response?.data?.message || 'Failed to save grade')
+    console.error('Error submitting grade:', err)
+    const errorMessage = err.response?.data?.message || 'Failed to save grade'
+    alert(errorMessage)
   }
 }
 
 const deleteGrade = async (id) => {
   if (!confirm('Are you sure you want to delete this grade?')) return
+  
+  // Get grade data before deletion for WebSocket broadcast
+  const gradeToDelete = grades.value.find(g => g.id === id)
+  
   try {
     await apiClient.delete(`/grades/${id}`)
     grades.value = grades.value.filter(g => g.id !== id)
+    
+    // Broadcast real-time update via WebSocket
+    if (isConnected.value && gradeToDelete) {
+      const updateMessage = {
+        type: 'grade_deleted',
+        grade_id: id,
+        grade: gradeToDelete,
+        student_id: gradeToDelete.student_id,
+        teacher_id: user.value.id,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          subject: gradeToDelete.class_subject?.subject?.subject_name || 'Unknown',
+          assessment_type: gradeToDelete.assessment_type,
+          grade_letter: gradeToDelete.grade_letter
+        }
+      }
+      
+      const success = send(updateMessage)
+      if (success) {
+        console.log('✅ Real-time grade deletion broadcast:', updateMessage)
+      }
+    }
+    
     updateCharts()
     selectedStudentGrade.value = null
     selectedGradeGroup.value = null
+    
+    showSuccessNotification('Grade deleted', 'Grade has been successfully removed')
+    
   } catch (err) {
+    console.error('Error deleting grade:', err)
     alert(err.response?.data?.message || 'Failed to delete grade')
   }
 }
