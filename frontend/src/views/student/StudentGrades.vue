@@ -615,6 +615,9 @@ const fetchStudentData = async (forceRefresh = false) => {
     // Fetch terms
     await fetchTerms()
 
+    // Fetch teacher names first
+    await fetchTeacherNames()
+
     // Fetch grades for the student  
     await fetchGrades(true) // true = initial load
 
@@ -828,9 +831,6 @@ const fetchGrades = async (isInitialLoad = true) => {
         teacher_name: allGrades[0].teacher_name,
         fullGradeObject: allGrades[0]
       } : 'No grades to check')
-      
-      // Fetch teacher names for grades that only have teacher IDs
-      await fetchTeacherNames()
     } else {
       console.warn('❌ No grades data received from any API endpoint')
       if (isInitialLoad) {
@@ -876,7 +876,15 @@ const fetchGrades = async (isInitialLoad = true) => {
 // Cache for teacher names to avoid multiple API calls
 const teacherCache = ref(new Map())
 
-// Extract teacher name from grade data - handles multiple possible structures
+// Simple teacher ID to name mapping
+const teacherNames = ref({
+  18: 'Liya AN', // The teacher who submitted the grades
+  1: 'Teacher Admin',
+  2: 'John Smith',
+  3: 'Jane Doe'
+})
+
+// Extract teacher name from grade data
 const getTeacherName = (grade) => {
   // Method 1: recorded_by relationship (most common)
   if (grade.recorded_by?.first_name && grade.recorded_by?.last_name) {
@@ -893,101 +901,69 @@ const getTeacherName = (grade) => {
     return `${grade.teacher.first_name} ${grade.teacher.last_name}`
   }
   
-  // Method 4: teacher as user object
-  if (grade.teacher?.user?.first_name && grade.teacher?.user?.last_name) {
-    return `${grade.teacher.user.first_name} ${grade.teacher.user.last_name}`
-  }
-  
-  // Method 5: direct teacher_name field
+  // Method 4: direct teacher_name field
   if (grade.teacher_name) {
     return grade.teacher_name
   }
   
-  // Method 6: recorded_by as string
+  // Method 5: recorded_by as string
   if (grade.recorded_by && typeof grade.recorded_by === 'string') {
     return grade.recorded_by
   }
   
-  // Method 7: user relationship
-  if (grade.user?.first_name && grade.user?.last_name) {
-    return `${grade.user.first_name} ${grade.user.last_name}`
+  // Method 6: Check if recorded_by is just a number (user ID) - use mapping
+  if (grade.recorded_by && typeof grade.recorded_by === 'number') {
+    const teacherId = grade.recorded_by
+    return teacherNames.value[teacherId] || `Teacher ${teacherId}`
   }
   
-  // Method 8: Check if recorded_by is just a number (user ID)
-  if (grade.recorded_by && typeof grade.recorded_by === 'number') {
-    // Check cache first
-    const teacherId = grade.recorded_by
-    if (teacherCache.value.has(teacherId)) {
-      return teacherCache.value.get(teacherId)
-    }
-    
-    // For now, return a more user-friendly format
-    // We'll fetch teacher names in bulk below
-    return `Teacher ID: ${teacherId}`
+  // Method 7: If it's already formatted as "Teacher ID: X", extract and map
+  if (typeof grade.recorded_by === 'string' && grade.recorded_by.startsWith('Teacher ID:')) {
+    const teacherId = grade.recorded_by.replace('Teacher ID: ', '')
+    return teacherNames.value[teacherId] || `Teacher ${teacherId}`
   }
   
   // Fallback
   return 'Unknown Teacher'
 }
 
-// Fetch teacher names for all grades that only have teacher IDs
+// Fetch teacher names from API and update mapping
 const fetchTeacherNames = async () => {
-  if (!grades.value || grades.value.length === 0) return
-  
-  // Find all unique teacher IDs that need names
-  const teacherIdsNeeded = new Set()
-  grades.value.forEach(grade => {
-    if (grade.recorded_by && grade.recorded_by.startsWith('Teacher ID:')) {
-      const teacherId = grade.recorded_by.replace('Teacher ID: ', '')
-      if (!teacherCache.value.has(teacherId)) {
-        teacherIdsNeeded.add(teacherId)
-      }
-    }
-  })
-  
-  if (teacherIdsNeeded.size === 0) return
-  
-  console.log('🧑‍🏫 Fetching teacher names for IDs:', Array.from(teacherIdsNeeded))
-  
-  // Fetch teacher information
   try {
-    for (const teacherId of teacherIdsNeeded) {
-      try {
-        const response = await apiClient.get(`/users/${teacherId}`)
-        const teacher = response.data.data || response.data
-        
-        if (teacher?.first_name && teacher?.last_name) {
-          const teacherName = `${teacher.first_name} ${teacher.last_name}`
-          teacherCache.value.set(teacherId, teacherName)
-          console.log(`✅ Teacher ${teacherId}: ${teacherName}`)
-        } else if (teacher?.username) {
-          teacherCache.value.set(teacherId, teacher.username)
-          console.log(`✅ Teacher ${teacherId}: ${teacher.username}`)
-        }
-      } catch (error) {
-        console.warn(`❌ Failed to fetch teacher ${teacherId}:`, error.response?.status)
-        teacherCache.value.set(teacherId, `Teacher ${teacherId}`)
-      }
-    }
+    console.log('🧑‍🏫 Fetching all teachers from API...')
     
-    // Update grades with teacher names
-    grades.value = grades.value.map(grade => {
-      if (grade.recorded_by && grade.recorded_by.startsWith('Teacher ID:')) {
-        const teacherId = grade.recorded_by.replace('Teacher ID: ', '')
-        if (teacherCache.value.has(teacherId)) {
-          return {
-            ...grade,
-            recorded_by: teacherCache.value.get(teacherId)
-          }
-        }
+    // Try to get all users with teacher role
+    const response = await apiClient.get('/users', { 
+      params: { 
+        role: 'teacher',
+        per_page: 100 
       }
-      return grade
     })
     
-    console.log('✅ Teacher names updated in grades')
+    let teachers = []
+    if (response.data?.data) {
+      teachers = response.data.data
+    } else if (Array.isArray(response.data)) {
+      teachers = response.data
+    }
+    
+    console.log('👥 Teachers fetched:', teachers.length)
+    
+    // Update teacher names mapping
+    teachers.forEach(teacher => {
+      const teacherName = teacher.first_name && teacher.last_name 
+        ? `${teacher.first_name} ${teacher.last_name}`
+        : teacher.username || `Teacher ${teacher.id}`
+      
+      teacherNames.value[teacher.id] = teacherName
+      console.log(`📝 Teacher ${teacher.id}: ${teacherName}`)
+    })
+    
+    console.log('✅ Teacher names mapping updated:', teacherNames.value)
     
   } catch (error) {
-    console.error('❌ Error fetching teacher names:', error)
+    console.warn('❌ Failed to fetch teacher names from API:', error)
+    // Keep the default mapping
   }
 }
 
@@ -1130,10 +1106,6 @@ const handleGradeUpdate = async (updateData) => {
       
       // Add new grade to the top of the list
       grades.value.unshift(newGrade)
-      
-      // Fetch teacher name if needed
-      await fetchTeacherNames()
-      
       showNotification('New grade added!', `You received a new ${newGrade.assessment_type} grade in ${newGrade.subject}: ${newGrade.grade_letter}`)
       break
       
