@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-4 sm:py-8">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-      <!-- Header -->
+
       <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 class="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">Students</h1>
