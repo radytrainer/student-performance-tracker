@@ -15,7 +15,7 @@ class ClassController extends Controller
     /**
      * Get students in a specific class that the teacher is assigned to
      */
-    public function getClassStudents($classId): JsonResponse
+    public function getClassStudents(Request $request, $classId): JsonResponse
     {
         try {
             $teacherId = Auth::id();
