@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 sm:py-8">
+  <div class="min-h-screen bg-gray-50 py-4 sm:py-8">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -9,7 +9,7 @@
         </div>
         <button
           @click="showAddModal = true"
-          class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-105 transition-all duration-200 shadow-lg"
+          class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 shadow-sm"
         >
           <Plus class="w-5 h-5 mr-2" />
           Add Student
@@ -17,20 +17,20 @@
       </div>
 
       <!-- Filters -->
-      <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
         <div class="flex flex-col sm:flex-row gap-4">
           <div class="flex-1 relative">
             <input
               v-model="searchQuery"
               type="text"
               placeholder="Search students by name or email..."
-              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+              class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
             />
             <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           </div>
           <select
             v-model="selectedRole"
-            class="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+            class="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
           >
             <option value="">All Roles</option>
             <option value="Student">Student</option>
@@ -39,7 +39,7 @@
           </select>
           <select
             v-model="sortBy"
-            class="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+            class="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
           >
             <option value="name">Sort by Name</option>
             <option value="email">Sort by Email</option>
@@ -47,7 +47,7 @@
           </select>
           <button
             @click="clearFilters"
-            class="px-4 py-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+            class="px-4 py-3 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
             title="Clear filters"
           >
             <RotateCcw class="w-5 h-5 text-gray-600" />
@@ -59,8 +59,8 @@
       <div class="flex items-center justify-between mb-4">
         <div class="text-sm text-gray-600">Page {{ page }} of {{ totalPages }}</div>
         <div class="space-x-2">
-          <button @click="prevPage" :disabled="page <= 1" class="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
-          <button @click="nextPage" :disabled="page >= totalPages" class="px-3 py-1 border rounded disabled:opacity-50">Next</button>
+          <button @click="prevPage" :disabled="page <= 1" class="px-3 py-1 border rounded-md disabled:opacity-50">Prev</button>
+          <button @click="nextPage" :disabled="page >= totalPages" class="px-3 py-1 border rounded-md disabled:opacity-50">Next</button>
         </div>
       </div>
 
@@ -69,11 +69,11 @@
         <div
           v-for="student in filteredStudents"
           :key="student.id"
-          class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer group"
+          class="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer group border border-gray-100"
           @click="openDetails(student)"
         >
           <!-- Header -->
-          <div class="relative bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+          <div class="relative bg-blue-600 p-6 text-white">
             <div class="flex items-center space-x-4">
               <div
                 class="w-16 h-16 rounded-full overflow-hidden bg-white/20 backdrop-blur-sm border-2 border-white/30 flex-shrink-0 flex items-center justify-center"
@@ -122,14 +122,14 @@
             <div class="flex gap-2 mt-4">
               <button
                 @click.stop="startEdit(student)"
-                class="px-3 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                class="px-3 py-2 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors duration-200"
                 :title="'Edit ' + student.name"
               >
                 <Edit class="w-4 h-4" />
               </button>
               <button
                 @click.stop="askDelete(student)"
-                class="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-200"
+                class="px-3 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors duration-200"
                 :title="'Delete ' + student.name"
               >
                 <Trash2 class="w-4 h-4" />
@@ -159,7 +159,7 @@
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       @click.self="showAddModal = false"
     >
-      <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div class="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6 border-b border-gray-200 flex justify-between items-center">
           <h2 class="text-xl font-bold text-gray-900">Add New Student</h2>
           <button
@@ -176,7 +176,7 @@
               v-model="newStudent.name"
               type="text"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter student name"
             />
           </div>
@@ -186,7 +186,7 @@
               v-model="newStudent.email"
               type="email"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter email address"
             />
           </div>
@@ -195,7 +195,7 @@
             <input
               v-model="newStudent.phone"
               type="tel"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter phone number"
             />
           </div>
@@ -204,7 +204,7 @@
             <select
               v-model="newStudent.role"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Select role</option>
               <option value="Student">Student</option>
@@ -217,7 +217,7 @@
             <select
               v-model="newStudent.status"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Select status</option>
               <option value="Active">Active</option>
@@ -228,13 +228,13 @@
             <button
               type="button"
               @click="showAddModal = false"
-              class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+              class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
             >
               Add Student
             </button>
@@ -249,7 +249,7 @@
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       @click.self="closeEdit"
     >
-      <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div class="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6 border-b border-gray-200 flex justify-between items-center">
           <h2 class="text-xl font-bold text-gray-900">Edit Student</h2>
           <button
@@ -266,7 +266,7 @@
               v-model="editForm.name"
               type="text"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter student name"
             />
           </div>
@@ -276,7 +276,7 @@
               v-model="editForm.email"
               type="email"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter email address"
             />
           </div>
@@ -285,7 +285,7 @@
             <input
               v-model="editForm.phone"
               type="tel"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter phone number"
             />
           </div>
@@ -294,7 +294,7 @@
             <select
               v-model="editForm.role"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="Student">Student</option>
               <option value="Graduate">Graduate</option>
@@ -306,7 +306,7 @@
             <select
               v-model="editForm.status"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
@@ -316,13 +316,13 @@
             <button
               type="button"
               @click="closeEdit"
-              class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+              class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
             >
               Save Changes
             </button>
@@ -337,7 +337,7 @@
           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
           @click.self="showDetailsModal = false"
         >
-          <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+          <div class="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-xl font-bold text-gray-900">{{ selectedStudent.name }}</h2>
               <button
@@ -385,19 +385,19 @@
         <div class="mt-6 flex justify-end space-x-3">
           <button
             @click="startEdit(selectedStudent); showDetailsModal = false"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
           >
             Edit
           </button>
           <button
             @click="askDelete(selectedStudent); showDetailsModal = false"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200"
           >
             Delete
           </button>
           <button
             @click="showDetailsModal = false"
-            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+            class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
           >
             Close
           </button>
@@ -411,7 +411,7 @@
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       @click.self="showDeleteModal = false"
     >
-      <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 text-center">
+      <div class="bg-white rounded-lg shadow-lg max-w-sm w-full p-6 text-center">
         <AlertTriangle class="w-12 h-12 mx-auto text-red-600 mb-4" />
         <h3 class="text-lg font-bold mb-2">Confirm Delete</h3>
         <p class="mb-4 text-gray-700">
@@ -422,13 +422,13 @@
         <div class="flex justify-center gap-4">
           <button
             @click="showDeleteModal = false"
-            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+            class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
           >
             Cancel
           </button>
           <button
             @click="confirmDelete"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200"
           >
             Delete
           </button>
