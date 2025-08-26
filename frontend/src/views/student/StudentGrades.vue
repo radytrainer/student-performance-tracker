@@ -240,7 +240,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from "@/stores/auth"
 import { useWebSocket, useGradeUpdates, useNotifications } from '@/composables/useWebSocket'
-import { gradesApi } from '@/api/grades'
+import gradesApi from '@/api/grades'
 
 const authStore = useAuthStore()
 const { connect, isConnected } = useWebSocket()
