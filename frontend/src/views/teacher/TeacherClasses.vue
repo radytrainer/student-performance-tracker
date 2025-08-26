@@ -994,7 +994,7 @@ const filteredStudents = computed(() => {
 })
 
 const filteredClasses = computed(() => {
-  if (!classes.value) return []
+  if (!classes.value || !Array.isArray(classes.value)) return []
   if (!classSearch.value) return classes.value
   
   return classes.value.filter(classItem =>
@@ -1016,7 +1016,7 @@ const availableStudentsForClass = computed(() => {
 })
 
 const currentClassSubjects = computed(() => {
-  if (!selectedClass.value || !classSubjects.value) return []
+  if (!selectedClass.value || !classSubjects.value || !Array.isArray(classSubjects.value)) return []
   return classSubjects.value.filter(cs => cs.class_id === selectedClass.value.id)
 })
 
