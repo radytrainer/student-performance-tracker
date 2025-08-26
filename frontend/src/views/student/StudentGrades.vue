@@ -119,10 +119,10 @@
                     d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
-              <span class="text-green-500 font-semibold text-sm">+1.8%</span>
+              <span class="text-green-500 font-semibold text-sm">{{ getBestSubjectTrend() }}</span>
             </div>
-            <p class="text-gray-500 font-semibold text-sm uppercase">{{ bestSubject.name || '—' }}</p>
-            <p class="text-2xl font-bold text-green-700">{{ bestSubject.score || 0 }}%</p>
+            <p class="text-gray-500 font-semibold text-sm uppercase">{{ bestSubject.name || gradeSummary?.best_subject || 'N/A' }}</p>
+            <p class="text-2xl font-bold text-green-700">{{ Math.round(bestSubject.score || 0) }}%</p>
           </div>
 
           <!-- Weakest Subject Card -->
@@ -135,10 +135,10 @@
                     d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
                 </svg>
               </div>
-              <span class="text-red-500 font-semibold text-sm">-0.5%</span>
+              <span class="text-red-500 font-semibold text-sm">{{ getWeakestSubjectTrend() }}</span>
             </div>
-            <p class="text-gray-500 font-semibold text-sm uppercase">{{ weakestSubject.name || '—' }}</p>
-            <p class="text-2xl font-bold text-red-700">{{ weakestSubject.score || 0 }}%</p>
+            <p class="text-gray-500 font-semibold text-sm uppercase">{{ weakestSubject.name || gradeSummary?.weakest_subject || 'N/A' }}</p>
+            <p class="text-2xl font-bold text-red-700">{{ Math.round(weakestSubject.score || 0) }}%</p>
           </div>
 
           <!-- Overall Performance Card -->
@@ -686,6 +686,7 @@ const fetchGrades = async () => {
       calculateGradeSummary()
       
       console.log('✅ Real grades loaded successfully:', grades.value.length, 'grades')
+      console.log('📊 Grade details:', grades.value)
     } else {
       console.warn('No grades data received, using empty array')
       grades.value = []
@@ -760,14 +761,33 @@ const calculateGradeSummary = () => {
     count: stats.count
   }))
 
-  // Find best and weakest subjects
-  const bestSubject = subjectAverages.reduce((max, current) => 
-    current.average > max.average ? current : max
-  )
+  // Find best and weakest subjects (only if we have multiple subjects)
+  let bestSubject, weakestSubject
   
-  const weakestSubject = subjectAverages.reduce((min, current) => 
-    current.average < min.average ? current : min
-  )
+  if (subjectAverages.length === 0) {
+    bestSubject = { subject: 'N/A', average: 0, count: 0 }
+    weakestSubject = { subject: 'N/A', average: 0, count: 0 }
+  } else if (subjectAverages.length === 1) {
+    // If only one subject, use it for best, set weakest to N/A
+    bestSubject = subjectAverages[0]
+    weakestSubject = { subject: 'N/A', average: 0, count: 0 }
+  } else {
+    // Multiple subjects - find actual best and weakest
+    bestSubject = subjectAverages.reduce((max, current) => 
+      current.average > max.average ? current : max
+    )
+    
+    weakestSubject = subjectAverages.reduce((min, current) => 
+      current.average < min.average ? current : min
+    )
+    
+    // Don't show the same subject as both best and weakest
+    if (bestSubject.subject === weakestSubject.subject && subjectAverages.length > 1) {
+      const sortedSubjects = [...subjectAverages].sort((a, b) => b.average - a.average)
+      bestSubject = sortedSubjects[0]
+      weakestSubject = sortedSubjects[sortedSubjects.length - 1]
+    }
+  }
 
   // Calculate overall statistics
   const totalScore = grades.value.reduce((sum, grade) => 
