@@ -491,6 +491,165 @@
               </div>
             </div>
 
+            <!-- Grades Tab -->
+            <div v-if="activeTab === 'grades'" class="space-y-6">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h3 class="text-xl font-bold text-gray-900">Class Grades</h3>
+                  <p class="text-gray-600 text-sm mt-1">Manage student grades for this class</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="flex items-center space-x-2">
+                    <div 
+                      :class="[
+                        'w-3 h-3 rounded-full',
+                        isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+                      ]"
+                    ></div>
+                    <span class="text-sm font-medium" :class="isConnected ? 'text-green-700' : 'text-red-700'">
+                      {{ isConnected ? 'Live Updates Active' : 'Offline' }}
+                    </span>
+                  </div>
+                  <button @click="openGradeModal()"
+                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-200"
+                    :disabled="!selectedClass || loadingGrades">
+                    <Loader v-if="loadingGrades" class="w-4 h-4 mr-2 inline animate-spin" />
+                    <Plus v-else class="w-4 h-4 mr-2 inline" />
+                    Add Grade
+                  </button>
+                </div>
+              </div>
+
+              <!-- Grades Summary Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 p-4 rounded-xl">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-xs text-blue-700 font-bold uppercase tracking-wide">Total Grades</p>
+                      <p class="text-2xl font-bold text-blue-900">{{ classGrades.length }}</p>
+                    </div>
+                    <Award class="w-8 h-8 text-blue-600" />
+                  </div>
+                </div>
+                <div class="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 p-4 rounded-xl">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-xs text-green-700 font-bold uppercase tracking-wide">Average Grade</p>
+                      <p class="text-2xl font-bold text-green-900">{{ calculateClassAverage() }}</p>
+                    </div>
+                    <TrendingUp class="w-8 h-8 text-green-600" />
+                  </div>
+                </div>
+                <div class="bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 p-4 rounded-xl">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-xs text-amber-700 font-bold uppercase tracking-wide">Recent Grades</p>
+                      <p class="text-2xl font-bold text-amber-900">{{ getRecentGradesCount() }}</p>
+                    </div>
+                    <Clock class="w-8 h-8 text-amber-600" />
+                  </div>
+                </div>
+                <div class="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 p-4 rounded-xl">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-xs text-purple-700 font-bold uppercase tracking-wide">Students Graded</p>
+                      <p class="text-2xl font-bold text-purple-900">{{ getUniqueStudentCount() }}</p>
+                    </div>
+                    <Users class="w-8 h-8 text-purple-600" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grades Table -->
+              <div class="bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-2xl overflow-hidden shadow-lg">
+                <div v-if="loadingGrades" class="flex justify-center py-12">
+                  <div class="text-center">
+                    <Loader class="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+                    <p class="text-gray-500">Loading grades...</p>
+                  </div>
+                </div>
+                
+                <div v-else-if="classGrades.length === 0" class="text-center py-12">
+                  <Award class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 class="text-lg font-bold text-gray-900 mb-2">No Grades Found</h3>
+                  <p class="text-gray-500 mb-4">No grades have been recorded for this class yet.</p>
+                  <button @click="openGradeModal()"
+                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200">
+                    <Plus class="w-4 h-4 mr-2 inline" />
+                    Add First Grade
+                  </button>
+                </div>
+                
+                <div v-else>
+                  <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <tr>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Student</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Subject</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Assessment</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Score</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Grade</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white/60 backdrop-blur-sm divide-y divide-gray-200">
+                      <tr v-for="grade in classGrades" :key="grade.id"
+                        class="hover:bg-white/80 transition-colors duration-200">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                              <User class="w-4 h-4 text-white" />
+                            </div>
+                            <div class="ml-3">
+                              <div class="text-sm font-bold text-gray-900">{{ getStudentName(grade.student_id) }}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ grade.subject || 'N/A' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span class="px-2 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-800 capitalize">
+                            {{ grade.assessment_type }}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <div class="flex items-center">
+                            <span class="text-sm font-bold text-gray-900 mr-2">{{ grade.score_obtained }}/{{ grade.max_score }}</span>
+                            <div class="w-16 bg-gray-200 rounded-full h-2">
+                              <div class="h-2 rounded-full transition-all duration-500"
+                                :class="getScoreColorClass((grade.score_obtained / grade.max_score) * 100)"
+                                :style="{ width: ((grade.score_obtained / grade.max_score) * 100) + '%' }"></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                          <span class="px-2 py-1 text-xs font-bold rounded-full"
+                            :class="getGradeBadgeClass(grade.grade_letter)">
+                            {{ grade.grade_letter || 'N/A' }}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {{ formatDate(grade.created_at || grade.recorded_at) }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div class="flex space-x-2">
+                            <button @click="openGradeModal(grade)"
+                              class="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200">
+                              <Edit3 class="w-4 h-4" />
+                            </button>
+                            <button @click="deleteGrade(grade.id)"
+                              class="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-all duration-200">
+                              <Trash2 class="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
             <!-- Attendance Tab -->
             <div v-if="activeTab === 'attendance'" class="space-y-6">
               <AttendanceTracker :selected-class="selectedClass" />
@@ -869,16 +1028,18 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   BookOpen, Users, Calendar, TrendingUp, MapPin, Clock, Plus, User,
   MoreHorizontal, ArrowLeft, StickyNote, Settings, Search, Download,
-  Eye, Printer, X, RefreshCw, Loader
+  Eye, Printer, X, RefreshCw, Loader, Edit3, Trash2, Award
 } from 'lucide-vue-next'
 import HeaderTeacher from '@/components/teacher/Classes/HeaderTeacher.vue'
 import ToastNotification from '@/components/common/ToastNotification.vue'
 import AttendanceTracker from '@/components/teacher/AttendanceTracker.vue'
 import { useTeacherClasses } from '@/composables/useTeacherClasses'
+import { useWebSocket } from '@/composables/useWebSocket'
+import gradesApi from '@/api/grades'
 
 // Use the teacher classes composable
 const {
@@ -915,6 +1076,9 @@ const {
   initializeData
 } = useTeacherClasses()
 
+// WebSocket for real-time updates
+const { connect, isConnected, send } = useWebSocket()
+
 // Local reactive data
 const activeTab = ref('students')
 const selectedStudent = ref(null)
@@ -926,9 +1090,40 @@ const classSearch = ref('')
 const selectedStudentsForBulk = ref([])
 const newNote = ref('')
 
+// Grade management state
+const classGrades = ref([])
+const loadingGrades = ref(false)
+const showGradeModal = ref(false)
+const editingGrade = ref(null)
+const gradeForm = ref({
+  student_id: '',
+  subject: '',
+  assessment_type: '',
+  score_obtained: '',
+  max_score: 100,
+  grade_letter: '',
+  remarks: ''
+})
+
+// Assessment types
+const assessmentTypes = [
+  { value: 'quiz', label: 'Quiz' },
+  { value: 'exam', label: 'Exam' },
+  { value: 'midterm', label: 'Midterm' },
+  { value: 'final', label: 'Final' },
+  { value: 'project', label: 'Project' },
+  { value: 'assignment', label: 'Assignment' },
+  { value: 'homework', label: 'Homework' },
+  { value: 'participation', label: 'Participation' },
+  { value: 'lab', label: 'Lab Test' }
+]
+
+const gradeLetters = ['A', 'B', 'C', 'D', 'E', 'F']
+
 // Tabs configuration
 const tabs = [
   { id: 'students', name: 'Students', icon: Users },
+  { id: 'grades', name: 'Grades', icon: BookOpen },
   { id: 'attendance', name: 'Attendance', icon: Calendar },
   { id: 'subjects', name: 'Subjects', icon: BookOpen },
   { id: 'schedule', name: 'Schedule', icon: Clock },
