@@ -50,7 +50,7 @@
                 <Calendar class="w-7 h-7 text-white" />
               </div>
               <div class="ml-4">
-                <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Avg Attendance</p>
+                <p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Avg Attendances</p>
                 <p class="text-3xl font-bold text-gray-900">
                   <Loader v-if="loadingStats" class="w-8 h-8 animate-spin" />
                   <span v-else>{{ averageAttendance }}%</span>
