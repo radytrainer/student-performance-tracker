@@ -39,6 +39,28 @@
       </div>
     </div>
 
+    <!-- Real-time Update Notification -->
+    <div v-if="lastUpdate" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span class="text-blue-800 font-medium">
+            New grade {{ lastUpdate.type === 'grade_created' ? 'added' : lastUpdate.type === 'grade_updated' ? 'updated' : 'removed' }}!
+          </span>
+          <span class="text-blue-600 ml-2">
+            {{ lastUpdate.metadata?.subject }} - {{ lastUpdate.metadata?.assessment_type }}
+          </span>
+        </div>
+        <button @click="lastUpdate = null" class="text-blue-600 hover:text-blue-800">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <!-- Error State -->
     <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
       <div class="flex items-center mb-4">
