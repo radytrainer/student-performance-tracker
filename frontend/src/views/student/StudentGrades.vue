@@ -876,9 +876,10 @@ const fetchGrades = async (isInitialLoad = true) => {
 // Cache for teacher names to avoid multiple API calls
 const teacherCache = ref(new Map())
 
-// Simple teacher ID to name mapping
+// Teacher ID to name mapping - will be populated from API
 const teacherNames = ref({
-  18: 'Liya AN', // The teacher who submitted the grades
+  18: 'Liya AN', // Default for the current teacher
+  20: 'Liya AN', // Handle the Teacher 20 case too
   1: 'Teacher Admin',
   2: 'John Smith',
   3: 'Jane Doe'
@@ -914,17 +915,64 @@ const getTeacherName = (grade) => {
   // Method 6: Check if recorded_by is just a number (user ID) - use mapping
   if (grade.recorded_by && typeof grade.recorded_by === 'number') {
     const teacherId = grade.recorded_by
-    return teacherNames.value[teacherId] || `Teacher ${teacherId}`
+    if (teacherNames.value[teacherId]) {
+      return teacherNames.value[teacherId]
+    }
+    
+    // If teacher not found, try to fetch it individually
+    fetchIndividualTeacher(teacherId)
+    return `Teacher ${teacherId}` // Temporary until fetch completes
   }
   
   // Method 7: If it's already formatted as "Teacher ID: X", extract and map
   if (typeof grade.recorded_by === 'string' && grade.recorded_by.startsWith('Teacher ID:')) {
-    const teacherId = grade.recorded_by.replace('Teacher ID: ', '')
-    return teacherNames.value[teacherId] || `Teacher ${teacherId}`
+    const teacherId = parseInt(grade.recorded_by.replace('Teacher ID: ', ''))
+    if (teacherNames.value[teacherId]) {
+      return teacherNames.value[teacherId]
+    }
+    
+    // If teacher not found, try to fetch it individually
+    fetchIndividualTeacher(teacherId)
+    return `Teacher ${teacherId}` // Temporary until fetch completes
   }
   
   // Fallback
   return 'Unknown Teacher'
+}
+
+// Fetch individual teacher name when not found in mapping
+const fetchIndividualTeacher = async (teacherId) => {
+  if (teacherCache.value.has(teacherId)) return // Already fetching
+  
+  teacherCache.value.set(teacherId, 'fetching') // Mark as fetching
+  
+  try {
+    console.log(`🧑‍🏫 Fetching individual teacher ${teacherId}...`)
+    
+    const response = await apiClient.get(`/users/${teacherId}`)
+    const teacher = response.data.data || response.data
+    
+    let teacherName = `Teacher ${teacherId}`
+    if (teacher?.first_name && teacher?.last_name) {
+      teacherName = `${teacher.first_name} ${teacher.last_name}`
+    } else if (teacher?.username) {
+      teacherName = teacher.username
+    }
+    
+    // Update mapping
+    teacherNames.value[teacherId] = teacherName
+    teacherCache.value.set(teacherId, teacherName)
+    
+    console.log(`✅ Individual teacher fetch: ${teacherId} → ${teacherName}`)
+    
+    // Force reactivity update for grades
+    grades.value = [...grades.value]
+    
+  } catch (error) {
+    console.warn(`❌ Failed to fetch teacher ${teacherId}:`, error.response?.status)
+    teacherNames.value[teacherId] = `Teacher ${teacherId}`
+    teacherCache.value.set(teacherId, `Teacher ${teacherId}`)
+  }
 }
 
 // Fetch teacher names from API and update mapping
