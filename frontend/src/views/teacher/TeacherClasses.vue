@@ -1021,6 +1021,108 @@
         </div>
       </div>
     </div>
+
+    <!-- Grade Modal -->
+    <div v-if="showGradeModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-white/95 backdrop-blur-lg rounded-2xl max-w-lg w-full shadow-2xl border border-white/30">
+        <div class="p-6 border-b border-gray-200/50">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">
+                {{ editingGrade ? 'Edit Grade' : 'Add New Grade' }}
+              </h3>
+              <p class="text-gray-600 text-sm mt-1">
+                {{ selectedClass?.class_name || selectedClass?.name || 'Unknown Class' }}
+              </p>
+            </div>
+            <button @click="closeGradeModal"
+              class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <form @submit.prevent="submitGrade" class="p-6 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-2">Student</label>
+              <select v-model="gradeForm.student_id" required
+                class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm shadow-md">
+                <option value="">Select Student</option>
+                <option v-for="student in classStudents" :key="student.id || student.user_id" 
+                  :value="student.id || student.user_id">
+                  {{ formatStudentName(student) }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-2">Subject</label>
+              <select v-model="gradeForm.subject" required
+                class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm shadow-md">
+                <option value="">Select Subject</option>
+                <option v-for="subject in currentClassSubjects" :key="subject.id"
+                  :value="subject.subject?.subject_name || subject.name">
+                  {{ subject.subject?.subject_name || subject.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-2">Assessment Type</label>
+              <select v-model="gradeForm.assessment_type" required
+                class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm shadow-md">
+                <option value="">Select Type</option>
+                <option v-for="type in assessmentTypes" :key="type.value" :value="type.value">
+                  {{ type.label }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-2">Max Score</label>
+              <input v-model="gradeForm.max_score" type="number" min="1" max="1000" required
+                class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm shadow-md">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-2">Score Obtained</label>
+              <input v-model="gradeForm.score_obtained" type="number" min="0" :max="gradeForm.max_score" required
+                @input="calculateGradeLetterInModal"
+                class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm shadow-md">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-2">Grade Letter</label>
+              <select v-model="gradeForm.grade_letter"
+                class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm shadow-md">
+                <option value="">Auto-calculate</option>
+                <option v-for="letter in gradeLetters" :key="letter" :value="letter">{{ letter }}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Remarks (Optional)</label>
+            <textarea v-model="gradeForm.remarks" rows="2"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm shadow-md resize-none"
+              placeholder="Add any remarks about this grade..."></textarea>
+          </div>
+          
+          <div class="flex space-x-3 pt-4">
+            <button type="button" @click="closeGradeModal"
+              class="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-4 py-3 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-200">
+              Cancel
+            </button>
+            <button type="submit" :disabled="loadingGrades"
+              class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50">
+              <Loader v-if="loadingGrades" class="w-4 h-4 mr-2 inline animate-spin" />
+              {{ editingGrade ? 'Update Grade' : 'Add Grade' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
     
     <!-- Toast Notifications -->
     <ToastNotification />
