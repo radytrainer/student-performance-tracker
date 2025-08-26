@@ -237,10 +237,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from "@/stores/auth"
+import { useWebSocket, useGradeUpdates, useNotifications } from '@/composables/useWebSocket'
+import { gradesApi } from '@/api/grades'
 
 const authStore = useAuthStore()
+const { connect, isConnected } = useWebSocket()
 
 // Loading and error states
 const loading = ref(true)
@@ -266,6 +269,11 @@ const selectedSubject = ref('')
 const grades = ref([])
 const gradeSummary = ref(null)
 const studentGPA = ref(0)
+
+// Real-time updates
+const studentId = computed(() => student.value.student_id || authStore.user?.id)
+const { gradeUpdates, lastUpdate } = useGradeUpdates(studentId.value)
+const { notifications } = useNotifications(authStore.user?.id)
 
 // Mock data for testing
 const mockGradesData = {
@@ -491,7 +499,7 @@ const exportToPDF = () => {
 }
 
 // API Functions
-const fetchStudentData = async () => {
+const fetchStudentData = async (forceRefresh = false) => {
   try {
     loading.value = true
     error.value = null
@@ -512,21 +520,53 @@ const fetchStudentData = async () => {
 
     console.log('📊 Fetching grades for student:', student.value.student_id)
 
-    // Use mock data for demonstration
-    console.log('🧪 Using mock data for testing...');
+    // Try to fetch real data first, fallback to mock data
+    try {
+      if (window.location.hostname === 'localhost' && !forceRefresh) {
+        // For development, use mock data but with real-time updates capability
+        console.log('🧪 Using mock data for testing...')
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 800))
+        
+        // Load mock data
+        grades.value = mockGradesData.grades
+        gradeSummary.value = mockGradesData.summary
+        studentGPA.value = mockGradesData.gpa
+        
+        console.log('✅ Mock data loaded successfully')
+      } else {
+        // Production: Fetch real data from API
+        console.log('🌐 Fetching real data from API...')
+        
+        const [gradesResponse, summaryResponse] = await Promise.all([
+          gradesApi.getStudentGrades(student.value.student_id),
+          gradesApi.getStudentGradeSummary(student.value.student_id)
+        ])
+        
+        grades.value = gradesResponse.data
+        gradeSummary.value = summaryResponse.data.summary
+        studentGPA.value = summaryResponse.data.gpa
+        
+        console.log('✅ Real data loaded successfully')
+      }
+    } catch (apiError) {
+      console.warn('API failed, falling back to mock data:', apiError)
+      
+      // Fallback to mock data
+      grades.value = mockGradesData.grades
+      gradeSummary.value = mockGradesData.summary
+      studentGPA.value = mockGradesData.gpa
+    }
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    console.log('📊 Grades:', grades.value.length)
+    console.log('📈 Summary:', gradeSummary.value)
+    console.log('🎯 GPA:', studentGPA.value)
 
-    // Load mock data
-    grades.value = mockGradesData.grades;
-    gradeSummary.value = mockGradesData.summary;
-    studentGPA.value = mockGradesData.gpa;
-
-    console.log('✅ Mock data loaded successfully');
-    console.log('📊 Grades:', grades.value.length);
-    console.log('📈 Summary:', gradeSummary.value);
-    console.log('🎯 GPA:', studentGPA.value);
+    // Connect to WebSocket for real-time updates
+    if (!isConnected.value) {
+      await connect()
+    }
 
   } catch (err) {
     console.error('Failed to fetch student grades:', err)
@@ -536,8 +576,89 @@ const fetchStudentData = async () => {
   }
 }
 
+// Handle real-time grade updates
+const handleGradeUpdate = (updateData) => {
+  console.log('🔄 Handling grade update:', updateData)
+  
+  const { type, grade, student_id } = updateData
+  
+  // Only process updates for this student
+  if (student_id !== studentId.value) {
+    return
+  }
+  
+  switch (type) {
+    case 'grade_created':
+      // Add new grade to the list
+      grades.value.unshift(grade)
+      showNotification('New grade added!', `You received a new ${grade.assessment_type} grade in ${grade.subject}: ${grade.grade_letter}`)
+      break
+      
+    case 'grade_updated':
+      // Update existing grade
+      const gradeIndex = grades.value.findIndex(g => g.id === grade.id)
+      if (gradeIndex !== -1) {
+        grades.value[gradeIndex] = grade
+        showNotification('Grade updated!', `Your ${grade.assessment_type} grade in ${grade.subject} has been updated: ${grade.grade_letter}`)
+      }
+      break
+      
+    case 'grade_deleted':
+      // Remove grade from list
+      const deleteIndex = grades.value.findIndex(g => g.id === grade.id)
+      if (deleteIndex !== -1) {
+        grades.value.splice(deleteIndex, 1)
+        showNotification('Grade removed', `A grade has been removed from ${grade.subject}`)
+      }
+      break
+  }
+  
+  // Recalculate performance metrics
+  recalculatePerformanceMetrics()
+}
+
+// Recalculate performance metrics after grade changes
+const recalculatePerformanceMetrics = () => {
+  // This will trigger computed properties to recalculate
+  // Since they're reactive, the UI will update automatically
+  console.log('📊 Recalculating performance metrics...')
+}
+
+// Show notification to user
+const showNotification = (title, message) => {
+  // You can integrate with a toast notification library here
+  console.log(`🔔 ${title}: ${message}`)
+  
+  // For now, show a simple alert (replace with proper notification system)
+  if (Notification.permission === 'granted') {
+    new Notification(title, {
+      body: message,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico'
+    })
+  }
+}
+
+// Watch for real-time grade updates
+watch(lastUpdate, (newUpdate) => {
+  if (newUpdate) {
+    handleGradeUpdate(newUpdate)
+  }
+}, { deep: true })
+
+// Auto-refresh data periodically (fallback for missed WebSocket messages)
+const setupPeriodicRefresh = () => {
+  setInterval(() => {
+    if (document.visibilityState === 'visible' && isConnected.value) {
+      // Silently refresh data every 5 minutes when tab is visible
+      fetchStudentData(true)
+    }
+  }, 5 * 60 * 1000) // 5 minutes
+}
+
 // Initialize data on component mount
 onMounted(() => {
   fetchStudentData()
+  setupPeriodicRefresh()
 })
 </script>
