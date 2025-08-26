@@ -1317,15 +1317,284 @@ const currentClassSubjects = computed(() => {
   return classSubjects.value.filter(cs => cs.class_id === selectedClass.value.id)
 })
 
+// Grade management methods
+const fetchClassGrades = async () => {
+  if (!selectedClass.value) return
+  
+  loadingGrades.value = true
+  try {
+    // Mock data for now - replace with real API call
+    const mockGrades = [
+      {
+        id: 1,
+        student_id: classStudents.value[0]?.id || 1,
+        subject: 'Mathematics',
+        assessment_type: 'quiz',
+        score_obtained: 85,
+        max_score: 100,
+        grade_letter: 'B',
+        remarks: 'Good effort',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        student_id: classStudents.value[1]?.id || 2,
+        subject: 'Physics',
+        assessment_type: 'exam',
+        score_obtained: 92,
+        max_score: 100,
+        grade_letter: 'A',
+        remarks: 'Excellent work',
+        created_at: new Date(Date.now() - 86400000).toISOString()
+      }
+    ]
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500))
+    classGrades.value = mockGrades
+    
+  } catch (error) {
+    console.error('Error fetching class grades:', error)
+  } finally {
+    loadingGrades.value = false
+  }
+}
+
+const openGradeModal = (grade = null) => {
+  editingGrade.value = grade
+  if (grade) {
+    gradeForm.value = {
+      student_id: grade.student_id,
+      subject: grade.subject,
+      assessment_type: grade.assessment_type,
+      score_obtained: grade.score_obtained,
+      max_score: grade.max_score,
+      grade_letter: grade.grade_letter,
+      remarks: grade.remarks || ''
+    }
+  } else {
+    gradeForm.value = {
+      student_id: '',
+      subject: '',
+      assessment_type: '',
+      score_obtained: '',
+      max_score: 100,
+      grade_letter: '',
+      remarks: ''
+    }
+  }
+  showGradeModal.value = true
+}
+
+const closeGradeModal = () => {
+  showGradeModal.value = false
+  editingGrade.value = null
+  gradeForm.value = {
+    student_id: '',
+    subject: '',
+    assessment_type: '',
+    score_obtained: '',
+    max_score: 100,
+    grade_letter: '',
+    remarks: ''
+  }
+}
+
+const calculateGradeLetterInModal = () => {
+  if (gradeForm.value.score_obtained === '' || gradeForm.value.max_score === '') return
+  
+  const percentage = (parseFloat(gradeForm.value.score_obtained) / parseFloat(gradeForm.value.max_score)) * 100
+  
+  if (percentage >= 90) gradeForm.value.grade_letter = 'A'
+  else if (percentage >= 80) gradeForm.value.grade_letter = 'B'
+  else if (percentage >= 70) gradeForm.value.grade_letter = 'C'
+  else if (percentage >= 60) gradeForm.value.grade_letter = 'D'
+  else if (percentage >= 50) gradeForm.value.grade_letter = 'E'
+  else gradeForm.value.grade_letter = 'F'
+}
+
+const submitGrade = async () => {
+  if (!selectedClass.value) return
+  
+  loadingGrades.value = true
+  try {
+    // Calculate grade letter if not manually set
+    if (!gradeForm.value.grade_letter) {
+      calculateGradeLetterInModal()
+    }
+    
+    const gradeData = {
+      ...gradeForm.value,
+      class_id: selectedClass.value.id,
+      recorded_by: 1, // Replace with actual teacher ID
+      weightage: 1
+    }
+    
+    if (editingGrade.value) {
+      // Update existing grade
+      const index = classGrades.value.findIndex(g => g.id === editingGrade.value.id)
+      if (index !== -1) {
+        classGrades.value[index] = {
+          ...editingGrade.value,
+          ...gradeData,
+          updated_at: new Date().toISOString()
+        }
+      }
+      
+      // Broadcast update via WebSocket
+      if (isConnected.value) {
+        const updateMessage = {
+          type: 'grade_updated',
+          grade: classGrades.value[index],
+          student_id: gradeData.student_id,
+          teacher_id: 1,
+          timestamp: new Date().toISOString(),
+          metadata: {
+            subject: gradeData.subject,
+            assessment_type: gradeData.assessment_type,
+            grade_letter: gradeData.grade_letter,
+            score: `${gradeData.score_obtained}/${gradeData.max_score}`
+          }
+        }
+        send(updateMessage)
+      }
+      
+    } else {
+      // Create new grade
+      const newGrade = {
+        id: Date.now(),
+        ...gradeData,
+        created_at: new Date().toISOString()
+      }
+      classGrades.value.unshift(newGrade)
+      
+      // Broadcast creation via WebSocket
+      if (isConnected.value) {
+        const updateMessage = {
+          type: 'grade_created',
+          grade: newGrade,
+          student_id: gradeData.student_id,
+          teacher_id: 1,
+          timestamp: new Date().toISOString(),
+          metadata: {
+            subject: gradeData.subject,
+            assessment_type: gradeData.assessment_type,
+            grade_letter: gradeData.grade_letter,
+            score: `${gradeData.score_obtained}/${gradeData.max_score}`
+          }
+        }
+        send(updateMessage)
+      }
+    }
+    
+    closeGradeModal()
+    
+  } catch (error) {
+    console.error('Error submitting grade:', error)
+    alert('Failed to save grade. Please try again.')
+  } finally {
+    loadingGrades.value = false
+  }
+}
+
+const deleteGrade = async (gradeId) => {
+  if (!confirm('Are you sure you want to delete this grade?')) return
+  
+  const gradeToDelete = classGrades.value.find(g => g.id === gradeId)
+  if (!gradeToDelete) return
+  
+  try {
+    // Remove from local array
+    classGrades.value = classGrades.value.filter(g => g.id !== gradeId)
+    
+    // Broadcast deletion via WebSocket
+    if (isConnected.value) {
+      const updateMessage = {
+        type: 'grade_deleted',
+        grade_id: gradeId,
+        grade: gradeToDelete,
+        student_id: gradeToDelete.student_id,
+        teacher_id: 1,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          subject: gradeToDelete.subject,
+          assessment_type: gradeToDelete.assessment_type,
+          grade_letter: gradeToDelete.grade_letter
+        }
+      }
+      send(updateMessage)
+    }
+    
+  } catch (error) {
+    console.error('Error deleting grade:', error)
+    alert('Failed to delete grade. Please try again.')
+  }
+}
+
+const getStudentName = (studentId) => {
+  const student = classStudents.value.find(s => (s.id || s.user_id) === studentId)
+  return student ? formatStudentName(student) : 'Unknown Student'
+}
+
+const calculateClassAverage = () => {
+  if (classGrades.value.length === 0) return 'N/A'
+  
+  const totalPercentage = classGrades.value.reduce((sum, grade) => {
+    return sum + ((grade.score_obtained / grade.max_score) * 100)
+  }, 0)
+  
+  const average = totalPercentage / classGrades.value.length
+  return `${average.toFixed(1)}%`
+}
+
+const getRecentGradesCount = () => {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  return classGrades.value.filter(grade => 
+    new Date(grade.created_at || grade.recorded_at) > oneDayAgo
+  ).length
+}
+
+const getUniqueStudentCount = () => {
+  const studentIds = new Set(classGrades.value.map(grade => grade.student_id))
+  return studentIds.size
+}
+
+const getScoreColorClass = (percentage) => {
+  if (percentage >= 90) return 'bg-green-500'
+  if (percentage >= 80) return 'bg-blue-500'  
+  if (percentage >= 70) return 'bg-yellow-500'
+  if (percentage >= 60) return 'bg-orange-500'
+  return 'bg-red-500'
+}
+
+const getGradeBadgeClass = (grade) => {
+  const classes = {
+    'A': 'bg-green-100 text-green-800',
+    'B': 'bg-blue-100 text-blue-800',
+    'C': 'bg-yellow-100 text-yellow-800',
+    'D': 'bg-orange-100 text-orange-800',
+    'E': 'bg-red-100 text-red-800',
+    'F': 'bg-red-100 text-red-800'
+  }
+  return classes[grade] || 'bg-gray-100 text-gray-800'
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  return new Date(dateString).toLocaleDateString()
+}
+
 // Methods
 const viewClassDetails = async (classItem) => {
   await selectClass(classItem)
   activeTab.value = 'students'
+  await fetchClassGrades()
 }
 
 const viewStudents = async (classItem) => {
   await selectClass(classItem)
   activeTab.value = 'students'
+  await fetchClassGrades()
 }
 
 const viewStudentProfile = (student) => {
@@ -1417,6 +1686,11 @@ const getClassSubjects = (classItem) => {
   }
   return []
 }
+
+// Initialize WebSocket connection on mount
+onMounted(async () => {
+  await connect()
+})
 </script>
 
 <style scoped>
