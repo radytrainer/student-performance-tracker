@@ -614,7 +614,6 @@ async function saveEdit() {
     
     showEditModal.value = false
     
-    // Update selected student if it's the one being edited
     if (selectedStudent.value && selectedStudent.value.id === editForm.id) {
       const updatedStudent = students.value.find(s => s.id === editForm.id)
       if (updatedStudent) {
