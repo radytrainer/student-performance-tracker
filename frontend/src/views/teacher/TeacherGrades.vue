@@ -11,7 +11,7 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <!-- Class Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Class</label>
+        <label class="block mb-1 font-medium text-gray-700">Classes</label>
         <select 
           v-model="filters.class_id" 
           @change="fetchGrades" 
