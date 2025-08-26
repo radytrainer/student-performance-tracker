@@ -11,7 +11,7 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <!-- Class Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Class</label>
+        <label class="block mb-1 font-medium text-gray-700">Classes</label>
         <select 
           v-model="filters.class_id" 
           @change="fetchGrades" 
@@ -24,7 +24,7 @@
 
       <!-- Subject Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Subject</label>
+        <label class="block mb-1 font-medium text-gray-700">Subjects</label>
         <select 
           v-model="filters.subject_id" 
           @change="fetchGrades" 
@@ -37,7 +37,7 @@
 
       <!-- Term Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Term</label>
+        <label class="block mb-1 font-medium text-gray-700">Terms</label>
         <select 
           v-model="filters.term_id" 
           @change="fetchGrades" 
@@ -50,7 +50,7 @@
 
       <!-- Assessment Type Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Assessment type</label>
+        <label class="block mb-1 font-medium text-gray-700">Assessment types</label>
         <select 
           v-model="filters.assessment_type" 
           @change="fetchGrades" 

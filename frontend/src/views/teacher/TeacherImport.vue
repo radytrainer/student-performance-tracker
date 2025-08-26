@@ -2,7 +2,7 @@
   <div class="teacher-import-root">
     <div class="p-6">
       <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Data Import</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Data Imports</h1>
         <p class="text-gray-600 mt-1">Import student data from CSV or Excel files</p>
       </div>
 
