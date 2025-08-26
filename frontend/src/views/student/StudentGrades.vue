@@ -1,8 +1,29 @@
 <template>
   <div class="max-w-7xl mx-auto p-2">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">My Grades</h1>
-      <p class="text-gray-600 mt-1">View your grade records</p>
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800">My Grades</h1>
+          <p class="text-gray-600 mt-1">View your grade records</p>
+        </div>
+        <!-- Real-time Connection Status -->
+        <div class="flex items-center space-x-2">
+          <div class="flex items-center">
+            <div 
+              :class="[
+                'w-3 h-3 rounded-full mr-2',
+                isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+              ]"
+            ></div>
+            <span class="text-sm font-medium" :class="isConnected ? 'text-green-700' : 'text-red-700'">
+              {{ isConnected ? 'Live Updates' : 'Offline' }}
+            </span>
+          </div>
+          <div v-if="gradeUpdates.length > 0" class="text-xs text-gray-500">
+            Last update: {{ new Date(gradeUpdates[0].timestamp).toLocaleTimeString() }}
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->
