@@ -35,6 +35,17 @@ const routes = [
     }
   },
   {
+    path: '/super-admin/schools/:id',
+    name: 'SuperAdminSchoolDetails',
+    component: () => import('@/views/superAdmin/SuperAdminSchoolDetails.vue'),
+    props: true,
+    meta: {
+      requiresAuth: true,
+      requiresPermission: 'super_admin.view_all_schools',
+      title: 'School Details'
+    }
+  },
+  {
     path: '/super-admin/import',
     name: 'SuperAdminImport',
     component: () => import('@/views/admin/AdminImport.vue'),
@@ -84,6 +95,18 @@ const routes = [
     }
   },
   {
+    path: '/admin/classes/:id',
+    name: 'AdminClassDetails',
+    component: () => import('@/views/admin/AdminClassDetails.vue'),
+    props: true,
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_classes',
+      title: 'Class Details'
+    }
+  },
+  {
     path: '/admin/subjects',
     name: 'AdminSubjects',
     component: () => import('@/views/admin/AdminSubjects.vue'),
@@ -95,6 +118,18 @@ const routes = [
     }
   },
   {
+    path: '/admin/subjects/:id',
+    name: 'AdminSubjectDetails',
+    component: () => import('@/views/admin/AdminSubjectDetails.vue'),
+    props: true,
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_subjects',
+      title: 'Subject Details'
+    }
+  },
+  {
     path: '/admin/settings',
     name: 'AdminSettings',
     component: () => import('@/views/admin/AdminSettings.vue'),
@@ -103,6 +138,16 @@ const routes = [
       requiresRole: 'admin',
       requiresPermission: 'admin.manage_system',
       title: 'System Settings'
+    }
+  },
+  {
+    path: '/admin/audit-logs',
+    name: 'AdminAuditLogs',
+    component: () => import('@/views/admin/AdminAuditLogs.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Audit Logs'
     }
   },
   {
@@ -149,7 +194,47 @@ const routes = [
       title: 'System Reports'
     }
   },
-
+  {
+    path: '/admin/alerts',
+    name: 'AdminAlerts',
+    component: () => import('@/views/admin/AdminAlerts.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Performance Alerts'
+    }
+  },
+  {
+    path: '/admin/audit-logs',
+    name: 'AdminAuditLogs',
+    component: () => import('@/views/admin/AdminAuditLogs.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Audit Logs'
+    }
+  },
+  {
+    path: '/admin/backups',
+    name: 'AdminBackups',
+    component: () => import('@/views/admin/AdminBackups.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Backups'
+    }
+  },
+  {
+    path: '/admin/notes',
+    name: 'AdminNotes',
+    component: () => import('@/views/admin/AdminNotes.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'admin',
+      title: 'Student Notes'
+    }
+  },
+  
   // Teacher routes
   {
     path: '/teacher',
@@ -230,15 +315,36 @@ const routes = [
       title: 'Reports'
     }
   },
+   {
+   path: '/teacher/analytics',
+   name: 'TeacherAnalytics',
+   component: () => import('@/views/teacher/TeacherAnalytics.vue'),
+   meta: {
+   requiresAuth: true,
+   requiresRole: 'teacher',
+   requiresPermission: 'teacher.view_analytics',
+   title: 'Survey Analytics'
+   }
+   },
+  {
+    path: '/teacher/alerts',
+    name: 'TeacherAlerts',
+    component: () => import('@/views/teacher/TeacherAlerts.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresRole: 'teacher',
+      title: 'Performance Alerts'
+    }
+  },
 
   // Student routes
   {
-    path: '/student',
-    redirect: '/student/dashboard',
-    meta: { requiresAuth: true, requiresRole: 'student' }
+  path: '/student',
+  redirect: '/student/dashboard',
+  meta: { requiresAuth: true, requiresRole: 'student' }
   },
   {
-    path: '/student/dashboard',
+  path: '/student/dashboard',
     name: 'StudentDashboard',
     component: () => import('@/views/student/StudentDashboard.vue'),
     meta: { 

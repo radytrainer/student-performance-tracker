@@ -65,7 +65,6 @@
               <option value="student">Student</option>
             </select>
             <select
-              v-if="false"
               v-model="classFilter"
               class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               @change="applyFilters"
@@ -79,10 +78,6 @@
                 {{ classItem?.class_name }}
               </option>
             </select>
-            <!-- Temporarily disabled class filter -->
-            <div class="text-sm text-gray-500 px-4 py-2">
-              Class filter temporarily disabled
-            </div>
           </div>
           <div class="flex items-center space-x-3">
             <!-- Sort controls -->
@@ -679,6 +674,7 @@ const performApiSearch = async () => {
       sort_by: sortBy.value,
       sort_dir: sortDir.value
     }
+    if (classFilter.value) params.class_id = classFilter.value
 
     const response = await usersAPI.getUsers(params)
     const payload = response.data

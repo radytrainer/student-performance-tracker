@@ -62,6 +62,19 @@ class UserController extends Controller
                 'notify_user' => $request->boolean('notify_user', false),
                 'timestamp' => now()
             ]);
+            // Persist to audit_logs
+            try { 
+                \App\Models\AuditLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'password_reset',
+                    'model_type' => 'user',
+                    'model_id' => $user->id,
+                    'old_values' => null,
+                    'new_values' => ['by_admin' => auth()->id()],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            } catch (\Throwable $e) {}
 
             // TODO: Send email notification to user if notify_user is true
             // This would integrate with your notification system
@@ -132,6 +145,18 @@ class UserController extends Controller
                 'user_email' => $user->email,
                 'timestamp' => now()
             ]);
+            try {
+                \App\Models\AuditLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'role_change',
+                    'model_type' => 'user',
+                    'model_id' => $user->id,
+                    'old_values' => ['role' => $oldRole],
+                    'new_values' => ['role' => $newRole, 'by_admin' => auth()->id()],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            } catch (\Throwable $e) {}
 
             return response()->json([
                 'success' => true,
@@ -183,6 +208,18 @@ class UserController extends Controller
                 'new_status' => $newStatus,
                 'timestamp' => now()
             ]);
+            try {
+                \App\Models\AuditLog::create([
+                    'user_id' => $user->id,
+                    'action' => $newStatus ? 'user_activated' : 'user_deactivated',
+                    'model_type' => 'user',
+                    'model_id' => $user->id,
+                    'old_values' => ['is_active' => !$newStatus],
+                    'new_values' => ['is_active' => $newStatus, 'by_admin' => auth()->id()],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            } catch (\Throwable $e) {}
 
             return response()->json([
                 'success' => true,
@@ -246,6 +283,21 @@ class UserController extends Controller
                 'admin_email' => auth()->user()->email,
                 'timestamp' => now()
             ]);
+            try {
+                foreach ($userIds as $uid) {
+                    if ($uid == auth()->id()) continue;
+                    \App\Models\AuditLog::create([
+                        'user_id' => $uid,
+                        'action' => $status ? 'user_activated' : 'user_deactivated',
+                        'model_type' => 'user',
+                        'model_id' => $uid,
+                        'old_values' => null,
+                        'new_values' => ['is_active' => $status, 'by_admin' => auth()->id()],
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+                }
+            } catch (\Throwable $e) {}
 
             $statusText = $status ? 'activated' : 'deactivated';
 
@@ -271,37 +323,27 @@ class UserController extends Controller
     public function getAccessLogs(User $user): JsonResponse
     {
         try {
-            // Authorize the action
             $this->authorize('view', $user);
 
-            // For now, return mock data since we don't have a full activity log system
-            // In a real implementation, this would query your audit log table
-            $logs = collect([
-                [
-                    'id' => 1,
-                    'action' => 'User logged in',
-                    'ip_address' => '192.168.1.100',
-                    'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'timestamp' => now()->subHours(2),
-                    'properties' => ['login_method' => 'email']
-                ],
-                [
-                    'id' => 2,
-                    'action' => 'Profile updated',
-                    'ip_address' => '192.168.1.100',
-                    'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'timestamp' => now()->subDays(1),
-                    'properties' => ['fields_updated' => ['first_name', 'phone']]
-                ],
-                [
-                    'id' => 3,
-                    'action' => 'Password changed',
-                    'ip_address' => '192.168.1.100',
-                    'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'timestamp' => now()->subDays(7),
-                    'properties' => ['changed_by' => 'user']
-                ]
-            ]);
+            $logs = \App\Models\AuditLog::where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->limit(100)
+                ->get()
+                ->map(function ($log) {
+                    return [
+                        'id' => $log->id,
+                        'action' => $log->action,
+                        'ip_address' => $log->ip_address,
+                        'user_agent' => $log->user_agent,
+                        'timestamp' => $log->created_at,
+                        'properties' => [
+                            'model_type' => $log->model_type,
+                            'model_id' => $log->model_id,
+                            'old_values' => $log->old_values,
+                            'new_values' => $log->new_values,
+                        ]
+                    ];
+                });
 
             return response()->json([
                 'success' => true,

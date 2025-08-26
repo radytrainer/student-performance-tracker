@@ -37,7 +37,7 @@ class ClassSubjectSeeder extends Seeder
         foreach ($classes as $class) {
             foreach ($coreSubjects as $subjectCode => $teacherId) {
                 $subject = $subjects->where('subject_code', $subjectCode)->first();
-                
+
                 if ($subject) {
                     ClassSubject::create([
                         'class_id' => $class->id,
@@ -58,7 +58,7 @@ class ClassSubjectSeeder extends Seeder
 
                 foreach ($electiveSubjects as $subjectCode => $teacherId) {
                     $subject = $subjects->where('subject_code', $subjectCode)->first();
-                    
+
                     if ($subject) {
                         ClassSubject::create([
                             'class_id' => $class->id,
@@ -75,13 +75,13 @@ class ClassSubjectSeeder extends Seeder
     private function generateSchedule($subjectName): string
     {
         $schedules = [
-            'Mathematics' => 'Mon, Wed, Fri - 9:00 AM',
-            'English Language Arts' => 'Tue, Thu - 10:00 AM',
-            'General Science' => 'Mon, Wed - 11:00 AM',
-            'World History' => 'Tue, Fri - 1:00 PM',
-            'Physical Education' => 'Daily - 2:00 PM',
-            'Physics' => 'Mon, Wed - 1:00 PM',
-            'Chemistry' => 'Tue, Thu - 1:00 PM',
+            'Logic' => 'Mon, Wed, Fri - 9:00 AM',
+            'General English' => 'Tue, Thu - 10:00 AM',
+            'Algorithm' => 'Mon, Wed - 11:00 AM',
+            'English for IT' => 'Tue, Fri - 1:00 PM',
+            'English for work place' => 'Daily - 2:00 PM',
+            'Student meeting' => 'Mon, Wed - 1:00 PM',
+            'Sport' => 'Tue, Thu - 1:00 PM',
             'Computer Science' => 'Fri - 11:00 AM',
         ];
 

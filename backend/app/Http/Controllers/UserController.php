@@ -44,6 +44,16 @@ class UserController extends Controller
             $query->where('role', $request->role);
         }
 
+        // Class filter (students only)
+        if ($request->filled('class_id')) {
+            $classId = (int) $request->get('class_id');
+            $query->where(function($q) use ($classId) {
+                $q->where('role', 'student')->whereHas('student', function($qs) use ($classId) {
+                    $qs->where('current_class_id', $classId);
+                });
+            });
+        }
+
         // Status filter
         if ($request->boolean('active_only', false)) {
             $query->where('is_active', true);

@@ -324,10 +324,24 @@ import {
   LinearScale,
   ArcElement,
   Tooltip,
-  Legend
+  Legend,
+  LineController,
+  LineElement,
+  PointElement
 } from 'chart.js'
 
-Chart.register(BarController, BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend)
+Chart.register(
+  BarController,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  ArcElement,
+  Tooltip,
+  Legend,
+  LineController,
+  LineElement,
+  PointElement
+)
 
 // State
 const analytics = ref(null)
@@ -392,24 +406,41 @@ const renderMonthlyTrendChart = () => {
   if (monthlyTrendChart) monthlyTrendChart.destroy()
 
   const trend = analytics.value.monthly_trend || []
-  const labels = trend.map(t => t.month || t.label || '')
-  const data = trend.map(t => t.responses || t.count || 0)
+  const labels = trend.map(t => t.month)
+  const responses = trend.map(t => t.responses_count || 0)
+  const averages = trend.map(t => t.average_score || 0)
 
   monthlyTrendChart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
-      datasets: [{
-        label: 'Responses',
-        data,
-        backgroundColor: '#3B82F6'
-      }]
+      datasets: [
+        {
+          label: 'Responses',
+          data: responses,
+          backgroundColor: '#3B82F6',
+          yAxisID: 'y'
+        },
+        {
+          label: 'Avg Score',
+          data: averages,
+          type: 'line',
+          borderColor: '#F59E0B',
+          backgroundColor: 'rgba(245, 158, 11, 0.2)',
+          tension: 0.3,
+          yAxisID: 'y1'
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+      plugins: { legend: { display: true } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, title: { display: true, text: 'Responses' } },
+        y1: { beginAtZero: true, position: 'right', min: 0, max: 10, title: { display: true, text: 'Avg Score (0-10)' }, grid: { drawOnChartArea: false } }
+      }
     }
   })
 }
@@ -481,13 +512,13 @@ const exportData = () => {
   // Create CSV data
   const csvData = [
     ['Survey Title', 'Type', 'Responses', 'Average Score', 'Created Date'],
-    ... (analytics.value.form_performance || []).map(form => [
+    ...((analytics.value.form_performance || []).map(form => [
       form.title,
       form.survey_type,
       form.responses_count,
       form.average_score || 'N/A',
       formatDate(form.created_at)
-    ])
+    ]))
   ]
   
   // Convert to CSV

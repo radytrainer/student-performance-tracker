@@ -68,6 +68,20 @@
 
         <!-- Student Details Content -->
         <div class="p-4 sm:p-8">
+          <!-- Comparison Chart -->
+          <div class="mb-8 bg-white rounded-xl shadow border border-gray-200 p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-semibold text-gray-900">Performance vs Class Average</h3>
+              <select v-model="selectedTermId" @change="onChangeTerm" class="px-3 py-2 border rounded-lg text-sm">
+                <option value="">Current term</option>
+                <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.term_name }}</option>
+              </select>
+            </div>
+            <div class="h-64">
+              <BarChart v-if="comparisonChartData" :chartData="comparisonChartData" :chartOptions="comparisonChartOptions" />
+              <div v-else class="text-sm text-gray-500">No comparison data available</div>
+            </div>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             <!-- Personal Information -->
             <div class="space-y-6">
@@ -197,6 +211,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import BarChart from '@/components/charts/BarChart.vue'
+import { teacherAPI } from '@/api/teacher'
+import { reportsAPI } from '@/api/reports'
+import { useRoute } from 'vue-router'
 
 // Sample student data
 const student = ref({
@@ -211,6 +229,19 @@ const student = ref({
   lastLogin: '2024-01-20',
   profileImage: ''
 })
+
+// Comparison chart state
+const comparisonChartData = ref(null)
+const comparisonChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: true } },
+  scales: { x: { grid: { display: false } }, y: { beginAtZero: true, max: 100 } }
+}
+
+// Terms
+const terms = ref([])
+const selectedTermId = ref('')
 
 // Methods
 const getInitials = (name) => {
@@ -273,9 +304,43 @@ const deleteStudent = () => {
   }
 }
 
-onMounted(() => {
-  // Load student data from API based on route params
-  console.log('Student detail view mounted')
-  // In a real app: loadStudent(route.params.id)
+const loadTerms = async () => {
+  try {
+    const resp = await reportsAPI.getTerms()
+    terms.value = resp?.data || []
+  } catch {
+    terms.value = []
+  }
+}
+
+const loadComparison = async () => {
+  const route = useRoute()
+  const sid = Number(route.params.id || student.value.id)
+  try {
+    const params = selectedTermId.value ? { term_id: selectedTermId.value } : {}
+    const resp = await teacherAPI.getStudentComparison(sid, params)
+    const rows = resp?.data?.data || []
+    if (rows.length) {
+      comparisonChartData.value = {
+        labels: rows.map(r => r.subject_name),
+        datasets: [
+          { label: 'Student', data: rows.map(r => r.student_avg), backgroundColor: '#3B82F6' },
+          { label: 'Class', data: rows.map(r => r.class_avg), backgroundColor: '#10B981' }
+        ]
+      }
+    } else {
+      comparisonChartData.value = null
+    }
+  } catch (e) {
+    comparisonChartData.value = null
+  }
+}
+
+const onChangeTerm = async () => {
+  await loadComparison()
+}
+
+onMounted(async () => {
+  await Promise.all([loadTerms(), loadComparison()])
 })
 </script>

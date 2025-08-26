@@ -9,10 +9,12 @@ use App\Models\IndividualFormAssignment;
 use App\Models\FormResponse;
 use App\Models\Classes;
 use App\Models\User;
+use App\Models\StudentClass;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
 
 class FeedbackFormController extends Controller
 {
@@ -267,8 +269,36 @@ class FeedbackFormController extends Controller
                 ]);
 
                 $assignments[] = $assignment;
-            }
 
+                               // Broadcast to all active students in the class so their survey list updates in realtime
+                    try {
+                    $studentIds = StudentClass::where('class_id', $assignmentData['class_id'])
+                        ->where('status', 'active')
+                        ->pluck('student_id');
+                    foreach ($studentIds as $sid) {
+                        // Create bell notification
+                        Notification::create([
+                            'user_id' => (int) $sid,
+                            'title' => 'New Survey Assigned',
+                            'message' => $assignment->feedbackForm->title,
+                            'type' => 'info',
+                            'is_read' => false,
+                            'sent_at' => now(),
+                        ]);
+                        // Broadcast realtime
+                        event(new \App\Events\SurveyAssigned((int) $sid, [
+                            'assignment_id' => $assignment->id,
+                            'title' => $assignment->feedbackForm->title,
+                            'description' => $assignment->feedbackForm->description,
+                            'survey_type' => $assignment->feedbackForm->survey_type,
+                            'class_name' => optional($assignment->assignedClass)->class_name,
+                            'due_date' => $assignment->due_date,
+                            'type' => 'class'
+                        ]));
+                    }
+                } catch (\Throwable $e) {}
+            }
+ 
             return response()->json([
                 'success' => true,
                 'message' => 'Form assigned to classes successfully',
@@ -353,6 +383,14 @@ class FeedbackFormController extends Controller
                     ->where('is_active', true)
                     ->firstOrFail();
 
+                // Skip if already assigned (respect unique constraint)
+                $existing = IndividualFormAssignment::where('feedback_form_id', $assignmentData['feedback_form_id'])
+                    ->where('assigned_to_user_id', $assignmentData['user_id'])
+                    ->first();
+                if ($existing) {
+                    continue;
+                }
+
                 $assignment = IndividualFormAssignment::create([
                     'feedback_form_id' => $assignmentData['feedback_form_id'],
                     'assigned_to_user_id' => $assignmentData['user_id'],
@@ -364,6 +402,28 @@ class FeedbackFormController extends Controller
 
                 $assignment->load(['assignedToUser', 'feedbackForm']);
                 $assignments[] = $assignment;
+
+                // Bell notification + realtime to assigned user
+                try {
+                    Notification::create([
+                        'user_id' => (int) $assignmentData['user_id'],
+                        'title' => 'New Survey Assigned',
+                        'message' => $assignment->feedbackForm->title,
+                        'type' => 'info',
+                        'is_read' => false,
+                        'sent_at' => now(),
+                    ]);
+                    event(new \App\Events\SurveyAssigned((int) $assignmentData['user_id'], [
+                        'assignment_id' => $assignment->id,
+                        'title' => $assignment->feedbackForm->title,
+                        'description' => $assignment->feedbackForm->description,
+                        'survey_type' => $assignment->feedbackForm->survey_type,
+                        'class_name' => null,
+                        'due_date' => $assignment->due_date,
+                        'type' => 'individual'
+                    ]));
+                } catch (\Throwable $e) {}
+
             }
 
             return response()->json([

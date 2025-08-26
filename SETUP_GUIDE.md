@@ -295,6 +295,10 @@ php artisan serve
 4. Use in app
 - Admin/Teacher: go to Data Import -> Connect Google -> Preview -> Import
 
+Required headers: `first_name`, `last_name`, `email`, `date_of_birth`, `gender` (optional: `address`, `parent_name`, `parent_phone`, `class_id`).
+
+Sample: docs/student_import_template.csv
+
 ## PDF Reports
 - Installed barryvdh/laravel-dompdf for server-side PDF generation
 - After `composer install`, run `php artisan storage:link` to serve PDFs saved to storage/app/public/reports
