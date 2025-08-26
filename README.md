@@ -71,7 +71,7 @@ student-performance-tracker/
 ### Installation
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-username/student-performance-tracker.git
+git clone https://github.com/radytrainer/student-performance-tracker.git
 cd student-performance-tracker
 
 # 2. Backend setup
@@ -131,6 +131,16 @@ npm run preview               # Preview production build
 - Google Sheets import for Admin/Teacher: connect, preview, and import students
 - Server-side PDF generation for Student Reports (storage/app/public/reports)
 
+#### Import from Google Sheets (quick steps)
+1. Configure backend `.env` with `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` (see backend/config/services.php). Restart backend.
+2. In the app, go to Admin → Data Import or Teacher → Data Import, click “Connect Google,” complete consent.
+3. Paste a Google Sheet URL or ID. Optionally set Sheet name and Range, click Preview to confirm headers.
+4. Select a Default Class and click “Import from Google.”
+
+Required headers: `first_name`, `last_name`, `email`, `date_of_birth`, `gender` (optional: `address`, `parent_name`, `parent_phone`, `class_id`).
+
+Sample template: docs/student_import_template.csv
+
 ### Key Features Implemented
 - ✅ **Authentication & Authorization**: Role-based access with Laravel Sanctum
 - ✅ **Grade Management**: CRUD operations for student grades
@@ -139,7 +149,54 @@ npm run preview               # Preview production build
 - ✅ **User Management**: Admin panel for managing users
 - ✅ **Feedback System**: Student-teacher feedback mechanism
 - ✅ **Data Export**: PDF and Excel export capabilities
+- ✅ **Notifications**: In-app bell with polling + realtime (Pusher/Echo)
 - ✅ **Responsive Design**: Mobile-friendly interface
+
+### Notifications
+- Backend event: [NotificationCreated](file:///c:/Users/Dell/Desktop/student-performance-tracker/backend/app/Events/NotificationCreated.php) is broadcast on `users.{id}` private channels.
+- Frontend bell: [NotificationBell.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/components/notifications/NotificationBell.vue) polls `/notifications` and listens via Echo.
+- Enable realtime (optional): set `PUSHER_*` in backend `.env` and `VITE_PUSHER_APP_KEY`, `VITE_PUSHER_APP_CLUSTER` in frontend `.env`. Echo is initialized in [main.js](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/main.js#L15-L25), config in [echo.js](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/realtime/echo.js).
+
+Backend (.env):
+```
+BROADCAST_DRIVER=pusher
+PUSHER_APP_ID=your-app-id
+PUSHER_APP_KEY=your-app-key
+PUSHER_APP_SECRET=your-app-secret
+PUSHER_APP_CLUSTER=mt1
+```
+
+Frontend (.env):
+```
+VITE_PUSHER_APP_KEY=your-app-key
+VITE_PUSHER_APP_CLUSTER=mt1
+```
+
+### Performance Alerts
+- Admin: list/create/resolve alerts; generate alerts from thresholds.
+- Endpoints:
+  - GET `/api/admin/alerts`
+  - POST `/api/admin/alerts`
+  - PUT `/api/admin/alerts/{id}`
+  - POST `/api/admin/alerts/generate` (creates alerts for current or given term)
+- Teacher: list/resolve own-student alerts via GET/PUT under `/api/teacher/alerts`
+- Views: [AdminAlerts.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/views/admin/AdminAlerts.vue), [TeacherAlerts.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/views/teacher/TeacherAlerts.vue)
+
+### Analytics
+- Admin/Teacher: open Analytics page for attendance-vs-grade correlation and heatmap.
+- Class and term selectors are responsive; charts resize on mobile.
+- Endpoints: see [AnalyticsController.php](file:///c:/Users/Dell/Desktop/student-performance-tracker/backend/app/Http/Controllers/Admin/AnalyticsController.php).
+
+### System Settings
+- Admin: System Settings page persists to backend via REST.
+- Endpoints:
+  - GET `/api/admin/settings`
+  - PUT `/api/admin/settings`
+  - POST `/api/admin/settings/reset`
+  - POST `/api/admin/settings/backup` (async, notifies on completion)
+  - POST `/api/admin/settings/maintenance` (async, notifies on completion)
+- Controller: [SettingsController.php](file:///c:/Users/Dell/Desktop/student-performance-tracker/backend/app/Http/Controllers/Admin/SettingsController.php)
+- Frontend view: [AdminSettings.vue](file:///c:/Users/Dell/Desktop/student-performance-tracker/frontend/src/views/admin/AdminSettings.vue)
 
 ## 🔧 Environment Setup
 

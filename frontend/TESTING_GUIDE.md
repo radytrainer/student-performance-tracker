@@ -2,7 +2,7 @@
 
 ## Prerequisites
 1. Make sure the development server is running
-2. The backend API is not implemented yet, so we'll test frontend validation and UI functionality
+2. Backend API is running and connected; tests cover validation and UI flows
 
 ## Starting the Development Server
 
@@ -11,7 +11,7 @@ cd frontend
 npm run dev
 ```
 
-The app should be available at `http://localhost:5173` (or the port shown in terminal)
+The app should be available at `http://localhost:3000` (or the port shown in terminal)
 
 ## Testing Scenarios
 

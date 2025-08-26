@@ -192,8 +192,11 @@ const resetForm = () => {
 
 const loadSubjects = async () => {
   try {
-    const response = await api.get('/student/subjects')
-    subjects.value = response.data
+    // Use common subjects endpoint
+    const response = await api.get('/subjects')
+    const list = response.data?.data || response.data || []
+    // Normalize to id/name for the dropdown
+    subjects.value = list.map(s => ({ id: s.id, name: s.subject_name || s.name || s.subject_code }))
   } catch (error) {
     console.error('Error loading subjects:', error)
   }
@@ -201,8 +204,18 @@ const loadSubjects = async () => {
 
 const loadPreviousFeedback = async () => {
   try {
-    const response = await api.get('/student/feedback')
-    previousFeedback.value = response.data
+    // Use student survey stats and map recent_surveys to previous feedback cards
+    const response = await api.get('/student/survey-stats')
+    const stats = response.data?.data || {}
+    const recent = stats.recent_surveys || []
+    previousFeedback.value = recent.map(r => ({
+      id: `${r.title}-${r.submitted_at}`,
+      subject_name: r.title,
+      category: 'survey',
+      rating: r.average_score ? Math.round(Number(r.average_score) / 2) : 0, // 10-scale to 5-star
+      message: '',
+      created_at: r.submitted_at
+    }))
   } catch (error) {
     console.error('Error loading previous feedback:', error)
   }

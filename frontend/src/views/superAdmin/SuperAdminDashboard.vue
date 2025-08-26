@@ -471,8 +471,7 @@ const deleteSchool = async (school) => {
 }
 
 const viewSchoolDetails = (school) => {
-  // TODO: Implement school details view
-  console.log('View school details:', school)
+  window.location.href = `/super-admin/schools/${school.id}`
 }
 
 onMounted(() => {

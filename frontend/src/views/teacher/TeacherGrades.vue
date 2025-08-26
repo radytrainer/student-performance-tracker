@@ -1,6 +1,8 @@
 <template>
   <div class="p-6">
-    <h1 class="text-2xl font-bold mb-4 text-gray-800">Manage Grades</h1>
+     <h1 class="text-3xl font-bold text-gray-800">Manage Grades</h1>
+    <p class="text-gray-600 mt-1">Manage Grade for student</p>
+
 
     <!-- Role-Based Header -->
     <div v-if="user.role === 'student'" class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">

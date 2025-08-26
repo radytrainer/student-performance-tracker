@@ -155,10 +155,39 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('admin/subjects/departments', [App\Http\Controllers\Admin\SubjectController::class, 'getDepartments']);
         Route::get('admin/subjects-stats', [App\Http\Controllers\Admin\SubjectController::class, 'getSubjectStats']);
 
+        // Student Notes (admin)
+        Route::get('admin/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'index']);
+        Route::post('admin/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'store']);
+        Route::put('admin/notes/{id}', [App\Http\Controllers\Admin\StudentNoteController::class, 'update']);
+        Route::delete('admin/notes/{id}', [App\Http\Controllers\Admin\StudentNoteController::class, 'destroy']);
+
         // Term Management
         Route::apiResource('admin/terms', App\Http\Controllers\Admin\TermController::class);
         Route::post('admin/terms/{term}/set-current', [App\Http\Controllers\Admin\TermController::class, 'setCurrent']);
         Route::get('admin/terms/current', [App\Http\Controllers\Admin\TermController::class, 'getCurrent']);
+
+        // System Settings
+        Route::get('admin/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index']);
+        Route::put('admin/settings', [App\Http\Controllers\Admin\SettingsController::class, 'update']);
+        Route::post('admin/settings/reset', [App\Http\Controllers\Admin\SettingsController::class, 'reset']);
+        Route::post('admin/settings/backup', [App\Http\Controllers\Admin\SettingsController::class, 'backup']);
+        Route::post('admin/settings/maintenance', [App\Http\Controllers\Admin\SettingsController::class, 'maintenance']);
+
+        // Audit Logs (admin)
+        Route::get('admin/audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index']);
+
+        // Backups (admin)
+        Route::get('admin/backups', [App\Http\Controllers\Admin\BackupController::class, 'index']);
+        Route::get('admin/backups/download', [App\Http\Controllers\Admin\BackupController::class, 'download']);
+
+        // Performance Alerts (admin)
+        Route::get('admin/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'index']);
+        Route::post('admin/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'store']);
+        Route::put('admin/alerts/{id}', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'update']);
+        Route::post('admin/alerts/generate', function (\Illuminate\Http\Request $req) {
+            \App\Jobs\GeneratePerformanceAlerts::dispatch($req->input('term_id'));
+            return response()->json(['success' => true]);
+        });
 
         // Data Import (admin paths)
         Route::post('admin/import/students', [App\Http\Controllers\Admin\DataImportController::class, 'importStudents']);
@@ -188,6 +217,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('google/status', [App\Http\Controllers\GoogleAuthController::class, 'status']);
         Route::post('google/sheets/preview', [App\Http\Controllers\GoogleAuthController::class, 'preview']);
         Route::post('teacher/import/google', [App\Http\Controllers\Admin\DataImportController::class, 'importFromGoogleSheet']);
+
+        // Performance Alerts (teacher)
+        Route::get('teacher/alerts', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'index']);
+        Route::put('teacher/alerts/{id}', [App\Http\Controllers\Admin\PerformanceAlertController::class, 'update']);
     });
 
     // Super Admin routes
@@ -220,6 +253,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Teacher Dashboard
         Route::get('/teacher/dashboard-students', [App\Http\Controllers\Teacher\DashboardController::class, 'students']);
+        // Student analytics for teachers
+        Route::get('/teacher/students/{student}/comparison', [App\Http\Controllers\Teacher\StudentAnalyticsController::class, 'comparison']);
     });
 
     // Student routes
@@ -237,7 +272,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('student/surveys/{assignmentId}', [FeedbackSurveyController::class, 'show']);
         Route::post('student/surveys/{assignmentId}/complete', [FeedbackSurveyController::class, 'markCompleted']);
         Route::get('student/survey-stats', [FeedbackSurveyController::class, 'getStats']);
-    });
+        });
+        
+     // Teacher Notes
+     Route::middleware(['role:teacher'])->group(function () {
+         Route::get('teacher/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'index']);
+         Route::post('teacher/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'store']);
+         Route::put('teacher/notes/{id}', [App\Http\Controllers\Admin\StudentNoteController::class, 'update']);
+         Route::delete('teacher/notes/{id}', [App\Http\Controllers\Admin\StudentNoteController::class, 'destroy']);
+     });
 });
 
 // Routes for testing role-based access
