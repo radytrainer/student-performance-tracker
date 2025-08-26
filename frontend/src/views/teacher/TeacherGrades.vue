@@ -24,7 +24,7 @@
 
       <!-- Subject Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Subject</label>
+        <label class="block mb-1 font-medium text-gray-700">Subjects</label>
         <select 
           v-model="filters.subject_id" 
           @change="fetchGrades" 
