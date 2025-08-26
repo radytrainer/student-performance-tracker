@@ -645,10 +645,18 @@ const fetchGrades = async () => {
     }
 
     console.log('📊 Fetching grades for student ID:', student.value.student_id)
+    console.log('🌐 API URL:', `/student-grades/${student.value.student_id}`)
 
     // Fetch grades using the grades API
     const response = await apiClient.get(`/student-grades/${student.value.student_id}`)
     const data = response.data
+    
+    console.log('📋 API Response:', {
+      status: response.status,
+      dataExists: !!data,
+      hasGrades: !!(data && data.data),
+      gradeCount: data?.data?.length || 0
+    })
     
     if (data && data.data) {
       grades.value = data.data.map(grade => ({
@@ -684,14 +692,31 @@ const fetchGrades = async () => {
     }
 
   } catch (error) {
-    console.warn('Failed to fetch real grades, falling back to mock data:', error)
+    console.warn('Failed to fetch student grades:', error)
     
-    // Fallback to mock data for development
-    grades.value = mockGradesData.grades.map(grade => ({
-      ...grade,
-      subject: grade.subject || 'Mock Subject',
-      recorded_by: grade.recorded_by || 'Mock Teacher'
-    }))
+    // Check if it's a 404 (no grades found) or other error
+    if (error.response?.status === 404 || error.response?.status === 400) {
+      console.log('📝 No grades found for this student (new user)')
+      grades.value = []
+    } else {
+      console.error('API error occurred:', error.response?.status, error.message)
+      // Only use mock data in very specific development scenarios
+      const shouldUseMockData = import.meta.env.DEV && 
+                               (localStorage.getItem('use_mock_grades') === 'true' ||
+                                import.meta.env.VITE_USE_MOCK_GRADES === 'true')
+      
+      if (shouldUseMockData) {
+        console.log('🧪 Using mock data for development testing (use_mock_grades=true)')
+        grades.value = mockGradesData.grades.map(grade => ({
+          ...grade,
+          subject: grade.subject || 'Mock Subject',
+          recorded_by: grade.recorded_by || 'Mock Teacher'
+        }))
+      } else {
+        console.log('📝 No grades available - showing empty state for new user')
+        grades.value = []
+      }
+    }
     
     calculateGradeSummary()
   }
