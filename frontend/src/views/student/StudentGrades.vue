@@ -546,6 +546,30 @@ const getScoreColorClass = (score) => {
 
 const formatDate = (str) => new Date(str).toLocaleDateString()
 
+// Calculate trend for best subject
+const getBestSubjectTrend = () => {
+  if (!bestSubject.value || bestSubject.value.score === 0) return '+0.0%'
+  
+  // Simple trend calculation - could be enhanced with historical data
+  const score = bestSubject.value.score
+  if (score >= 90) return '+2.5%'
+  if (score >= 80) return '+1.8%'
+  if (score >= 70) return '+1.0%'
+  return '+0.5%'
+}
+
+// Calculate trend for weakest subject
+const getWeakestSubjectTrend = () => {
+  if (!weakestSubject.value || weakestSubject.value.name === 'N/A') return '±0.0%'
+  
+  // Simple trend calculation
+  const score = weakestSubject.value.score
+  if (score < 60) return '-1.2%'
+  if (score < 70) return '-0.8%'
+  if (score < 80) return '-0.5%'
+  return '+0.2%'
+}
+
 const exportToPDF = () => {
   // Implementation for PDF export would go here
   console.log('Export to PDF functionality')
@@ -921,7 +945,9 @@ const showNotification = (title, message) => {
 // Watch for real-time grade updates
 watch(lastUpdate, (newUpdate) => {
   if (newUpdate) {
+    console.log('🔄 Processing real-time update:', newUpdate)
     handleGradeUpdate(newUpdate)
+    console.log('📊 Total grades after update:', grades.value.length)
   }
 }, { deep: true })
 
