@@ -84,10 +84,11 @@ export function useTeacherClasses() {
     try {
       loadingClasses.value = true
       const response = await teacherClassesAPI.getMyClasses()
-      classes.value = response.data || response
+      classes.value = response.data || response || []
     } catch (error) {
       showError('Failed to fetch classes')
       console.error('Error fetching classes:', error)
+      classes.value = [] // Ensure it's always an array
     } finally {
       loadingClasses.value = false
     }
@@ -111,11 +112,12 @@ export function useTeacherClasses() {
     try {
       loadingStudents.value = true
       const response = await teacherClassesAPI.getClassStudents(classId)
-      students.value = response.data || response
+      students.value = response.data || response || []
       return students.value
     } catch (error) {
       showError('Failed to fetch class students')
       console.error('Error fetching class students:', error)
+      students.value = []
       return []
     } finally {
       loadingStudents.value = false
@@ -125,11 +127,12 @@ export function useTeacherClasses() {
   const fetchAllStudents = async () => {
     try {
       const response = await teacherClassesAPI.getAllStudents()
-      availableStudents.value = response.data || response
+      availableStudents.value = response.data || response || []
       return availableStudents.value
     } catch (error) {
       showError('Failed to fetch available students')
       console.error('Error fetching available students:', error)
+      availableStudents.value = []
       return []
     }
   }
@@ -190,9 +193,10 @@ export function useTeacherClasses() {
   const fetchGradeDistribution = async (classId, subjectId = null) => {
     try {
       const response = await teacherClassesAPI.getGradeDistribution(classId, subjectId)
-      gradeDistribution.value = response.data || response
+      gradeDistribution.value = response.data || response || []
     } catch (error) {
       console.error('Error fetching grade distribution:', error)
+      gradeDistribution.value = []
     }
   }
 

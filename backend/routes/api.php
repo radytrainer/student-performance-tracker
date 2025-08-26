@@ -237,6 +237,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Teacher only routes
     Route::middleware(['role:teacher'])->group(function () {
+        // Teacher Class Management
+        Route::get('teacher/classes/{classId}/students', [App\Http\Controllers\Teacher\ClassController::class, 'getClassStudents']);
+        Route::get('teacher/classes/{classId}/grade-distribution', [App\Http\Controllers\Teacher\ClassController::class, 'getGradeDistribution']);
+        Route::get('teacher/classes/{classId}/performance', [App\Http\Controllers\Teacher\ClassController::class, 'getClassPerformance']);
+        Route::post('teacher/classes/{classId}/students', [App\Http\Controllers\Teacher\ClassController::class, 'addStudentToClass']);
+        Route::post('teacher/classes/{classId}/students/bulk', [App\Http\Controllers\Teacher\ClassController::class, 'bulkAddStudents']);
+        
         // Feedback Forms Management
         Route::apiResource('teacher/feedback-forms', FeedbackFormController::class);
         Route::get('teacher/feedback-classes', [FeedbackFormController::class, 'getMyClasses']);
