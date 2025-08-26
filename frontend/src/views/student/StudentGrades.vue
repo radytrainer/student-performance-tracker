@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-7xl mx-auto p-2">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">My Grade</h1>
+      <h1 class="text-3xl font-bold text-gray-800">My Grades</h1>
       <p class="text-gray-600 mt-1">View your grade records</p>
     </div>
 
