@@ -1278,6 +1278,36 @@ const getInitials = (firstName, lastName) => {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
 }
 
+// Notification helper functions
+const showSuccessNotification = (title, message) => {
+  console.log(`✅ ${title}: ${message}`)
+  
+  // Show browser notification if permission granted
+  if (Notification.permission === 'granted') {
+    new Notification(title, {
+      body: message,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'grade-update'
+    })
+  }
+  
+  // You can integrate with a toast notification library here
+  // For now, we'll use console logs
+}
+
+// Initialize WebSocket connection
+const initializeWebSocket = async () => {
+  try {
+    if (!isConnected.value) {
+      await connect()
+      console.log('🔌 WebSocket connected for teacher grade updates')
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to connect WebSocket:', error)
+  }
+}
+
 const getAssessmentBadgeClass = (type) => {
   const classes = {
     'quiz': 'bg-purple-100 text-purple-800',
@@ -1310,8 +1340,9 @@ const getScoreTextClass = (score) => {
 }
 
 // Lifecycle hooks
-onMounted(() => {
-  fetchAll()
+onMounted(async () => {
+  await fetchAll()
+  await initializeWebSocket()
 })
 
 watch(grades, updateCharts, { deep: true })
