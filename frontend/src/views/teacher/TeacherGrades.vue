@@ -37,7 +37,7 @@
 
       <!-- Term Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Term</label>
+        <label class="block mb-1 font-medium text-gray-700">Terms</label>
         <select 
           v-model="filters.term_id" 
           @change="fetchGrades" 
