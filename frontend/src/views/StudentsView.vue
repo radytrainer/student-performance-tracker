@@ -610,7 +610,6 @@ async function saveEdit() {
 
     await studentsAPI.updateStudent(editForm.id, updateData)
     
-    // Refresh the students list
     await loadStudents()
     
     showEditModal.value = false
