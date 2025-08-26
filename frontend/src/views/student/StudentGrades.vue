@@ -223,7 +223,7 @@
               </svg>
               {{ loading ? 'Refreshing...' : 'Refresh' }}
             </button>
-            <button v-if="import.meta.env.DEV" @click="testRealTimeUpdate"
+            <button v-if="isDev" @click="testRealTimeUpdate"
               class="flex items-center bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -331,6 +331,9 @@ const studentGPA = ref(0)
 const studentId = computed(() => student.value.student_id || authStore.user?.id)
 const { gradeUpdates, lastUpdate } = useGradeUpdates(studentId.value)
 const { notifications } = useNotifications(authStore.user?.id)
+
+// Environment check for development features
+const isDev = import.meta.env.DEV
 
 // Mock data for testing
 const mockGradesData = {
