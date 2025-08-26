@@ -615,8 +615,8 @@ const fetchStudentData = async (forceRefresh = false) => {
     // Fetch terms
     await fetchTerms()
 
-    // Fetch grades for the student
-    await fetchGrades()
+    // Fetch grades for the student  
+    await fetchGrades(true) // true = initial load
 
     // Connect to WebSocket for real-time updates
     if (!isConnected.value) {
@@ -680,67 +680,128 @@ const fetchTerms = async () => {
   }
 }
 
-const fetchGrades = async () => {
+const fetchGrades = async (isInitialLoad = true) => {
   try {
     if (!student.value.student_id) {
       throw new Error('No student ID available')
     }
 
     console.log('📊 Fetching grades for student ID:', student.value.student_id)
-    console.log('🌐 API URL:', `/student-grades/${student.value.student_id}`)
 
-    // Fetch grades using the grades API
-    const response = await apiClient.get(`/student-grades/${student.value.student_id}`)
-    const data = response.data
-    
-    console.log('📋 API Response:', {
-      status: response.status,
-      dataExists: !!data,
-      hasGrades: !!(data && data.data),
-      gradeCount: data?.data?.length || 0
+    // Try multiple API endpoints to get all grades for the student
+    let response
+    let allGrades = []
+
+    // Method 1: Try the dedicated student grades endpoint
+    try {
+      console.log('🌐 API Method 1: /student-grades/${student.value.student_id}')
+      response = await apiClient.get(`/student-grades/${student.value.student_id}`)
+      if (response.data && response.data.data) {
+        allGrades = response.data.data
+        console.log('✅ Method 1 success:', allGrades.length, 'grades')
+      }
+    } catch (error1) {
+      console.warn('❌ Method 1 failed:', error1.response?.status)
+    }
+
+    // Method 2: Try the general grades endpoint with student filter
+    if (allGrades.length === 0) {
+      try {
+        console.log('🌐 API Method 2: /grades with student filter')
+        response = await apiClient.get('/grades', { 
+          params: { 
+            student_id: student.value.student_id,
+            per_page: 1000  // Get all grades
+          }
+        })
+        if (response.data && response.data.data) {
+          allGrades = response.data.data
+          console.log('✅ Method 2 success:', allGrades.length, 'grades')
+        }
+      } catch (error2) {
+        console.warn('❌ Method 2 failed:', error2.response?.status)
+      }
+    }
+
+    // Method 3: Try the students API to get related grades
+    if (allGrades.length === 0) {
+      try {
+        console.log('🌐 API Method 3: /students/${student.value.student_id}/grades')
+        response = await apiClient.get(`/students/${student.value.student_id}/grades`)
+        if (response.data && response.data.data) {
+          allGrades = response.data.data
+          console.log('✅ Method 3 success:', allGrades.length, 'grades')
+        }
+      } catch (error3) {
+        console.warn('❌ Method 3 failed:', error3.response?.status)
+      }
+    }
+
+    console.log('📋 Final API Response:', {
+      totalGrades: allGrades.length,
+      isInitialLoad,
+      studentId: student.value.student_id
     })
     
-    if (data && data.data) {
-      grades.value = data.data.map(grade => ({
+    if (allGrades && allGrades.length > 0) {
+      const transformedGrades = allGrades.map(grade => ({
         id: grade.id,
         subject: grade.class_subject?.subject?.subject_name || grade.subject || 'Unknown Subject',
         term_id: grade.term_id,
         assessment_type: grade.assessment_type,
         max_score: grade.max_score || 100,
         score_obtained: grade.score_obtained,
-        score: grade.score_obtained, // alias for compatibility
-        total: grade.max_score || 100, // alias for compatibility
+        score: grade.score_obtained,
+        total: grade.max_score || 100,
         weightage: grade.weightage || 0,
         grade_letter: grade.grade_letter,
-        letter_grade: grade.grade_letter, // alias for compatibility
-        grade: grade.grade_letter, // alias for compatibility
+        letter_grade: grade.grade_letter,
+        grade: grade.grade_letter,
         remarks: grade.remarks,
         recorded_by: grade.recorded_by?.first_name && grade.recorded_by?.last_name 
           ? `${grade.recorded_by.first_name} ${grade.recorded_by.last_name}`
           : grade.teacher_name || 'Unknown Teacher',
         recorded_at: grade.created_at || grade.recorded_at,
-        date: grade.created_at || grade.recorded_at, // alias for compatibility
-        assessment: grade.assessment_type, // alias for compatibility
+        date: grade.created_at || grade.recorded_at,
+        assessment: grade.assessment_type,
         class_subject: grade.class_subject
       }))
+
+      if (isInitialLoad) {
+        // Initial load: Replace all grades
+        grades.value = transformedGrades
+      } else {
+        // Incremental update: Only add new grades that don't exist
+        const existingIds = new Set(grades.value.map(g => g.id))
+        const newGrades = transformedGrades.filter(grade => !existingIds.has(grade.id))
+        
+        if (newGrades.length > 0) {
+          console.log('🆕 Adding', newGrades.length, 'new grades to existing list')
+          grades.value = [...newGrades, ...grades.value] // New grades at top
+        }
+      }
 
       // Calculate summary statistics
       calculateGradeSummary()
       
-      console.log('✅ Real grades loaded successfully:', grades.value.length, 'grades')
-      console.log('📊 Grade details:', grades.value)
+      console.log('✅ Real grades loaded successfully:', grades.value.length, 'total grades')
+      console.log('📊 Grade details:', grades.value.map(g => ({ id: g.id, subject: g.subject, assessment: g.assessment_type, score: g.score_obtained })))
     } else {
-      console.warn('No grades data received, using empty array')
-      grades.value = []
+      console.warn('❌ No grades data received from any API endpoint')
+      if (isInitialLoad) {
+        grades.value = []
+      }
     }
 
   } catch (error) {
-    console.warn('Failed to fetch student grades:', error)
+    console.error('❌ All grade fetch methods failed:', error)
     
     // Check if it's a 404 (no grades found) or other error
     if (error.response?.status === 404 || error.response?.status === 400) {
-      console.log('📝 No grades found for this student (new user)')
-      grades.value = []
+      console.log('📝 No grades found for this student')
+      if (isInitialLoad) {
+        grades.value = []
+      }
     } else {
       console.error('API error occurred:', error.response?.status, error.message)
       // Only use mock data in very specific development scenarios
@@ -748,20 +809,22 @@ const fetchGrades = async () => {
                                (localStorage.getItem('use_mock_grades') === 'true' ||
                                 import.meta.env.VITE_USE_MOCK_GRADES === 'true')
       
-      if (shouldUseMockData) {
+      if (shouldUseMockData && isInitialLoad) {
         console.log('🧪 Using mock data for development testing (use_mock_grades=true)')
         grades.value = mockGradesData.grades.map(grade => ({
           ...grade,
           subject: grade.subject || 'Mock Subject',
           recorded_by: grade.recorded_by || 'Mock Teacher'
         }))
-      } else {
+      } else if (isInitialLoad) {
         console.log('📝 No grades available - showing empty state for new user')
         grades.value = []
       }
     }
     
-    calculateGradeSummary()
+    if (isInitialLoad) {
+      calculateGradeSummary()
+    }
   }
 }
 
@@ -873,6 +936,13 @@ const handleGradeUpdate = (updateData) => {
   
   switch (type) {
     case 'grade_created':
+      // Check if this grade already exists to avoid duplicates
+      const existingGrade = grades.value.find(g => g.id === grade.id)
+      if (existingGrade) {
+        console.log('🔄 Grade already exists, skipping duplicate')
+        return
+      }
+      
       // Transform the grade to match our expected structure
       const newGrade = {
         id: grade.id,
@@ -897,6 +967,7 @@ const handleGradeUpdate = (updateData) => {
         class_subject: grade.class_subject
       }
       
+      // Add new grade to the top of the list
       grades.value.unshift(newGrade)
       showNotification('New grade added!', `You received a new ${newGrade.assessment_type} grade in ${newGrade.subject}: ${newGrade.grade_letter}`)
       break
@@ -973,10 +1044,11 @@ watch(lastUpdate, (newUpdate) => {
 const setupPeriodicRefresh = () => {
   setInterval(() => {
     if (document.visibilityState === 'visible' && isConnected.value) {
-      // Silently refresh data every 5 minutes when tab is visible
-      fetchStudentData(true)
+      // Silently check for new grades every 2 minutes when tab is visible
+      // This only adds new grades, doesn't replace existing ones
+      fetchGrades(false) // false = incremental update
     }
-  }, 5 * 60 * 1000) // 5 minutes
+  }, 2 * 60 * 1000) // 2 minutes
 }
 
 // Test real-time update functionality (development only)
