@@ -284,6 +284,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from "@/stores/auth"
 import { useWebSocket, useGradeUpdates, useNotifications } from '@/composables/useWebSocket'
 import gradesApi from '@/api/grades'
+import apiClient from '@/api/axiosConfig'
 
 const authStore = useAuthStore()
 const { connect, isConnected } = useWebSocket()
@@ -296,15 +297,13 @@ const error = ref(null)
 const student = ref({
   name: '',
   class: '',
-  student_id: ''
+  student_id: '',
+  class_id: '',
+  current_class: null
 })
 
 // Term list and filters
-const termList = [
-  { id: 1, name: 'Term 1' },
-  { id: 2, name: 'Term 2' },
-  { id: 3, name: 'Term 3' },
-]
+const termList = ref([])
 const selectedTermId = ref('')
 const selectedSubject = ref('')
 
@@ -375,25 +374,33 @@ const mockGradesData = {
 
 // Computed values
 const currentTermName = computed(() => {
-  const term = termList.find(t => t.id === Number(selectedTermId.value))
+  if (!selectedTermId.value) return 'All Terms'
+  const term = termList.value.find(t => t.id === Number(selectedTermId.value))
   return term ? term.name : 'All Terms'
 })
 
 const subjectList = computed(() => {
+  if (!grades.value || grades.value.length === 0) return []
+  
   const filtered = selectedTermId.value
     ? grades.value.filter(g => g.term_id === Number(selectedTermId.value))
     : grades.value
-  return [...new Set(filtered.map(g => g.subject))]
+  return [...new Set(filtered.map(g => g.subject).filter(Boolean))]
 })
 
 const filteredGrades = computed(() => {
-  let result = grades.value
+  if (!grades.value || grades.value.length === 0) return []
+  
+  let result = [...grades.value]
+  
   if (selectedTermId.value) {
     result = result.filter(g => g.term_id === Number(selectedTermId.value))
   }
+  
   if (selectedSubject.value) {
     result = result.filter(g => g.subject === selectedSubject.value)
   }
+  
   return result
 })
 
@@ -474,25 +481,29 @@ const gpa = computed(() => {
 
 // Enhanced best subject calculation
 const bestSubject = computed(() => {
-  if (subjectPerformance.value.length === 0) return { name: '', score: 0, grade: '' }
+  if (subjectPerformance.value.length === 0) {
+    return { name: 'N/A', score: 0, grade: '' }
+  }
 
   const best = subjectPerformance.value[0]
   return {
-    name: best.name,
-    score: best.score,
-    grade: best.grade
+    name: best.name || gradeSummary.value?.best_subject || 'N/A',
+    score: best.score || 0,
+    grade: best.grade || ''
   }
 })
 
 // Enhanced weakest subject calculation
 const weakestSubject = computed(() => {
-  if (subjectPerformance.value.length === 0) return { name: '', score: 0, grade: '' }
+  if (subjectPerformance.value.length === 0) {
+    return { name: 'N/A', score: 0, grade: '' }
+  }
 
   const weakest = subjectPerformance.value[subjectPerformance.value.length - 1]
   return {
-    name: weakest.name,
-    score: weakest.score,
-    grade: weakest.grade
+    name: weakest.name || gradeSummary.value?.weakest_subject || 'N/A',
+    score: weakest.score || 0,
+    grade: weakest.grade || ''
   }
 })
 
@@ -549,62 +560,21 @@ const fetchStudentData = async (forceRefresh = false) => {
 
     // Get student info from auth store
     const user = authStore.user
-    if (user) {
-      student.value = {
-        name: user.username || `${user.first_name} ${user.last_name}`.trim() || 'Student',
-        class: user.class || 'N/A',
-        student_id: user.student_id || user.id
-      }
+    if (!user) {
+      throw new Error('User not authenticated')
     }
 
-    if (!student.value.student_id) {
-      throw new Error('No student ID found')
-    }
+    console.log('📊 Fetching data for user:', user)
 
-    console.log('📊 Fetching grades for student:', student.value.student_id)
+    // Fetch student profile information
+    const studentProfile = await fetchStudentProfile(user)
+    student.value = studentProfile
 
-    // Try to fetch real data first, fallback to mock data
-    try {
-      if (window.location.hostname === 'localhost' && !forceRefresh) {
-        // For development, use mock data but with real-time updates capability
-        console.log('🧪 Using mock data for testing...')
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800))
-        
-        // Load mock data
-        grades.value = mockGradesData.grades
-        gradeSummary.value = mockGradesData.summary
-        studentGPA.value = mockGradesData.gpa
-        
-        console.log('✅ Mock data loaded successfully')
-      } else {
-        // Production: Fetch real data from API
-        console.log('🌐 Fetching real data from API...')
-        
-        const [gradesResponse, summaryResponse] = await Promise.all([
-          gradesApi.getStudentGrades(student.value.student_id),
-          gradesApi.getStudentGradeSummary(student.value.student_id)
-        ])
-        
-        grades.value = gradesResponse.data
-        gradeSummary.value = summaryResponse.data.summary
-        studentGPA.value = summaryResponse.data.gpa
-        
-        console.log('✅ Real data loaded successfully')
-      }
-    } catch (apiError) {
-      console.warn('API failed, falling back to mock data:', apiError)
-      
-      // Fallback to mock data
-      grades.value = mockGradesData.grades
-      gradeSummary.value = mockGradesData.summary
-      studentGPA.value = mockGradesData.gpa
-    }
+    // Fetch terms
+    await fetchTerms()
 
-    console.log('📊 Grades:', grades.value.length)
-    console.log('📈 Summary:', gradeSummary.value)
-    console.log('🎯 GPA:', studentGPA.value)
+    // Fetch grades for the student
+    await fetchGrades()
 
     // Connect to WebSocket for real-time updates
     if (!isConnected.value) {
@@ -612,11 +582,195 @@ const fetchStudentData = async (forceRefresh = false) => {
     }
 
   } catch (err) {
-    console.error('Failed to fetch student grades:', err)
-    error.value = err.message || 'Failed to load grades data'
+    console.error('Failed to fetch student data:', err)
+    error.value = err.message || 'Failed to load student data'
   } finally {
     loading.value = false
   }
+}
+
+const fetchStudentProfile = async (user) => {
+  try {
+    // Try to get detailed student information
+    const response = await apiClient.get(`/students/${user.id}`)
+    const studentData = response.data.data || response.data
+
+    return {
+      name: studentData.user?.username || `${studentData.user?.first_name || ''} ${studentData.user?.last_name || ''}`.trim() || user.username || 'Student',
+      class: studentData.current_class?.class_name || studentData.class?.class_name || 'N/A',
+      student_id: studentData.id || studentData.user_id || user.id,
+      class_id: studentData.current_class_id || studentData.class_id,
+      current_class: studentData.current_class || null
+    }
+  } catch (error) {
+    console.warn('Failed to fetch detailed student profile, using basic user data:', error)
+    
+    // Fallback to basic user information
+    return {
+      name: user.username || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Student',
+      class: user.class || 'N/A',
+      student_id: user.id,
+      class_id: user.class_id || null,
+      current_class: null
+    }
+  }
+}
+
+const fetchTerms = async () => {
+  try {
+    const response = await apiClient.get('/terms')
+    const termsData = response.data.data || response.data || []
+    
+    termList.value = termsData.map(term => ({
+      id: term.id,
+      name: term.term_name || term.name || `Term ${term.id}`
+    }))
+    
+    console.log('📅 Terms loaded:', termList.value)
+  } catch (error) {
+    console.warn('Failed to fetch terms:', error)
+    // Fallback to default terms
+    termList.value = [
+      { id: 1, name: 'Term 1' },
+      { id: 2, name: 'Term 2' },
+      { id: 3, name: 'Term 3' }
+    ]
+  }
+}
+
+const fetchGrades = async () => {
+  try {
+    if (!student.value.student_id) {
+      throw new Error('No student ID available')
+    }
+
+    console.log('📊 Fetching grades for student ID:', student.value.student_id)
+
+    // Fetch grades using the grades API
+    const response = await apiClient.get(`/student-grades/${student.value.student_id}`)
+    const data = response.data
+    
+    if (data && data.data) {
+      grades.value = data.data.map(grade => ({
+        id: grade.id,
+        subject: grade.class_subject?.subject?.subject_name || grade.subject || 'Unknown Subject',
+        term_id: grade.term_id,
+        assessment_type: grade.assessment_type,
+        max_score: grade.max_score || 100,
+        score_obtained: grade.score_obtained,
+        score: grade.score_obtained, // alias for compatibility
+        total: grade.max_score || 100, // alias for compatibility
+        weightage: grade.weightage || 0,
+        grade_letter: grade.grade_letter,
+        letter_grade: grade.grade_letter, // alias for compatibility
+        grade: grade.grade_letter, // alias for compatibility
+        remarks: grade.remarks,
+        recorded_by: grade.recorded_by?.first_name && grade.recorded_by?.last_name 
+          ? `${grade.recorded_by.first_name} ${grade.recorded_by.last_name}`
+          : grade.teacher_name || 'Unknown Teacher',
+        recorded_at: grade.created_at || grade.recorded_at,
+        date: grade.created_at || grade.recorded_at, // alias for compatibility
+        assessment: grade.assessment_type, // alias for compatibility
+        class_subject: grade.class_subject
+      }))
+
+      // Calculate summary statistics
+      calculateGradeSummary()
+      
+      console.log('✅ Real grades loaded successfully:', grades.value.length, 'grades')
+    } else {
+      console.warn('No grades data received, using empty array')
+      grades.value = []
+    }
+
+  } catch (error) {
+    console.warn('Failed to fetch real grades, falling back to mock data:', error)
+    
+    // Fallback to mock data for development
+    grades.value = mockGradesData.grades.map(grade => ({
+      ...grade,
+      subject: grade.subject || 'Mock Subject',
+      recorded_by: grade.recorded_by || 'Mock Teacher'
+    }))
+    
+    calculateGradeSummary()
+  }
+}
+
+const calculateGradeSummary = () => {
+  if (grades.value.length === 0) {
+    gradeSummary.value = {
+      best_subject: null,
+      weakest_subject: null,
+      total_assessments: 0,
+      average_score: 0
+    }
+    studentGPA.value = 0
+    return
+  }
+
+  // Group grades by subject
+  const subjectStats = {}
+  
+  grades.value.forEach(grade => {
+    const subject = grade.subject
+    if (!subjectStats[subject]) {
+      subjectStats[subject] = {
+        scores: [],
+        totalScore: 0,
+        count: 0
+      }
+    }
+    
+    const percentage = (grade.score_obtained / grade.max_score) * 100
+    subjectStats[subject].scores.push(percentage)
+    subjectStats[subject].totalScore += percentage
+    subjectStats[subject].count++
+  })
+
+  // Calculate averages
+  const subjectAverages = Object.entries(subjectStats).map(([subject, stats]) => ({
+    subject,
+    average: stats.totalScore / stats.count,
+    count: stats.count
+  }))
+
+  // Find best and weakest subjects
+  const bestSubject = subjectAverages.reduce((max, current) => 
+    current.average > max.average ? current : max
+  )
+  
+  const weakestSubject = subjectAverages.reduce((min, current) => 
+    current.average < min.average ? current : min
+  )
+
+  // Calculate overall statistics
+  const totalScore = grades.value.reduce((sum, grade) => 
+    sum + ((grade.score_obtained / grade.max_score) * 100), 0
+  )
+  const averageScore = totalScore / grades.value.length
+
+  gradeSummary.value = {
+    best_subject: bestSubject.subject,
+    weakest_subject: weakestSubject.subject,
+    total_assessments: grades.value.length,
+    average_score: averageScore
+  }
+
+  // Calculate GPA (4.0 scale)
+  const gradePoints = {
+    'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'E': 0.5, 'F': 0.0
+  }
+  
+  const totalPoints = grades.value.reduce((sum, grade) => {
+    const points = gradePoints[grade.grade_letter] || 0
+    return sum + points
+  }, 0)
+  
+  studentGPA.value = grades.value.length > 0 ? totalPoints / grades.value.length : 0
+  
+  console.log('📈 Grade summary calculated:', gradeSummary.value)
+  console.log('🎯 GPA calculated:', studentGPA.value)
 }
 
 // Handle real-time grade updates
@@ -632,40 +786,77 @@ const handleGradeUpdate = (updateData) => {
   
   switch (type) {
     case 'grade_created':
-      // Add new grade to the list
-      grades.value.unshift(grade)
-      showNotification('New grade added!', `You received a new ${grade.assessment_type} grade in ${grade.subject}: ${grade.grade_letter}`)
+      // Transform the grade to match our expected structure
+      const newGrade = {
+        id: grade.id,
+        subject: grade.class_subject?.subject?.subject_name || grade.subject || updateData.metadata?.subject || 'Unknown Subject',
+        term_id: grade.term_id,
+        assessment_type: grade.assessment_type || updateData.metadata?.assessment_type,
+        max_score: grade.max_score || 100,
+        score_obtained: grade.score_obtained,
+        score: grade.score_obtained,
+        total: grade.max_score || 100,
+        weightage: grade.weightage || 0,
+        grade_letter: grade.grade_letter || updateData.metadata?.grade_letter,
+        letter_grade: grade.grade_letter || updateData.metadata?.grade_letter,
+        grade: grade.grade_letter || updateData.metadata?.grade_letter,
+        remarks: grade.remarks,
+        recorded_by: grade.recorded_by?.first_name && grade.recorded_by?.last_name 
+          ? `${grade.recorded_by.first_name} ${grade.recorded_by.last_name}`
+          : grade.teacher_name || 'Unknown Teacher',
+        recorded_at: grade.created_at || grade.recorded_at || new Date().toISOString(),
+        date: grade.created_at || grade.recorded_at || new Date().toISOString(),
+        assessment: grade.assessment_type || updateData.metadata?.assessment_type,
+        class_subject: grade.class_subject
+      }
+      
+      grades.value.unshift(newGrade)
+      showNotification('New grade added!', `You received a new ${newGrade.assessment_type} grade in ${newGrade.subject}: ${newGrade.grade_letter}`)
       break
       
     case 'grade_updated':
       // Update existing grade
       const gradeIndex = grades.value.findIndex(g => g.id === grade.id)
       if (gradeIndex !== -1) {
-        grades.value[gradeIndex] = grade
-        showNotification('Grade updated!', `Your ${grade.assessment_type} grade in ${grade.subject} has been updated: ${grade.grade_letter}`)
+        const updatedGrade = {
+          ...grades.value[gradeIndex],
+          subject: grade.class_subject?.subject?.subject_name || grade.subject || updateData.metadata?.subject || grades.value[gradeIndex].subject,
+          term_id: grade.term_id,
+          assessment_type: grade.assessment_type || updateData.metadata?.assessment_type,
+          max_score: grade.max_score || 100,
+          score_obtained: grade.score_obtained,
+          score: grade.score_obtained,
+          total: grade.max_score || 100,
+          weightage: grade.weightage || 0,
+          grade_letter: grade.grade_letter || updateData.metadata?.grade_letter,
+          letter_grade: grade.grade_letter || updateData.metadata?.grade_letter,
+          grade: grade.grade_letter || updateData.metadata?.grade_letter,
+          remarks: grade.remarks,
+          recorded_at: grade.updated_at || grade.created_at || grade.recorded_at
+        }
+        
+        grades.value[gradeIndex] = updatedGrade
+        showNotification('Grade updated!', `Your ${updatedGrade.assessment_type} grade in ${updatedGrade.subject} has been updated: ${updatedGrade.grade_letter}`)
       }
       break
       
     case 'grade_deleted':
       // Remove grade from list
-      const deleteIndex = grades.value.findIndex(g => g.id === grade.id)
+      const deleteIndex = grades.value.findIndex(g => g.id === (grade.id || updateData.grade_id))
       if (deleteIndex !== -1) {
+        const deletedGrade = grades.value[deleteIndex]
         grades.value.splice(deleteIndex, 1)
-        showNotification('Grade removed', `A grade has been removed from ${grade.subject}`)
+        showNotification('Grade removed', `A grade has been removed from ${deletedGrade.subject}`)
       }
       break
   }
   
   // Recalculate performance metrics
-  recalculatePerformanceMetrics()
+  calculateGradeSummary()
 }
 
-// Recalculate performance metrics after grade changes
-const recalculatePerformanceMetrics = () => {
-  // This will trigger computed properties to recalculate
-  // Since they're reactive, the UI will update automatically
-  console.log('📊 Recalculating performance metrics...')
-}
+// Note: Performance metrics are recalculated automatically via calculateGradeSummary()
+// and the computed properties will update reactively
 
 // Show notification to user
 const showNotification = (title, message) => {
