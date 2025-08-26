@@ -179,7 +179,7 @@ export default {
     }
 
     const getStudentClass = (classId) => {
-      // Implementation for getting student class
+
       return 'A'
     }
 
