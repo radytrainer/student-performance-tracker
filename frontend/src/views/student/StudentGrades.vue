@@ -10,7 +10,9 @@
       <div class="text-center">
         <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
         </svg>
         <p class="text-gray-600">Loading your grades...</p>
       </div>
@@ -20,15 +22,14 @@
     <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
       <div class="flex items-center mb-4">
         <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <h3 class="text-lg font-semibold text-red-800">Error Loading Grades</h3>
       </div>
       <p class="text-red-700 mb-4">{{ error }}</p>
-      <button 
-        @click="fetchStudentData" 
-        class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-      >
+      <button @click="fetchStudentData"
+        class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
         Try Again
       </button>
     </div>
@@ -43,86 +44,93 @@
           <p><strong>Term:</strong> {{ currentTermName }}</p>
         </div>
 
-<h3 class="text-2xl font-bold mb-4 text-center">Performance Summary</h3>
+        <h3 class="text-2xl font-bold mb-4 text-center">Performance Summary</h3>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
 
-  <!-- GPA Card -->
-  <div class="bg-white rounded-xl shadow-lg p-5 border border-blue-0">
-    <div class="flex justify-between items-start mb-4">
-      <!-- Icon -->
-      <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      </div>
-      <!-- Percentage -->
-      <span class="text-green-500 font-semibold text-sm">+2.5%</span>
-    </div>
-    <p class="text-gray-500 font-semibold text-sm uppercase">GPA</p>
-    <p class="text-3xl font-bold text-blue-800">{{ gpa.toFixed(2) }}</p>
-  </div>
+          <!-- GPA Card -->
+          <div class="bg-white rounded-xl shadow-lg p-5 border border-blue-0">
+            <div class="flex justify-between items-start mb-4">
+              <!-- Icon -->
+              <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <!-- Percentage -->
+              <span class="text-green-500 font-semibold text-sm">+2.5%</span>
+            </div>
+            <p class="text-gray-500 font-semibold text-sm uppercase">GPA</p>
+            <p class="text-3xl font-bold text-blue-800">{{ gpa.toFixed(2) }}</p>
+          </div>
 
-  <!-- Best Subject Card -->
-  <div class="bg-white rounded-xl shadow-lg p-5 border border-green-0">
-    <div class="flex justify-between items-start mb-4">
-      <div class="bg-green-100 text-green-600 p-2 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-      </div>
-      <span class="text-green-500 font-semibold text-sm">+1.8%</span>
-    </div>
-    <p class="text-gray-500 font-semibold text-sm uppercase">{{ bestSubject.name || '—' }}</p>
-    <p class="text-2xl font-bold text-green-700">{{ bestSubject.score || 0 }}%</p>
-  </div>
+          <!-- Best Subject Card -->
+          <div class="bg-white rounded-xl shadow-lg p-5 border border-green-0">
+            <div class="flex justify-between items-start mb-4">
+              <div class="bg-green-100 text-green-600 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <span class="text-green-500 font-semibold text-sm">+1.8%</span>
+            </div>
+            <p class="text-gray-500 font-semibold text-sm uppercase">{{ bestSubject.name || '—' }}</p>
+            <p class="text-2xl font-bold text-green-700">{{ bestSubject.score || 0 }}%</p>
+          </div>
 
-  <!-- Weakest Subject Card -->
-  <div class="bg-white rounded-xl shadow-lg p-5 border border-red-0">
-    <div class="flex justify-between items-start mb-4">
-      <div class="bg-red-100 text-red-600 p-2 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-        </svg>
-      </div>
-      <span class="text-red-500 font-semibold text-sm">-0.5%</span>
-    </div>
-    <p class="text-gray-500 font-semibold text-sm uppercase">{{ weakestSubject.name || '—' }}</p>
-    <p class="text-2xl font-bold text-red-700">{{ weakestSubject.score || 0 }}%</p>
-  </div>
+          <!-- Weakest Subject Card -->
+          <div class="bg-white rounded-xl shadow-lg p-5 border border-red-0">
+            <div class="flex justify-between items-start mb-4">
+              <div class="bg-red-100 text-red-600 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                </svg>
+              </div>
+              <span class="text-red-500 font-semibold text-sm">-0.5%</span>
+            </div>
+            <p class="text-gray-500 font-semibold text-sm uppercase">{{ weakestSubject.name || '—' }}</p>
+            <p class="text-2xl font-bold text-red-700">{{ weakestSubject.score || 0 }}%</p>
+          </div>
 
-  <!-- Overall Performance Card -->
-  <div class="bg-white rounded-xl shadow-lg p-5 border border-purple-0">
-    <div class="flex justify-between items-start mb-4">
-      <div class="bg-purple-100 text-purple-600 p-2 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      </div>
-      <span class="text-purple-500 font-semibold text-sm">+3.0%</span>
-    </div>
-    <p class="text-gray-500 font-semibold text-sm uppercase">{{ overallPerformance.level }}</p>
-    <p class="text-2xl font-bold text-purple-700">{{ overallPerformance.score }}%</p>
-  </div>
+          <!-- Overall Performance Card -->
+          <div class="bg-white rounded-xl shadow-lg p-5 border border-purple-0">
+            <div class="flex justify-between items-start mb-4">
+              <div class="bg-purple-100 text-purple-600 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <span class="text-purple-500 font-semibold text-sm">+3.0%</span>
+            </div>
+            <p class="text-gray-500 font-semibold text-sm uppercase">{{ overallPerformance.level }}</p>
+            <p class="text-2xl font-bold text-purple-700">{{ overallPerformance.score }}%</p>
+          </div>
 
-</div>
+        </div>
 
 
         <!-- Subject Performance Breakdown -->
         <div class="bg-white rounded-xl shadow-md p-5 mb-6 border">
           <h4 class="text-lg font-semibold text-gray-800 mb-4">Subject Performance Breakdown</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="(subject, index) in subjectPerformance" :key="index" 
-                 class="border rounded-lg p-3 hover:shadow-md transition-shadow">
+            <div v-for="(subject, index) in subjectPerformance" :key="index"
+              class="border rounded-lg p-3 hover:shadow-md transition-shadow">
               <div class="flex justify-between items-center mb-2">
                 <span class="font-medium text-gray-700">{{ subject.name }}</span>
-                <span class="text-sm font-semibold px-2 py-1 rounded-full" 
-                      :class="gradeColor(subject.grade)">{{ subject.grade }}</span>
+                <span class="text-sm font-semibold px-2 py-1 rounded-full" :class="gradeColor(subject.grade)">{{
+                  subject.grade }}</span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
-                <div class="h-2.5 rounded-full" 
-                     :class="getScoreColorClass(subject.score)" 
-                     :style="{ width: subject.score + '%' }"></div>
+                <div class="h-2.5 rounded-full" :class="getScoreColorClass(subject.score)"
+                  :style="{ width: subject.score + '%' }"></div>
               </div>
               <div class="flex justify-between text-xs text-gray-500">
                 <span>{{ subject.score.toFixed(1) }}%</span>
@@ -135,8 +143,10 @@
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div class="flex-1">
             <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1 text-blue-500" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
               Filter by Subject
             </label>
@@ -148,8 +158,10 @@
 
           <div class="flex-1">
             <label for="term" class="block text-sm font-medium text-gray-700 mb-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-1 text-blue-500" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Filter by Term
             </label>
@@ -160,9 +172,12 @@
           </div>
 
           <div class="md:self-end">
-            <button @click="exportToPDF" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <button @click="exportToPDF"
+              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Export as PDF
             </button>
@@ -170,8 +185,10 @@
         </div>
 
         <div v-if="filteredGrades.length === 0" class="text-center text-red-500 mt-6">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline mr-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           No grades found for selected filters.
         </div>
@@ -197,9 +214,8 @@
                 <td class="px-4 py-2">
                   {{ grade.score_obtained }} / {{ grade.max_score }}
                   <div class="w-full bg-gray-200 h-2 mt-1 rounded">
-                    <div class="h-2 rounded"
-                         :class="getScoreColorClass((grade.score_obtained / grade.max_score) * 100)"
-                         :style="{ width: ((grade.score_obtained / grade.max_score) * 100) + '%' }" />
+                    <div class="h-2 rounded" :class="getScoreColorClass((grade.score_obtained / grade.max_score) * 100)"
+                      :style="{ width: ((grade.score_obtained / grade.max_score) * 100) + '%' }" />
                   </div>
                 </td>
                 <td class="px-4 py-2">{{ grade.weightage }}%</td>
@@ -256,42 +272,42 @@ const mockGradesData = {
   grades: [
     {
       id: 1, subject: 'Math', term_id: 2, assessment_type: 'Midterm',
-      max_score: 100, score_obtained: 78, score: 78, total: 100, weightage: 30, 
+      max_score: 100, score_obtained: 78, score: 78, total: 100, weightage: 30,
       grade_letter: 'B', letter_grade: 'B', grade: 'B',
       remarks: 'Good effort', recorded_by: 'Teacher A', recorded_at: '2025-07-10',
       date: '2025-07-10', assessment: 'Midterm'
     },
     {
       id: 2, subject: 'Math', term_id: 2, assessment_type: 'Quiz',
-      max_score: 20, score_obtained: 18, score: 18, total: 20, weightage: 10, 
+      max_score: 20, score_obtained: 18, score: 18, total: 20, weightage: 10,
       grade_letter: 'A', letter_grade: 'A', grade: 'A',
       remarks: 'Quick learner', recorded_by: 'Teacher A', recorded_at: '2025-07-15',
       date: '2025-07-15', assessment: 'Quiz'
     },
     {
       id: 3, subject: 'Science', term_id: 2, assessment_type: 'Project',
-      max_score: 50, score_obtained: 40, score: 40, total: 50, weightage: 40, 
+      max_score: 50, score_obtained: 40, score: 40, total: 50, weightage: 40,
       grade_letter: 'B', letter_grade: 'B', grade: 'B',
       remarks: '', recorded_by: 'Teacher B', recorded_at: '2025-07-12',
       date: '2025-07-12', assessment: 'Project'
     },
     {
       id: 4, subject: 'English', term_id: 2, assessment_type: 'Final',
-      max_score: 100, score_obtained: 85, score: 85, total: 100, weightage: 20, 
+      max_score: 100, score_obtained: 85, score: 85, total: 100, weightage: 20,
       grade_letter: 'A', letter_grade: 'A', grade: 'A',
       remarks: 'Great improvement', recorded_by: 'Teacher C', recorded_at: '2025-07-20',
       date: '2025-07-20', assessment: 'Final'
     },
     {
       id: 5, subject: 'Science', term_id: 2, assessment_type: 'Lab Test',
-      max_score: 30, score_obtained: 25, score: 25, total: 30, weightage: 15, 
+      max_score: 30, score_obtained: 25, score: 25, total: 30, weightage: 15,
       grade_letter: 'B', letter_grade: 'B', grade: 'B',
       remarks: 'Good practical skills', recorded_by: 'Teacher B', recorded_at: '2025-07-18',
       date: '2025-07-18', assessment: 'Lab Test'
     },
     {
       id: 6, subject: 'History', term_id: 2, assessment_type: 'Essay',
-      max_score: 50, score_obtained: 32, score: 32, total: 50, weightage: 25, 
+      max_score: 50, score_obtained: 32, score: 32, total: 50, weightage: 25,
       grade_letter: 'D', letter_grade: 'D', grade: 'D',
       remarks: 'Needs more detail', recorded_by: 'Teacher D', recorded_at: '2025-07-22',
       date: '2025-07-22', assessment: 'Essay'
@@ -333,7 +349,7 @@ const filteredGrades = computed(() => {
 // Calculate subject performance data
 const subjectPerformance = computed(() => {
   const subjects = {}
-  
+
   // Group grades by subject
   filteredGrades.value.forEach(grade => {
     if (!subjects[grade.subject]) {
@@ -345,25 +361,25 @@ const subjectPerformance = computed(() => {
         grades: []
       }
     }
-    
+
     const percentage = (grade.score_obtained / grade.max_score) * 100
     subjects[grade.subject].totalScore += percentage
     subjects[grade.subject].maxScore += 100
     subjects[grade.subject].count++
     subjects[grade.subject].grades.push(grade.grade_letter)
   })
-  
+
   // Calculate average score and grade for each subject
   return Object.values(subjects).map(subject => {
     const avgScore = subject.totalScore / subject.count
     const gradeLetters = subject.grades
-    
+
     // Calculate average grade (most frequent grade)
     const gradeCount = {}
     gradeLetters.forEach(grade => {
       gradeCount[grade] = (gradeCount[grade] || 0) + 1
     })
-    
+
     let mostFrequentGrade = ''
     let maxCount = 0
     for (const grade in gradeCount) {
@@ -372,7 +388,7 @@ const subjectPerformance = computed(() => {
         maxCount = gradeCount[grade]
       }
     }
-    
+
     return {
       name: subject.name,
       score: avgScore,
@@ -385,30 +401,30 @@ const subjectPerformance = computed(() => {
 // Enhanced GPA calculation
 const gpa = computed(() => {
   if (!filteredGrades.value.length) return 0
-  
+
   // Calculate weighted GPA based on grade distribution
   const gradePoints = {
     'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0
   }
-  
+
   let totalWeightedPoints = 0
   let totalWeight = 0
-  
+
   filteredGrades.value.forEach(grade => {
     const weight = grade.weightage || 1
     const points = gradePoints[grade.grade_letter] || 0
-    
+
     totalWeightedPoints += points * weight
     totalWeight += weight
   })
-  
+
   return totalWeightedPoints / totalWeight
 })
 
 // Enhanced best subject calculation
 const bestSubject = computed(() => {
   if (subjectPerformance.value.length === 0) return { name: '', score: 0, grade: '' }
-  
+
   const best = subjectPerformance.value[0]
   return {
     name: best.name,
@@ -420,7 +436,7 @@ const bestSubject = computed(() => {
 // Enhanced weakest subject calculation
 const weakestSubject = computed(() => {
   if (subjectPerformance.value.length === 0) return { name: '', score: 0, grade: '' }
-  
+
   const weakest = subjectPerformance.value[subjectPerformance.value.length - 1]
   return {
     name: weakest.name,
@@ -431,16 +447,16 @@ const weakestSubject = computed(() => {
 
 // Overall performance evaluation
 const overallPerformance = computed(() => {
-  const avgScore = subjectPerformance.value.reduce((sum, subj) => sum + subj.score, 0) / 
-                  (subjectPerformance.value.length || 1)
-  
+  const avgScore = subjectPerformance.value.reduce((sum, subj) => sum + subj.score, 0) /
+    (subjectPerformance.value.length || 1)
+
   let level = ''
   if (avgScore >= 90) level = 'Excellent'
   else if (avgScore >= 80) level = 'Very Good'
   else if (avgScore >= 70) level = 'Good'
   else if (avgScore >= 60) level = 'Average'
   else level = 'Needs Improvement'
-  
+
   return {
     score: avgScore.toFixed(1),
     level: level
@@ -498,15 +514,15 @@ const fetchStudentData = async () => {
 
     // Use mock data for demonstration
     console.log('🧪 Using mock data for testing...');
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 800));
-    
+
     // Load mock data
     grades.value = mockGradesData.grades;
     gradeSummary.value = mockGradesData.summary;
     studentGPA.value = mockGradesData.gpa;
-    
+
     console.log('✅ Mock data loaded successfully');
     console.log('📊 Grades:', grades.value.length);
     console.log('📈 Summary:', gradeSummary.value);
