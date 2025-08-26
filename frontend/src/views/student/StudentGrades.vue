@@ -976,6 +976,38 @@ const setupPeriodicRefresh = () => {
   }, 5 * 60 * 1000) // 5 minutes
 }
 
+// Test real-time update functionality (development only)
+const testRealTimeUpdate = () => {
+  console.log('🧪 Testing real-time update...')
+  
+  const mockUpdate = {
+    type: 'grade_created',
+    grade: {
+      id: Date.now(),
+      subject: 'Test Subject',
+      term_id: 1,
+      assessment_type: 'quiz',
+      max_score: 100,
+      score_obtained: 95,
+      grade_letter: 'A',
+      remarks: 'Test grade',
+      created_at: new Date().toISOString()
+    },
+    student_id: studentId.value,
+    teacher_id: 999,
+    timestamp: new Date().toISOString(),
+    metadata: {
+      subject: 'Test Subject',
+      assessment_type: 'quiz',
+      grade_letter: 'A',
+      score: '95/100'
+    }
+  }
+  
+  handleGradeUpdate(mockUpdate)
+  showNotification('Test Update!', 'This is a test real-time grade update')
+}
+
 // Initialize data on component mount
 onMounted(() => {
   fetchStudentData()
