@@ -75,7 +75,7 @@ export const teacherClassesAPI = {
 
   async bulkAddStudents(classId, studentIds) {
     try {
-      const response = await apiClient.post(`/classes/${classId}/students/bulk`, { 
+      const response = await apiClient.post(`/teacher/classes/${classId}/students/bulk`, { 
         student_ids: studentIds 
       })
       return response.data
