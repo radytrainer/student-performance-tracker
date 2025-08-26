@@ -360,8 +360,8 @@
                 required
               >
                 <option disabled value="">Select student</option>
-                <option v-for="student in students" :key="student.id" :value="student.user_id">
-                  {{ student.user?.first_name }} {{ student.user?.last_name }}
+                <option v-for="student in students" :key="(student && (student.user_id ?? student.id))" :value="student.user_id || student.id">
+                  {{ student.user?.first_name || student.first_name }} {{ student.user?.last_name || student.last_name }}
                 </option>
               </select>
             </div>
@@ -373,8 +373,8 @@
                 class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
                 required
               >
-                <option v-for="cs in classSubjects" :key="cs.id" :value="cs.id">
-                  {{ cs.class.class_name }} - {{ cs.subject.subject_name }}
+                <option v-for="cs in filteredClassSubjects" :key="cs.id" :value="cs.id">
+                  {{ cs.class?.class_name || 'Class' }} - {{ cs.subject?.subject_name || 'Subject' }}
                 </option>
               </select>
             </div>
@@ -451,28 +451,11 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue'
-import axios from 'axios'
 import Chart from 'chart.js/auto'
 import * as XLSX from 'xlsx'
 import html2pdf from 'html2pdf.js'
+import apiClient from '@/api/axiosConfig'
 
-// Initialize API client
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
-  headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json'
-  }
-})
-
-// Add auth token to requests
-apiClient.interceptors.request.use(config => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
 
 // Reactive state
 const loading = ref(false)
@@ -545,6 +528,13 @@ const newGrade = ref({
 })
 
 // Computed properties
+const filteredClassSubjects = computed(() => {
+  if (!newGrade.value.student_id) return classSubjects.value
+  const student = students.value.find(s => (s.user_id || s.id) === newGrade.value.student_id)
+  if (!student || !student.current_class_id) return classSubjects.value
+  return classSubjects.value.filter(cs => cs.class_id === student.current_class_id)
+})
+
 const filteredGrades = computed(() => {
   let result = grades.value
 
@@ -586,18 +576,27 @@ const filteredGrades = computed(() => {
 const fetchAll = async () => {
   loading.value = true
   try {
-    const [cls, sub, term, stu, cs] = await Promise.all([
+    const [authUser, cls, sub, term, stu, cs] = await Promise.all([
+      apiClient.get('/auth/user'),
       apiClient.get('/classes'),
       apiClient.get('/subjects'),
       apiClient.get('/terms'),
-      apiClient.get('/students'),
+      apiClient.get('/students', { params: { per_page: 1000 } }),
       apiClient.get('/my-class-subjects')
     ])
-    classes.value = cls.data.data
-    subjects.value = sub.data.data
-    terms.value = term.data.data
-    students.value = stu.data.data
-    classSubjects.value = cs.data.data
+    // set user
+    if (authUser?.data?.user) {
+      user.value = authUser.data.user
+    }
+    classes.value = Array.isArray(cls?.data?.data) ? cls.data.data : []
+    subjects.value = Array.isArray(sub?.data?.data) ? sub.data.data : []
+    terms.value = Array.isArray(term?.data?.data) ? term.data.data : []
+
+    // Students may be paginated; extract inner data array safely
+    const stuData = stu?.data?.data
+    students.value = Array.isArray(stuData) ? stuData : (stuData?.data ?? [])
+
+    classSubjects.value = Array.isArray(cs?.data?.data) ? cs.data.data : []
     await fetchGrades()
   } catch (err) {
     error.value = 'Failed to load data: ' + (err.response?.data?.message || err.message)
@@ -1033,10 +1032,17 @@ const handleScoresChartClick = (event) => {
   }
 }
 
-const openAddModal = () => {
+const openAddModal = async () => {
   isEditMode.value = false
   selectedGrade.value = null
   resetGradeForm()
+  // ensure we have the freshest class-subjects before opening
+  try {
+    const cs = await apiClient.get('/my-class-subjects')
+    classSubjects.value = Array.isArray(cs?.data?.data) ? cs.data.data : []
+  } catch (e) {
+    // ignore; keep existing list
+  }
   showAddModal.value = true
 }
 
