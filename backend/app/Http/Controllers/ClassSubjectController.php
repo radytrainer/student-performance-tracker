@@ -9,17 +9,30 @@ class ClassSubjectController extends Controller
 {
     public function myClassSubjects(Request $request)
     {
-        $user = $request->user(); // get authenticated user
+        $user = $request->user();
 
-        if (!$user || !$user->isTeacher()) {
-            // Return empty data if user not teacher or not authenticated
+        if (!$user) {
             return response()->json(['data' => []]);
         }
 
-        $classSubjects = ClassSubject::with(['class', 'subject'])
-            ->where('teacher_id', $user->teacher->user_id)
-            ->get();
+        // Teachers should see their assignments; fall back to user id if relation missing
+        if ($user->isTeacher()) {
+            $teacherId = optional($user->teacher)->user_id ?? $user->id;
+            $classSubjects = ClassSubject::with(['class', 'subject'])
+                ->where('teacher_id', $teacherId)
+                ->orderBy('class_id')
+                ->orderBy('subject_id')
+                ->get();
+            return response()->json(['data' => $classSubjects]);
+        }
 
-        return response()->json(['data' => $classSubjects]);
+        // Admins can see all
+        if ($user->isAdmin()) {
+            $classSubjects = ClassSubject::with(['class', 'subject'])->get();
+            return response()->json(['data' => $classSubjects]);
+        }
+
+        // Other roles: none
+        return response()->json(['data' => []]);
     }
 }
