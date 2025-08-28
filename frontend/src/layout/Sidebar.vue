@@ -15,7 +15,7 @@
         :class="{ '-translate-x-full': !isOpen && isMobile }">
         
         <!-- System Branding Section -->
-        <div class="px-4 py-6 border-b border-gray-200 bg-white">
+        <div class="px-3 py-4 border-b border-gray-200 bg-white">
           <div class="flex flex-col items-center text-center">
             <!-- System Logo -->
             <div class="relative w-20 h-20 rounded-full mb-4 logo-3d">
