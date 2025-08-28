@@ -60,7 +60,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Attendance %</p>
+              <p class="text-sm text-gray-500">Attendances %</p>
               <p class="text-2xl font-bold text-blue-700">{{ attendancePercentage }}%</p>
               <p class="text-xs text-gray-400">Rate</p>
             </div>
