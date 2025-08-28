@@ -15,22 +15,40 @@
         :class="{ '-translate-x-full': !isOpen && isMobile }">
         
         <!-- System Branding Section -->
-        <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-700">
+        <div class="p-6 border-b border-gray-200 bg-white">
           <div class="flex flex-col items-center text-center">
             <!-- System Logo -->
-            <div
-              class="w-20 h-20 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center mb-4 shadow-lg">
-              <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
-              </svg>
+            <div class="relative w-20 h-20 rounded-full mb-4 logo-3d">
+              <!-- Background circle with gradient -->
+              <div class="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-2xl"></div>
+              <div class="absolute inset-0.5 rounded-full bg-gradient-to-br from-blue-400/30 to-transparent"></div>
+              
+              <!-- Icon container -->
+              <div class="relative w-full h-full rounded-full bg-gradient-to-br from-blue-400/20 to-blue-600/10 border border-blue-300/30 backdrop-blur-sm flex items-center justify-center">
+                <!-- 3D Graduation Cap Icon -->
+                <div class="relative">
+                  <!-- Shadow layer -->
+                  <svg class="absolute w-12 h-12 text-blue-800/40 transform translate-x-0.5 translate-y-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,3L1,9L12,15L21,9V10H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" />
+                  </svg>
+                  <!-- Main icon -->
+                  <svg class="relative w-12 h-12 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,3L1,9L12,15L21,9V10H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" />
+                  </svg>
+                  <!-- Highlight -->
+                  <div class="absolute top-1 left-2 w-2 h-2 bg-white/60 rounded-full blur-sm"></div>
+                </div>
+              </div>
+              
+              <!-- Outer glow -->
+              <div class="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-400/30 to-transparent blur-md"></div>
             </div>
 
             <!-- System Name -->
-            <h2 class="text-xl font-bold text-white mb-1">
+            <h2 class="text-xl font-bold text-gray-900 mb-1">
               Education Tracker
             </h2>
-            <p class="text-white/70 text-sm">
+            <p class="text-gray-600 text-sm">
               Performance System
             </p>
           </div>
@@ -241,5 +259,30 @@ aside::-webkit-scrollbar-thumb:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 3D Logo Effects */
+.logo-3d {
+  transition: transform 0.3s ease;
+  animation: float 6s ease-in-out infinite;
+}
+
+.logo-3d:hover {
+  transform: scale(1.05) rotateY(10deg);
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Enhanced drop shadows for 3D effect */
+.drop-shadow-lg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.1));
 }
 </style>
