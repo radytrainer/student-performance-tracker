@@ -231,10 +231,16 @@ const hasAlerts = ref(false) // Set this based on your actual alert system
 
 // Expandable sections state
 const expandedSections = ref({
+  // Admin sections
   'User Management': true,
   'Academic': false,
   'System': false,
-  'Analytics & Reports': false
+  'Analytics & Reports': false,
+  // Teacher sections
+  'Classroom Management': true,
+  'Assessment': false,
+  'Data & Reports': false,
+  'Communication': false
 })
 
 const toggleSection = (sectionName) => {

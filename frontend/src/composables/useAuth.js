@@ -169,16 +169,44 @@ export function useAuth() {
       ],
       teacher: [
         { name: 'Dashboard', path: '/teacher/dashboard', icon: 'fas fa-home' },
-        { name: 'My Classes', path: '/teacher/classes', icon: 'fas fa-door-open' },
-        { name: 'Students', path: '/students', icon: 'fas fa-graduation-cap' },
-        { name: 'Grades', path: '/teacher/grades', icon: 'fas fa-list-check' },
-        { name: 'Attendance', path: '/teacher/attendance', icon: 'fas fa-calendar' },
-        { name: 'Import', path: '/teacher/import', icon: 'fas fa-upload' },
-        { name: 'Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-square-poll-vertical' },
-        { name: 'Reports', path: '/teacher/reports', icon: 'fas fa-file-lines' },
-        { name: 'Alerts', path: '/teacher/alerts', icon: 'fas fa-bell' },
-        { name: 'Notes', path: '/teacher/notes', icon: 'fas fa-note-sticky' },
-        { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
+        {
+          name: 'Classroom Management',
+          icon: 'fas fa-chalkboard-teacher',
+          expandable: true,
+          children: [
+            { name: 'My Classes', path: '/teacher/classes', icon: 'fas fa-door-open' },
+            { name: 'Students', path: '/students', icon: 'fas fa-graduation-cap' }
+          ]
+        },
+        {
+          name: 'Assessment',
+          icon: 'fas fa-clipboard-list',
+          expandable: true,
+          children: [
+            { name: 'Grades', path: '/teacher/grades', icon: 'fas fa-list-check' },
+            { name: 'Attendance', path: '/teacher/attendance', icon: 'fas fa-calendar' }
+          ]
+        },
+        {
+          name: 'Data & Reports',
+          icon: 'fas fa-chart-simple',
+          expandable: true,
+          children: [
+            { name: 'Import', path: '/teacher/import', icon: 'fas fa-upload' },
+            { name: 'Reports', path: '/teacher/reports', icon: 'fas fa-file-lines' },
+            { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
+          ]
+        },
+        {
+          name: 'Communication',
+          icon: 'fas fa-comments',
+          expandable: true,
+          children: [
+            { name: 'Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-square-poll-vertical' },
+            { name: 'Alerts', path: '/teacher/alerts', icon: 'fas fa-bell' },
+            { name: 'Notes', path: '/teacher/notes', icon: 'fas fa-note-sticky' }
+          ]
+        }
       ],
       student: [
         { name: 'Dashboard', path: '/student/dashboard', icon: 'fas fa-home' },
