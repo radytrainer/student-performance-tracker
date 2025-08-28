@@ -538,8 +538,38 @@ const loadClasses = async () => {
 }
 
 const openCreateModal = () => {
-  // TODO: Implement create student modal
-  console.log('Create student modal')
+  selectedStudent.value = null
+  showStudentModal.value = true
+}
+
+const closeStudentModal = () => {
+  showStudentModal.value = false
+  selectedStudent.value = null
+  modalLoading.value = false
+}
+
+const handleStudentSubmit = async (studentData) => {
+  try {
+    modalLoading.value = true
+    
+    if (selectedStudent.value?.user_id) {
+      // Update existing student
+      await adminAPI.updateStudent(selectedStudent.value.user_id, studentData)
+      showSuccessMessage('Student updated successfully')
+    } else {
+      // Create new student
+      await adminAPI.createStudent(studentData)
+      showSuccessMessage('Student created successfully')
+    }
+    
+    closeStudentModal()
+    await loadStudents()
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'Failed to save student'
+    console.error('Error saving student:', err)
+  } finally {
+    modalLoading.value = false
+  }
 }
 
 const viewStudent = (student) => {
