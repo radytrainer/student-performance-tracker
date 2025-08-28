@@ -196,7 +196,7 @@ const loadAnalytics = async () => {
     
     // Load correlation data
     try {
-      const correlationResponse = await axios.get('/api/analytics/correlation', { params })
+      const correlationResponse = await axios.get('/analytics/correlation', { params })
       points.value = correlationResponse.data?.data?.points || []
       corr.value = correlationResponse.data?.data?.correlation ?? null
       await renderCorr()
@@ -214,7 +214,7 @@ const loadAnalytics = async () => {
 
     // Load heatmap data  
     try {
-      const heatmapResponse = await axios.get('/api/analytics/heatmap', { params })
+      const heatmapResponse = await axios.get('/analytics/heatmap', { params })
       buckets.value = heatmapResponse.data?.data?.buckets || Array.from({length:10}, ()=>Array.from({length:10}, ()=>0))
     } catch (heatErr) {
       console.error('Heatmap error:', heatErr)
