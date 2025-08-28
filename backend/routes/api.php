@@ -156,6 +156,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('admin/teachers/available', [App\Http\Controllers\Admin\ClassController::class, 'getAvailableTeachers']);
         Route::get('admin/classes-stats', [App\Http\Controllers\Admin\ClassController::class, 'getClassStats']);
 
+        // Teacher-Class Assignment Management
+        Route::post('admin/classes/{class}/assign-teacher-primary', [App\Http\Controllers\Admin\TeacherClassController::class, 'assignTeacherToClass']);
+        Route::delete('admin/classes/{class}/remove-teacher', [App\Http\Controllers\Admin\TeacherClassController::class, 'removeTeacherFromClass']);
+        Route::get('admin/teachers/{teacher}/classes', [App\Http\Controllers\Admin\TeacherClassController::class, 'getTeacherClasses']);
+        Route::post('admin/teachers/{teacher}/assign-classes', [App\Http\Controllers\Admin\TeacherClassController::class, 'bulkAssignClassesToTeacher']);
+        Route::get('admin/class-assignments', [App\Http\Controllers\Admin\TeacherClassController::class, 'getAllClassAssignments']);
+        Route::get('admin/classes/{class}/teachers', [App\Http\Controllers\Admin\TeacherClassController::class, 'getClassTeachers']);
+        Route::get('admin/teacher-workload', [App\Http\Controllers\Admin\TeacherClassController::class, 'getTeacherWorkloadStats']);
+
         // Subject Management
         Route::apiResource('admin/subjects', App\Http\Controllers\Admin\SubjectController::class);
         Route::post('admin/subjects/bulk-action', [App\Http\Controllers\Admin\SubjectController::class, 'bulkAction']);
