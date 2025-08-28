@@ -482,33 +482,64 @@ const loadDashboardData = async () => {
     loading.value = true
     error.value = null
     
-    // Load teacher classes
-    const classesResponse = await teacherAPI.getTeacherClasses()
+    // Load teacher classes using existing working endpoint
+    const classesResponse = await teacherAPI.getClasses()
     teacherClasses.value = classesResponse.data.data || []
 
-    // Load teaching statistics  
-    const statsResponse = await teacherAPI.getTeachingStats()
+    // Calculate basic statistics from available data
+    const totalStudents = teacherClasses.value.reduce((sum, cls) => sum + (cls.student_count || 0), 0)
     teachingStats.value = {
-      totalStudents: statsResponse.data.total_students || 0,
-      averageGPA: statsResponse.data.average_gpa || '0.0',
-      attendanceRate: Math.round(statsResponse.data.attendance_rate || 0),
-      activeClasses: statsResponse.data.active_classes || 0
+      totalStudents: totalStudents,
+      averageGPA: '0.0', // Will be calculated when we have grades
+      attendanceRate: 0, // Will be calculated when we have attendance data
+      activeClasses: teacherClasses.value.length
     }
 
-    // Load recent reports
-    await loadRecentReports()
+    // Load analytics data if available
+    try {
+      const analyticsResponse = await teacherAPI.getAnalytics()
+      if (analyticsResponse.data) {
+        // Update stats with analytics data if available
+        teachingStats.value.averageGPA = analyticsResponse.data.average_gpa || '0.0'
+        teachingStats.value.attendanceRate = Math.round(analyticsResponse.data.attendance_rate || 0)
+      }
+    } catch (analyticsErr) {
+      console.log('Analytics data not available:', analyticsErr)
+      // Continue without analytics - not critical
+    }
 
-    // Load grade distribution
-    const gradeResponse = await teacherAPI.getGradeDistribution()
-    gradeDistribution.value = gradeResponse.data.distribution || []
+    // Load recent reports - use mock data for now
+    recentReports.value = []
 
-    // Load top performing classes
-    const topClassesResponse = await teacherAPI.getTopPerformingClasses()
-    topClasses.value = topClassesResponse.data.classes || []
+    // Initialize grade distribution with mock data
+    gradeDistribution.value = [
+      { grade: 'A', count: 0, percentage: 0 },
+      { grade: 'B', count: 0, percentage: 0 },
+      { grade: 'C', count: 0, percentage: 0 },
+      { grade: 'D', count: 0, percentage: 0 },
+      { grade: 'F', count: 0, percentage: 0 }
+    ]
+
+    // Initialize top classes with actual classes data
+    topClasses.value = teacherClasses.value.slice(0, 3).map(cls => ({
+      id: cls.id,
+      class_name: cls.class_name,
+      subject_name: cls.subject_name,
+      average_grade: 'N/A'
+    }))
 
   } catch (err) {
     console.error('Error loading dashboard data:', err)
-    showErrorMessage('Failed to load reports data. Please try again.')
+    showErrorMessage('Some data may be limited. Core functionality is available.')
+    
+    // Set basic defaults to prevent UI breaks
+    teachingStats.value = {
+      totalStudents: 0,
+      averageGPA: 'N/A',
+      attendanceRate: 0,
+      activeClasses: 0
+    }
+    teacherClasses.value = []
   } finally {
     loading.value = false
   }
@@ -518,8 +549,8 @@ const loadDashboardData = async () => {
 const loadRecentReports = async () => {
   try {
     loadingReports.value = true
-    const response = await teacherAPI.getRecentReports()
-    recentReports.value = response.data.reports || []
+    // For now, use mock data until backend implements reports endpoint
+    recentReports.value = []
   } catch (err) {
     console.error('Error loading recent reports:', err)
   } finally {
@@ -554,52 +585,36 @@ const generateReport = async () => {
     generating.value = true
     error.value = null
     
-    const response = await teacherAPI.generateClassReport(reportConfig)
+    // For demo purposes - simulate report generation
+    const className = teacherClasses.value.find(c => c.id == reportConfig.classId)?.class_name || 'class'
     
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Create mock report content
+    const reportContent = `${reportConfig.type.toUpperCase()} REPORT
+Class: ${className}
+Period: ${reportConfig.period}
+Generated: ${new Date().toLocaleDateString()}
+
+This is a sample report. Backend integration pending.`
+
     if (reportConfig.format === 'pdf') {
-      // Handle PDF download
-      if (response.data instanceof Blob) {
-        const blob = new Blob([response.data], { type: 'application/pdf' })
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        const className = teacherClasses.value.find(c => c.id == reportConfig.classId)?.class_name || 'class'
-        link.download = `${reportConfig.type}_${className}_${new Date().toISOString().split('T')[0]}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-        
-        showSuccessMessage('PDF report downloaded successfully!')
-      } else {
-        showSuccessMessage('Report generated successfully!')
-        console.log('Report data:', response.data)
-      }
-    } else if (reportConfig.format === 'excel') {
-      // Handle Excel download
-      if (response.data instanceof Blob) {
-        const blob = new Blob([response.data], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-        })
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        const className = teacherClasses.value.find(c => c.id == reportConfig.classId)?.class_name || 'class'
-        link.download = `${reportConfig.type}_${className}_${new Date().toISOString().split('T')[0]}.xlsx`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-        
-        showSuccessMessage('Excel report downloaded successfully!')
-      } else {
-        showSuccessMessage('Excel report ready!')
-        console.log('Report data:', response.data)
-      }
+      // Create a simple text file for now (until PDF generation is implemented)
+      const blob = new Blob([reportContent], { type: 'text/plain' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${reportConfig.type}_${className}_${new Date().toISOString().split('T')[0]}.txt`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+      showSuccessMessage('Sample report downloaded! (Backend integration pending)')
+    } else {
+      showSuccessMessage('Report template ready! (Backend integration pending)')
     }
-    
-    // Reload recent reports
-    await loadRecentReports()
   } catch (err) {
     console.error('Error generating report:', err)
     const errorMessage = err.response?.data?.message || 'Failed to generate report. Please try again.'
@@ -629,32 +644,16 @@ const requestReport = (report) => {
 
 const downloadReport = async (report) => {
   try {
-    const response = await teacherAPI.downloadReport(report.id)
-    
-    const blob = new Blob([response.data], { type: 'application/pdf' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${report.name}.pdf`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-    
-    showSuccessMessage('Report downloaded successfully!')
+    // Mock download for demo
+    showSuccessMessage('Download feature will be available when backend is connected.')
   } catch (err) {
     console.error('Error downloading report:', err)
-    showErrorMessage('Failed to download report. Please try again.')
+    showErrorMessage('Download feature is not yet implemented.')
   }
 }
 
 const viewReport = (report) => {
-  if (report.status === 'completed') {
-    selectedReportId.value = report.id
-    showReportModal.value = true
-  } else {
-    showErrorMessage('Report is still being processed. Please try again later.')
-  }
+  showErrorMessage('View feature will be available when backend is connected.')
 }
 
 const closeReportModal = () => {

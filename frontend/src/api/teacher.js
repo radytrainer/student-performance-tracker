@@ -46,6 +46,11 @@ return apiClient.post('/teacher/import/google', payload)
 getStudentComparison(studentId, params = {}) {
 return apiClient.get(`/teacher/students/${studentId}/comparison`, { params })
 },
+
+// Teacher analytics (existing endpoint)
+getAnalytics(params = {}) {
+return apiClient.get('/teacher/analytics', { params })
+},
   
  // Lists
  getSubjectsForImport(params = {}) {
