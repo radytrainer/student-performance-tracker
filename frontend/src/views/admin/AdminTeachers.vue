@@ -327,6 +327,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { adminAPI } from '@/api/admin'
+import { usersAPI } from '@/api/users'
 import { resolveImageUrl } from '@/utils/imageUrl'
 import TeacherModal from '@/components/admin/TeacherModal.vue'
 
@@ -456,7 +457,7 @@ const loadTeachers = async () => {
     loading.value = true
     error.value = null
     
-    const response = await adminAPI.getUsers({ role: 'teacher' })
+    const response = await usersAPI.getUsers({ role: 'teacher' })
     teachers.value = response.data.data || response.data || []
   } catch (err) {
     error.value = err.response?.data?.message || 'Failed to load teachers'
@@ -508,11 +509,11 @@ const handleTeacherSubmit = async (teacherData) => {
     
     if (selectedTeacher.value?.user_id) {
       // Update existing teacher
-      await adminAPI.updateUser(selectedTeacher.value.user_id, { ...teacherData, role: 'teacher' })
+      await usersAPI.updateUser(selectedTeacher.value.user_id, { ...teacherData, role: 'teacher' })
       showSuccessMessage('Teacher updated successfully')
     } else {
       // Create new teacher
-      await adminAPI.createUser({ ...teacherData, role: 'teacher' })
+      await usersAPI.createUser({ ...teacherData, role: 'teacher' })
       showSuccessMessage('Teacher created successfully')
     }
     
@@ -545,7 +546,7 @@ const assignSubjects = (teacher) => {
 const deleteTeacher = async (teacher) => {
   if (confirm(`Are you sure you want to delete teacher ${teacher.full_name}?`)) {
     try {
-      await adminAPI.deleteUser(teacher.user_id)
+      await usersAPI.deleteUser(teacher.user_id)
       showSuccessMessage('Teacher deleted successfully')
       await loadTeachers()
     } catch (err) {
@@ -559,7 +560,7 @@ const deleteTeacher = async (teacher) => {
 const bulkActivate = async () => {
   try {
     for (const teacherId of selectedTeachers.value) {
-      await adminAPI.updateUser(teacherId, { status: 'active' })
+      await usersAPI.updateUser(teacherId, { status: 'active' })
     }
     showSuccessMessage(`${selectedTeachers.value.length} teachers activated`)
     selectedTeachers.value = []
@@ -573,7 +574,7 @@ const bulkDeactivate = async () => {
   if (confirm(`Are you sure you want to deactivate ${selectedTeachers.value.length} teachers?`)) {
     try {
       for (const teacherId of selectedTeachers.value) {
-        await adminAPI.updateUser(teacherId, { status: 'inactive' })
+        await usersAPI.updateUser(teacherId, { status: 'inactive' })
       }
       showSuccessMessage(`${selectedTeachers.value.length} teachers deactivated`)
       selectedTeachers.value = []
