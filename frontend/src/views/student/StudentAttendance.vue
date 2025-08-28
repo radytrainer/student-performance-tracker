@@ -46,7 +46,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Absent</p>
+              <p class="text-sm text-gray-500">Absents</p>
               <p class="text-2xl font-bold text-red-700">{{ summary.absent }}</p>
               <p class="text-xs text-gray-400">{{ absentPercentage }}%</p>
             </div>
