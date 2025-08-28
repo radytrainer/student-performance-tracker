@@ -15,18 +15,24 @@
         :class="{ '-translate-x-full': !isOpen && isMobile }">
         
         <!-- System Branding Section -->
-        <div class="px-6 py-8 border-b border-gray-200">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center">
-              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+        <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-700">
+          <div class="flex flex-col items-center text-center">
+            <!-- System Logo -->
+            <div
+              class="w-20 h-20 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center mb-4 shadow-lg">
+              <svg class="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path
                   d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
               </svg>
             </div>
-            <div>
-              <h2 class="text-lg font-semibold text-gray-900">Education Tracker</h2>
-              <p class="text-sm text-gray-500">Performance System</p>
-            </div>
+
+            <!-- System Name -->
+            <h2 class="text-xl font-bold text-white mb-1">
+              Education Tracker
+            </h2>
+            <p class="text-white/70 text-sm">
+              Performance System
+            </p>
           </div>
         </div>
 
@@ -43,12 +49,14 @@
                 'bg-gray-900 text-white': isActiveRoute(route.path),
                 'text-gray-700 hover:bg-gray-100 hover:text-gray-900': !isActiveRoute(route.path)
               }">
-              <i :class="route.icon" 
-                class="flex-shrink-0 w-5 h-5 mr-4 text-center"
-                :class="{
-                  'text-white': isActiveRoute(route.path),
-                  'text-gray-400 group-hover:text-gray-600': !isActiveRoute(route.path)
-                }"></i>
+              <i :class="[
+                  route.icon,
+                  'flex-shrink-0 w-5 h-5 mr-4 text-center',
+                  {
+                    'text-white': isActiveRoute(route.path),
+                    'text-gray-400 group-hover:text-gray-600': !isActiveRoute(route.path)
+                  }
+                ]"></i>
               <span class="flex-1">{{ route.name }}</span>
               
               <!-- Notification badge (example for specific routes) -->
