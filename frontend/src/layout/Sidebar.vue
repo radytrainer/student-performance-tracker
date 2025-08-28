@@ -15,10 +15,10 @@
         :class="{ '-translate-x-full': !isOpen && isMobile }">
         
         <!-- System Branding Section - Sticky Header -->
-        <div class="py-6 border-b border-gray-200 bg-white sticky top-0 z-10 flex-shrink-0">
+        <div class="py-4 border-b border-gray-200 bg-white sticky top-0 z-10 flex-shrink-0">
           <div class="flex flex-col items-center justify-center text-center w-full">
             <!-- System Logo -->
-            <div class="relative w-20 h-20 rounded-full mb-4 logo-3d">
+            <div class="relative w-16 h-16 rounded-full mb-3 logo-3d">
               <!-- Background circle with gradient -->
               <div class="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-2xl"></div>
               <div class="absolute inset-0.5 rounded-full bg-gradient-to-br from-blue-400/30 to-transparent"></div>
@@ -28,11 +28,11 @@
                 <!-- 3D Graduation Cap Icon -->
                 <div class="relative">
                   <!-- Shadow layer -->
-                  <svg class="absolute w-12 h-12 text-blue-800/40 transform translate-x-0.5 translate-y-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="absolute w-9 h-9 text-blue-800/40 transform translate-x-0.5 translate-y-0.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12,3L1,9L12,15L21,9V10H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" />
                   </svg>
                   <!-- Main icon -->
-                  <svg class="relative w-12 h-12 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="relative w-9 h-9 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12,3L1,9L12,15L21,9V10H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" />
                   </svg>
                   <!-- Highlight -->
@@ -45,10 +45,10 @@
             </div>
 
             <!-- System Name -->
-            <h2 class="text-xl font-bold text-gray-900 mb-1">
+            <h2 class="text-lg font-bold text-gray-900 mb-0.5">
               Education Tracker
             </h2>
-            <p class="text-gray-600 text-sm">
+            <p class="text-gray-600 text-xs">
               Performance System
             </p>
           </div>
