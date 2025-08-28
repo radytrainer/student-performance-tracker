@@ -84,10 +84,10 @@
                         :key="child.path"
                         :to="child.path" 
                         @click="handleRouteClick"
-                        class="flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group"
+                        class="flex items-center px-4 py-2 text-sm rounded-lg transition-all duration-200 group"
                         :class="{
                           'bg-gray-900 text-white': isActiveRoute(child.path),
-                          'text-gray-600': !isActiveRoute(child.path)
+                          'text-gray-600 hover:bg-gray-100 hover:text-gray-900': !isActiveRoute(child.path)
                         }">
                         <i :class="[
                             child.icon, 
@@ -134,58 +134,59 @@
 
           <!-- Active Users Section -->
           <div class="px-6 py-6 border-t border-gray-200 bg-white">
-          <div class="flex items-center justify-between mb-4">
-            <p class="text-gray-600 text-xs font-medium uppercase tracking-wider">Active Users</p>
-            <button @click="refreshActiveUsers" :disabled="isLoading"
-              class="text-gray-400 hover:text-gray-600 transition-colors duration-200 disabled:opacity-50"
-              title="Refresh active users">
-              <svg class="w-4 h-4" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                </path>
-              </svg>
-            </button>
-          </div>
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-gray-600 text-xs font-medium uppercase tracking-wider">Active Users</p>
+              <button @click="refreshActiveUsers" :disabled="isLoading"
+                class="text-gray-400 hover:text-gray-600 transition-colors duration-200 disabled:opacity-50"
+                title="Refresh active users">
+                <svg class="w-4 h-4" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                  </path>
+                </svg>
+              </button>
+            </div>
 
-          <div class="flex -space-x-2">
-            <!-- Display active users with profile pictures -->
-            <div v-for="(user, index) in activeUsers" :key="user.id" class="relative group cursor-pointer"
-              :title="`${user.first_name} ${user.last_name} (${user.role})`">
-              <!-- User avatar with image or initials -->
-              <div
-                class="w-8 h-8 rounded-full border-2 border-gray-200 shadow-sm hover:scale-110 transition-transform duration-200 overflow-hidden bg-white">
-                <img v-if="getUserImage(user)" :src="getUserImage(user)" :alt="`${user.first_name} ${user.last_name}`"
-                  class="w-full h-full object-cover" @error="$event.target.style.display = 'none'" />
-                <div v-else class="w-full h-full flex items-center justify-center text-xs font-semibold text-gray-700"
-                  :class="getUserColor(user, index)">
-                  {{ getUserInitials(user) }}
+            <div class="flex -space-x-2">
+              <!-- Display active users with profile pictures -->
+              <div v-for="(user, index) in activeUsers" :key="user.id" class="relative group cursor-pointer"
+                :title="`${user.first_name} ${user.last_name} (${user.role})`">
+                <!-- User avatar with image or initials -->
+                <div
+                  class="w-8 h-8 rounded-full border-2 border-gray-200 shadow-sm hover:scale-110 transition-transform duration-200 overflow-hidden bg-white">
+                  <img v-if="getUserImage(user)" :src="getUserImage(user)" :alt="`${user.first_name} ${user.last_name}`"
+                    class="w-full h-full object-cover" @error="$event.target.style.display = 'none'" />
+                  <div v-else class="w-full h-full flex items-center justify-center text-xs font-semibold text-gray-700"
+                    :class="getUserColor(user, index)">
+                    {{ getUserInitials(user) }}
+                  </div>
+                </div>
+
+                <!-- Online indicator -->
+                <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white">
                 </div>
               </div>
 
-              <!-- Online indicator -->
-              <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white">
+              <!-- Show additional users count if more than 5 -->
+              <div v-if="totalActiveUsers > 5"
+                class="w-8 h-8 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-xs text-gray-600 hover:scale-110 transition-transform duration-200 cursor-pointer"
+                :title="`${totalActiveUsers - 5} more active users`">
+                +{{ totalActiveUsers - 5 }}
+              </div>
+
+              <!-- Loading state -->
+              <div v-if="isLoading && activeUsers.length === 0" class="flex -space-x-2">
+                <div v-for="i in 3" :key="i"
+                  class="w-8 h-8 rounded-full bg-gray-100 border-2 border-gray-200 animate-pulse"></div>
+              </div>
+
+              <!-- Error state -->
+              <div v-if="error && activeUsers.length === 0" class="text-gray-400 text-xs" :title="error">
+                Unable to load users
               </div>
             </div>
-
-            <!-- Show additional users count if more than 5 -->
-            <div v-if="totalActiveUsers > 5"
-              class="w-8 h-8 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-xs text-gray-600 hover:scale-110 transition-transform duration-200 cursor-pointer"
-              :title="`${totalActiveUsers - 5} more active users`">
-              +{{ totalActiveUsers - 5 }}
-            </div>
-
-            <!-- Loading state -->
-            <div v-if="isLoading && activeUsers.length === 0" class="flex -space-x-2">
-              <div v-for="i in 3" :key="i"
-                class="w-8 h-8 rounded-full bg-gray-100 border-2 border-gray-200 animate-pulse"></div>
-            </div>
-
-            <!-- Error state -->
-            <div v-if="error && activeUsers.length === 0" class="text-gray-400 text-xs" :title="error">
-              Unable to load users
           </div>
-        </div>
         </div>
       </aside>
     </transition>
@@ -249,8 +250,6 @@ const handleRouteClick = () => {
     isOpen.value = false
   }
 }
-
-
 
 const updateSize = () => {
   isMobile.value = window.innerWidth < 768
@@ -325,5 +324,26 @@ aside::-webkit-scrollbar {
 /* Enhanced drop shadows for 3D effect */
 .drop-shadow-lg {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.1));
+}
+
+/* Expand/Collapse Animation */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(-10px);
+}
+
+.expand-enter-to,
+.expand-leave-from {
+  opacity: 1;
+  max-height: 500px;
+  transform: translateY(0);
 }
 </style>
