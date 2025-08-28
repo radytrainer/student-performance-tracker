@@ -32,7 +32,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Present</p>
+              <p class="text-sm text-gray-500">Presents</p>
               <p class="text-2xl font-bold text-green-700">{{ summary.present }}</p>
               <p class="text-xs text-gray-400">{{ presentPercentage }}%</p>
             </div>
@@ -46,7 +46,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Absent</p>
+              <p class="text-sm text-gray-500">Absents</p>
               <p class="text-2xl font-bold text-red-700">{{ summary.absent }}</p>
               <p class="text-xs text-gray-400">{{ absentPercentage }}%</p>
             </div>
@@ -60,7 +60,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Attendance %</p>
+              <p class="text-sm text-gray-500">Attendances %</p>
               <p class="text-2xl font-bold text-blue-700">{{ attendancePercentage }}%</p>
               <p class="text-xs text-gray-400">Rate</p>
             </div>
@@ -74,7 +74,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Total</p>
+              <p class="text-sm text-gray-500">Totals</p>
               <p class="text-2xl font-bold text-yellow-700">{{ summary.total }}</p>
               <p class="text-xs text-gray-400">Records</p>
             </div>
