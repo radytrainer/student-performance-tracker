@@ -31,7 +31,7 @@ protected $fillable = [
 ];
 
         // Always include computed profile_picture_url in JSON responses
-        protected $appends = ['profile_picture_url'];
+        protected $appends = ['profile_picture_url', 'classes_count', 'total_students_count'];
 
     protected $hidden = [
         'password_hash',
@@ -91,6 +91,24 @@ protected $fillable = [
         return $this->created_at ? $this->created_at->format('d-M-y') : null;
     }
 
+    // Accessor for classes count (for teachers)
+    public function getClassesCountAttribute()
+    {
+        if ($this->role === 'teacher') {
+            return $this->assignedClasses()->count();
+        }
+        return 0;
+    }
+
+    // Accessor for total students count (for teachers)
+    public function getTotalStudentsCountAttribute()
+    {
+        if ($this->role === 'teacher') {
+            return $this->assignedClasses()->withCount('students')->get()->sum('students_count');
+        }
+        return 0;
+    }
+
     // Relationships
     public function school(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -130,6 +148,17 @@ protected $fillable = [
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    // Class-related relationships for teachers
+    public function assignedClasses(): HasMany
+    {
+        return $this->hasMany(Classes::class, 'class_teacher_id');
+    }
+
+    public function classSubjects(): HasMany
+    {
+        return $this->hasMany(ClassSubject::class, 'teacher_id');
     }
 
     // Teacher-Subject relationships
