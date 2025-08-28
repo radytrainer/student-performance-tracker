@@ -74,7 +74,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Total</p>
+              <p class="text-sm text-gray-500">Totals</p>
               <p class="text-2xl font-bold text-yellow-700">{{ summary.total }}</p>
               <p class="text-xs text-gray-400">Records</p>
             </div>
