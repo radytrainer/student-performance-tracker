@@ -11,11 +11,11 @@
     <!-- Sidebar -->
     <transition name="slide">
       <aside v-show="isOpen"
-        class="fixed md:relative top-0 left-0 h-screen w-72 bg-gray-50 border-r border-gray-200 z-40 md:translate-x-0 transform transition-all duration-300 flex flex-col"
+        class="fixed md:relative top-0 left-0 h-screen w-90 bg-gray-50 border-r border-gray-200 z-40 md:translate-x-0 transform transition-all duration-300 flex flex-col"
         :class="{ '-translate-x-full': !isOpen && isMobile }">
         
         <!-- System Branding Section - Sticky Header -->
-        <div class="py-4 border-b border-gray-200 bg-white sticky top-0 z-10 flex-shrink-0">
+        <div class="py-6 border-b border-gray-200 bg-white sticky top-0 z-10 flex-shrink-0">
           <div class="flex flex-col items-center justify-center text-center w-full">
             <!-- System Logo -->
             <div class="relative w-16 h-16 rounded-full mb-3 logo-3d">
