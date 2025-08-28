@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             SchoolSeeder::class,         // Create schools first
             UserSeeder::class,           // Create users (assign to schools)
+            DepartmentSeeder::class,     // Create departments and assign teachers
             SubjectSeeder::class,        // Create subjects
             TermSeeder::class,           // Create academic terms
             ClassSeeder::class,          // Create classes and assign students
