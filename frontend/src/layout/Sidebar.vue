@@ -59,44 +59,76 @@
           <!-- Navigation Menu -->
           <nav class="px-6 py-6">
             <div class="space-y-1">
-            <router-link 
-              v-for="route in availableRoutes" 
-              :key="route.path" 
-              :to="route.path" 
-              @click="handleRouteClick"
-              class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative"
-              :class="{
-                'bg-gray-900 text-white': isActiveRoute(route.path),
-                'text-gray-700 hover:bg-gray-100 hover:text-gray-900': !isActiveRoute(route.path)
-              }">
-              <i :class="[
-                  route.icon,
-                  'flex-shrink-0 w-5 h-5 mr-4 text-center',
-                  {
-                    'text-white': isActiveRoute(route.path),
-                    'text-gray-400 group-hover:text-gray-600': !isActiveRoute(route.path)
-                  }
-                ]"></i>
-              <span class="flex-1">{{ route.name }}</span>
-              
-              <!-- Notification badge (example for specific routes) -->
-              <span v-if="route.path.includes('alerts') && hasAlerts" 
-                class="inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-red-600 rounded-full">
-                !
-              </span>
-              
-              <!-- Plus icon for expandable sections -->
-              <button v-if="route.expandable" 
-                class="flex-shrink-0 w-4 h-4 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                :class="{
-                  'text-white hover:bg-white/20': isActiveRoute(route.path),
-                  'text-gray-400 hover:bg-gray-200': !isActiveRoute(route.path)
-                }">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-              </button>
-            </router-link>
+              <template v-for="route in availableRoutes" :key="route.path || route.name">
+                <!-- Expandable Section -->
+                <div v-if="route.expandable" class="space-y-1">
+                  <!-- Section Header -->
+                  <button 
+                    @click="toggleSection(route.name)"
+                    class="w-full flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group">
+                    <i :class="[route.icon, 'flex-shrink-0 w-5 h-5 mr-4 text-gray-400 group-hover:text-gray-600']"></i>
+                    <span class="flex-1 text-left">{{ route.name }}</span>
+                    <!-- Chevron Arrow -->
+                    <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                      :class="{ 'rotate-180': expandedSections[route.name] }"
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  
+                  <!-- Sub-items -->
+                  <transition name="expand">
+                    <div v-show="expandedSections[route.name]" class="ml-6 space-y-1">
+                      <router-link 
+                        v-for="child in route.children" 
+                        :key="child.path"
+                        :to="child.path" 
+                        @click="handleRouteClick"
+                        class="flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-all duration-200 group"
+                        :class="{
+                          'bg-gray-900 text-white': isActiveRoute(child.path),
+                          'text-gray-600': !isActiveRoute(child.path)
+                        }">
+                        <i :class="[
+                            child.icon, 
+                            'flex-shrink-0 w-4 h-4 mr-3',
+                            {
+                              'text-white': isActiveRoute(child.path),
+                              'text-gray-400 group-hover:text-gray-600': !isActiveRoute(child.path)
+                            }
+                          ]"></i>
+                        <span>{{ child.name }}</span>
+                      </router-link>
+                    </div>
+                  </transition>
+                </div>
+                
+                <!-- Regular Navigation Item -->
+                <router-link v-else
+                  :to="route.path" 
+                  @click="handleRouteClick"
+                  class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative"
+                  :class="{
+                    'bg-gray-900 text-white': isActiveRoute(route.path),
+                    'text-gray-700 hover:bg-gray-100 hover:text-gray-900': !isActiveRoute(route.path)
+                  }">
+                  <i :class="[
+                      route.icon,
+                      'flex-shrink-0 w-5 h-5 mr-4 text-center',
+                      {
+                        'text-white': isActiveRoute(route.path),
+                        'text-gray-400 group-hover:text-gray-600': !isActiveRoute(route.path)
+                      }
+                    ]"></i>
+                  <span class="flex-1">{{ route.name }}</span>
+                  
+                  <!-- Notification badge -->
+                  <span v-if="route.path && route.path.includes('alerts') && hasAlerts" 
+                    class="inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-red-600 rounded-full">
+                    !
+                  </span>
+                </router-link>
+              </template>
             </div>
           </nav>
 
@@ -152,7 +184,6 @@
             <!-- Error state -->
             <div v-if="error && activeUsers.length === 0" class="text-gray-400 text-xs" :title="error">
               Unable to load users
-            </div>
           </div>
         </div>
         </div>
@@ -196,6 +227,18 @@ const availableRoutes = computed(() => getAvailableRoutes())
 
 // Example state for notifications (you can connect this to your actual alert system)
 const hasAlerts = ref(false) // Set this based on your actual alert system
+
+// Expandable sections state
+const expandedSections = ref({
+  'User Management': true,
+  'Academic': false,
+  'System': false,
+  'Analytics & Reports': false
+})
+
+const toggleSection = (sectionName) => {
+  expandedSections.value[sectionName] = !expandedSections.value[sectionName]
+}
 
 const isActiveRoute = (path) => {
   return route.path === path || route.path.startsWith(path + '/')

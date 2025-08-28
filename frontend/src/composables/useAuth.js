@@ -124,19 +124,48 @@ export function useAuth() {
     const routes = {
       admin: [
         { name: 'Dashboard', path: '/admin/dashboard', icon: 'fas fa-home' },
-        { name: 'Users', path: '/admin/users', icon: 'fas fa-user-group' },
-        { name: 'Students', path: '/admin/students', icon: 'fas fa-graduation-cap' },
-        { name: 'Classes', path: '/admin/classes', icon: 'fas fa-door-open' },
-        { name: 'Subjects', path: '/admin/subjects', icon: 'fas fa-book-open' },
-        { name: 'Terms', path: '/admin/terms', icon: 'fas fa-calendar' },
-        { name: 'Import', path: '/admin/import', icon: 'fas fa-upload' },
-        { name: 'Settings', path: '/admin/settings', icon: 'fas fa-gear' },
-        { name: 'Reports', path: '/admin/reports', icon: 'fas fa-chart-simple' },
-        { name: 'Alerts', path: '/admin/alerts', icon: 'fas fa-bell' },
-         { name: 'Audit Logs', path: '/admin/audit-logs', icon: 'fas fa-clock-rotate-left' },
-         { name: 'Backups', path: '/admin/backups', icon: 'fas fa-hard-drive' },
-         { name: 'Notes', path: '/admin/notes', icon: 'fas fa-note-sticky' },
-         { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
+        { 
+          name: 'User Management', 
+          icon: 'fas fa-users', 
+          expandable: true,
+          children: [
+            { name: 'All Users', path: '/admin/users', icon: 'fas fa-user-group' },
+            { name: 'Students', path: '/admin/students', icon: 'fas fa-graduation-cap' },
+            { name: 'Teachers', path: '/admin/teachers', icon: 'fas fa-chalkboard-user' }
+          ]
+        },
+        {
+          name: 'Academic',
+          icon: 'fas fa-graduation-cap',
+          expandable: true,
+          children: [
+            { name: 'Classes', path: '/admin/classes', icon: 'fas fa-door-open' },
+            { name: 'Subjects', path: '/admin/subjects', icon: 'fas fa-book-open' },
+            { name: 'Terms', path: '/admin/terms', icon: 'fas fa-calendar' }
+          ]
+        },
+        {
+          name: 'System',
+          icon: 'fas fa-gear',
+          expandable: true,
+          children: [
+            { name: 'Settings', path: '/admin/settings', icon: 'fas fa-gear' },
+            { name: 'Import', path: '/admin/import', icon: 'fas fa-upload' },
+            { name: 'Backups', path: '/admin/backups', icon: 'fas fa-hard-drive' },
+            { name: 'Audit Logs', path: '/admin/audit-logs', icon: 'fas fa-clock-rotate-left' }
+          ]
+        },
+        {
+          name: 'Analytics & Reports',
+          icon: 'fas fa-chart-simple',
+          expandable: true,
+          children: [
+            { name: 'Reports', path: '/admin/reports', icon: 'fas fa-chart-simple' },
+            { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' },
+            { name: 'Alerts', path: '/admin/alerts', icon: 'fas fa-bell' }
+          ]
+        },
+        { name: 'Notes', path: '/admin/notes', icon: 'fas fa-note-sticky' }
       ],
       teacher: [
         { name: 'Dashboard', path: '/teacher/dashboard', icon: 'fas fa-home' },
