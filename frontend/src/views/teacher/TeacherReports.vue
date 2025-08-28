@@ -489,36 +489,10 @@ const loadDashboardData = async () => {
     loading.value = true
     error.value = null
     
-    // Load teacher classes using the working teacherClasses API
-    const classesData = await teacherClassesAPI.getMyClasses()
-    teacherClasses.value = classesData.data || classesData || []
+    // Load teacher classes using the composable
+    await loadClasses()
     
     console.log('Loaded classes:', teacherClasses.value) // Debug log
-
-    // Calculate basic statistics from available data
-    const totalStudents = teacherClasses.value.reduce((sum, cls) => sum + (cls.student_count || 0), 0)
-    teachingStats.value = {
-      totalStudents: totalStudents,
-      averageGPA: '0.0', // Will be calculated when we have grades
-      attendanceRate: 0, // Will be calculated when we have attendance data
-      activeClasses: teacherClasses.value.length
-    }
-
-    // Load analytics data if available
-    try {
-      const analyticsResponse = await teacherAPI.getAnalytics()
-      if (analyticsResponse.data) {
-        // Update stats with analytics data if available
-        teachingStats.value.averageGPA = analyticsResponse.data.average_gpa || '0.0'
-        teachingStats.value.attendanceRate = Math.round(analyticsResponse.data.attendance_rate || 0)
-      }
-    } catch (analyticsErr) {
-      console.log('Analytics data not available:', analyticsErr)
-      // Continue without analytics - not critical
-    }
-
-    // Load recent reports - use mock data for now
-    recentReports.value = []
 
     // Initialize grade distribution with mock data
     gradeDistribution.value = [
@@ -532,23 +506,17 @@ const loadDashboardData = async () => {
     // Initialize top classes with actual classes data
     topClasses.value = teacherClasses.value.slice(0, 3).map(cls => ({
       id: cls.id,
-      class_name: cls.class_name,
-      subject_name: cls.subject_name,
+      class_name: getClassName(cls),
+      subject_name: cls.subject_name || 'N/A',
       average_grade: 'N/A'
     }))
+
+    // Load recent reports - use mock data for now
+    recentReports.value = []
 
   } catch (err) {
     console.error('Error loading dashboard data:', err)
     showErrorMessage('Some data may be limited. Core functionality is available.')
-    
-    // Set basic defaults to prevent UI breaks
-    teachingStats.value = {
-      totalStudents: 0,
-      averageGPA: 'N/A',
-      attendanceRate: 0,
-      activeClasses: 0
-    }
-    teacherClasses.value = []
   } finally {
     loading.value = false
   }
