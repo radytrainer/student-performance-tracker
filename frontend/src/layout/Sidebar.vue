@@ -99,7 +99,7 @@
         </nav>
 
         <!-- Active Users Section -->
-        <div class="px-4 py-6 border-t border-gray-200 bg-white">
+        <div class="px-6 py-6 border-t border-gray-200 bg-white">
           <div class="flex items-center justify-between mb-4">
             <p class="text-gray-600 text-xs font-medium uppercase tracking-wider">Active Users</p>
             <button @click="refreshActiveUsers" :disabled="isLoading"
