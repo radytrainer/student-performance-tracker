@@ -32,7 +32,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Present</p>
+              <p class="text-sm text-gray-500">Presents</p>
               <p class="text-2xl font-bold text-green-700">{{ summary.present }}</p>
               <p class="text-xs text-gray-400">{{ presentPercentage }}%</p>
             </div>
