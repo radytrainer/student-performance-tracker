@@ -15,7 +15,7 @@
         :class="{ '-translate-x-full': !isOpen && isMobile }">
         
         <!-- System Branding Section -->
-        <div class="px-3 py-4 border-b border-gray-200 bg-white">
+        <div class="px-8 py-6 border-b border-gray-200 bg-white">
           <div class="flex flex-col items-center text-center">
             <!-- System Logo -->
             <div class="relative w-20 h-20 rounded-full mb-4 logo-3d">
@@ -55,14 +55,14 @@
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 px-3 py-6">
-          <div class="space-y-2">
+        <nav class="flex-1 px-6 py-6">
+          <div class="space-y-1">
             <router-link 
               v-for="route in availableRoutes" 
               :key="route.path" 
               :to="route.path" 
               @click="handleRouteClick"
-              class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative"
+              class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative"
               :class="{
                 'bg-gray-900 text-white': isActiveRoute(route.path),
                 'text-gray-700 hover:bg-gray-100 hover:text-gray-900': !isActiveRoute(route.path)
