@@ -55,14 +55,14 @@
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 px-6 py-6">
+        <nav class="flex-1 px-4 py-6">
           <div class="space-y-2">
             <router-link 
               v-for="route in availableRoutes" 
               :key="route.path" 
               :to="route.path" 
               @click="handleRouteClick"
-              class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative"
+              class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative"
               :class="{
                 'bg-gray-900 text-white': isActiveRoute(route.path),
                 'text-gray-700 hover:bg-gray-100 hover:text-gray-900': !isActiveRoute(route.path)
@@ -99,7 +99,7 @@
         </nav>
 
         <!-- Active Users Section -->
-        <div class="px-6 py-6 border-t border-gray-200 bg-white">
+        <div class="px-4 py-6 border-t border-gray-200 bg-white">
           <div class="flex items-center justify-between mb-4">
             <p class="text-gray-600 text-xs font-medium uppercase tracking-wider">Active Users</p>
             <button @click="refreshActiveUsers" :disabled="isLoading"
@@ -231,22 +231,17 @@ onUnmounted(() => {
   transform: translateX(-100%);
 }
 
-/* Custom scrollbar for webkit browsers */
+/* Hide scrollbar completely while keeping scroll functionality */
+aside {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
 aside::-webkit-scrollbar {
-  width: 4px;
-}
-
-aside::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-aside::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 2px;
-}
-
-aside::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  width: 0;
+  height: 0;
+  display: none; /* Webkit browsers */
 }
 
 /* Mobile overlay backdrop blur */
