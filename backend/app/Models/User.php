@@ -19,6 +19,7 @@ protected $fillable = [
 'password_hash',
 'role',
 'school_id',
+'department_id',
 'is_super_admin',
 'first_name',
 'last_name',
@@ -94,6 +95,16 @@ protected $fillable = [
     public function school(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function headedDepartment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Department::class, 'head_teacher_id');
     }
 
     public function teacher(): HasOne

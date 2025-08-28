@@ -18,6 +18,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\TeacherImportController;
+use App\Http\Controllers\DepartmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/students', [StudentController::class, 'store']);
     Route::get('/grades/assessment-types', [GradeController::class, 'assessmentTypes']);
     Route::get('/my-class-subjects', [ClassSubjectController::class, 'myClassSubjects']);
+
+    // Departments (accessible to all authenticated users)
+    Route::get('/departments', [DepartmentController::class, 'index']);
+    Route::get('/departments/{id}', [DepartmentController::class, 'show']);
+    Route::get('/departments/{id}/teachers', [DepartmentController::class, 'teachers']);
 
     // Active users endpoint for sidebar (protected)
     Route::get('/active-users', [UserController::class, 'index']);
@@ -154,6 +160,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('admin/subjects/bulk-action', [App\Http\Controllers\Admin\SubjectController::class, 'bulkAction']);
         Route::get('admin/subjects/departments', [App\Http\Controllers\Admin\SubjectController::class, 'getDepartments']);
         Route::get('admin/subjects-stats', [App\Http\Controllers\Admin\SubjectController::class, 'getSubjectStats']);
+
+        // Department Management (admin only)
+        Route::post('/departments', [DepartmentController::class, 'store']);
+        Route::put('/departments/{id}', [DepartmentController::class, 'update']);
+        Route::delete('/departments/{id}', [DepartmentController::class, 'destroy']);
 
         // Student Notes (admin)
         Route::get('admin/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'index']);
