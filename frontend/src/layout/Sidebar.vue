@@ -239,7 +239,7 @@ const expandedSections = ref({
   // Teacher sections
   'Classroom Management': true,
   'Assessment': false,
-  'Data & Reports': false,
+  'Data & Reports': true, // Expanded for reports access
   'Communication': false
 })
 

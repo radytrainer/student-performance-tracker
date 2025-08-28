@@ -398,7 +398,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { teacherAPI } from '@/api/teacher'
-import ReportDetailsModal from '@/components/teacher/ReportDetailsModal.vue'
+import ReportDetailsModal from '@/components/student/ReportDetailsModal.vue'
 
 const { hasPermission } = useAuth()
 
