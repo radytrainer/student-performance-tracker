@@ -11,11 +11,11 @@
     <!-- Sidebar -->
     <transition name="slide">
       <aside v-show="isOpen"
-        class="fixed md:relative top-0 left-0 h-screen w-72 bg-gray-50 border-r border-gray-200 z-40 md:translate-x-0 transform transition-all duration-300"
+        class="fixed md:relative top-0 left-0 h-screen w-72 bg-gray-50 border-r border-gray-200 z-40 md:translate-x-0 transform transition-all duration-300 flex flex-col"
         :class="{ '-translate-x-full': !isOpen && isMobile }">
         
-        <!-- System Branding Section -->
-        <div class="py-6 border-b border-gray-200 bg-white">
+        <!-- System Branding Section - Sticky Header -->
+        <div class="py-6 border-b border-gray-200 bg-white sticky top-0 z-10 flex-shrink-0">
           <div class="flex flex-col items-center justify-center text-center w-full">
             <!-- System Logo -->
             <div class="relative w-20 h-20 rounded-full mb-4 logo-3d">
@@ -54,9 +54,11 @@
           </div>
         </div>
 
-        <!-- Navigation Menu -->
-        <nav class="flex-1 px-6 py-6">
-          <div class="space-y-1">
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto">
+          <!-- Navigation Menu -->
+          <nav class="px-6 py-6">
+            <div class="space-y-1">
             <router-link 
               v-for="route in availableRoutes" 
               :key="route.path" 
@@ -95,11 +97,11 @@
                 </svg>
               </button>
             </router-link>
-          </div>
-        </nav>
+            </div>
+          </nav>
 
-        <!-- Active Users Section -->
-        <div class="px-6 py-6 border-t border-gray-200 bg-white">
+          <!-- Active Users Section -->
+          <div class="px-6 py-6 border-t border-gray-200 bg-white">
           <div class="flex items-center justify-between mb-4">
             <p class="text-gray-600 text-xs font-medium uppercase tracking-wider">Active Users</p>
             <button @click="refreshActiveUsers" :disabled="isLoading"
@@ -152,6 +154,7 @@
               Unable to load users
             </div>
           </div>
+        </div>
         </div>
       </aside>
     </transition>
