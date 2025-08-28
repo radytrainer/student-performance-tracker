@@ -102,7 +102,7 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Average Score</dt>
+                <dt class="text-sm font-medium text-gray-500 truncate">Average Scores</dt>
                 <dd class="text-lg font-semibold text-gray-900">
                   {{ stats.average_score ? stats.average_score.toFixed(1) : 'N/A' }}
                 </dd>
