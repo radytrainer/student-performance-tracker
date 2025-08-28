@@ -1,4 +1,5 @@
 import './assets/tailwind.css'
+import '@fortawesome/fontawesome-free/css/all.css'
 
 // main.js
 import { createApp } from 'vue'
