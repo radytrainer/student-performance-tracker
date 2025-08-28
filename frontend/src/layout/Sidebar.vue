@@ -55,14 +55,14 @@
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 px-4 py-6">
-          <div class="space-y-1">
+        <nav class="flex-1 px-6 py-6">
+          <div class="space-y-2">
             <router-link 
               v-for="route in availableRoutes" 
               :key="route.path" 
               :to="route.path" 
               @click="handleRouteClick"
-              class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative"
+              class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative"
               :class="{
                 'bg-gray-900 text-white': isActiveRoute(route.path),
                 'text-gray-700 hover:bg-gray-100 hover:text-gray-900': !isActiveRoute(route.path)
