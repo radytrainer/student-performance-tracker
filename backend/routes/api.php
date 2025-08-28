@@ -19,6 +19,7 @@ use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\TeacherImportController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\TeacherSubjectController;
 
 /*
 |--------------------------------------------------------------------------
@@ -165,6 +166,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/departments', [DepartmentController::class, 'store']);
         Route::put('/departments/{id}', [DepartmentController::class, 'update']);
         Route::delete('/departments/{id}', [DepartmentController::class, 'destroy']);
+
+        // Teacher-Subject Assignment Management (admin only)
+        Route::post('admin/teachers/{teacher}/subjects', [TeacherSubjectController::class, 'assignSubjects']);
+        Route::delete('admin/teachers/{teacher}/subjects', [TeacherSubjectController::class, 'removeSubjects']);
+        Route::get('admin/teachers/{teacher}/subjects', [TeacherSubjectController::class, 'getTeacherSubjects']);
+        Route::get('admin/subjects/{subject}/teachers', [TeacherSubjectController::class, 'getSubjectTeachers']);
+        Route::post('admin/teachers/bulk-assign-subjects', [TeacherSubjectController::class, 'bulkAssignSubjects']);
 
         // Student Notes (admin)
         Route::get('admin/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'index']);

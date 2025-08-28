@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,           // Create users (assign to schools)
             DepartmentSeeder::class,     // Create departments and assign teachers
             SubjectSeeder::class,        // Create subjects
+            TeacherSubjectSeeder::class, // Assign subjects to teachers (direct relationship)
             TermSeeder::class,           // Create academic terms
             ClassSeeder::class,          // Create classes and assign students
             ClassSubjectSeeder::class,   // Assign subjects to classes with teachers

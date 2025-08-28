@@ -132,6 +132,19 @@ protected $fillable = [
         return $this->hasMany(AuditLog::class);
     }
 
+    // Teacher-Subject relationships
+    public function subjects(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'teacher_subjects', 'teacher_id', 'subject_id')
+            ->withPivot('primary_subject', 'assigned_at')
+            ->withTimestamps();
+    }
+
+    public function primarySubjects(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->subjects()->wherePivot('primary_subject', true);
+    }
+
     // Role checking methods
     public function isAdmin(): bool
     {
