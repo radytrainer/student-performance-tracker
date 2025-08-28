@@ -77,7 +77,7 @@
             >
               <option value="">Select Class</option>
               <option v-for="classItem in teacherClasses" :key="classItem.id" :value="classItem.id">
-                {{ classItem.subject_name }} - {{ classItem.class_name }}
+                {{ getClassName(classItem) }}
               </option>
             </select>
           </div>
@@ -398,9 +398,18 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { teacherAPI } from '@/api/teacher'
+import { useTeacherClasses } from '@/composables/useTeacherClasses'
 import ReportDetailsModal from '@/components/student/ReportDetailsModal.vue'
 
 const { hasPermission } = useAuth()
+
+// Use the existing teacher classes composable
+const { 
+  classes: teacherClasses,
+  totalStudents,
+  averageAttendance,
+  loadClasses
+} = useTeacherClasses()
 
 // State
 const loading = ref(true)
@@ -420,15 +429,13 @@ const reportConfig = reactive({
   format: 'pdf'
 })
 
-// Data
-const teachingStats = ref({
-  totalStudents: 0,
-  averageGPA: '0.0',
-  attendanceRate: 0,
-  activeClasses: 0
-})
-
-const teacherClasses = ref([])
+// Computed teaching stats using the composable data
+const teachingStats = computed(() => ({
+  totalStudents: totalStudents.value,
+  averageGPA: '0.0', // Will be calculated from actual grades
+  attendanceRate: averageAttendance.value,
+  activeClasses: teacherClasses.value.length
+}))
 const availableReports = ref([
   {
     id: 1,
@@ -482,9 +489,11 @@ const loadDashboardData = async () => {
     loading.value = true
     error.value = null
     
-    // Load teacher classes using existing working endpoint
-    const classesResponse = await teacherAPI.getClasses()
-    teacherClasses.value = classesResponse.data.data || []
+    // Load teacher classes using the working teacherClasses API
+    const classesData = await teacherClassesAPI.getMyClasses()
+    teacherClasses.value = classesData.data || classesData || []
+    
+    console.log('Loaded classes:', teacherClasses.value) // Debug log
 
     // Calculate basic statistics from available data
     const totalStudents = teacherClasses.value.reduce((sum, cls) => sum + (cls.student_count || 0), 0)
@@ -700,6 +709,19 @@ const formatStatus = (status) => {
 
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString()
+}
+
+// Helper function to get class display name
+const getClassName = (classItem) => {
+  if (classItem.subject_name && classItem.class_name) {
+    return `${classItem.subject_name} - ${classItem.class_name}`
+  } else if (classItem.name) {
+    return classItem.name
+  } else if (classItem.class_name) {
+    return classItem.class_name
+  } else {
+    return `Class ${classItem.id}`
+  }
 }
 
 onMounted(async () => {
