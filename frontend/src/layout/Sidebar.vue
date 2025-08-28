@@ -15,7 +15,7 @@
         :class="{ '-translate-x-full': !isOpen && isMobile }">
         
         <!-- System Branding Section -->
-        <div class="p-6 border-b border-gray-200 bg-white">
+        <div class="px-4 py-6 border-b border-gray-200 bg-white">
           <div class="flex flex-col items-center text-center">
             <!-- System Logo -->
             <div class="relative w-20 h-20 rounded-full mb-4 logo-3d">
@@ -55,7 +55,7 @@
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 px-4 py-6">
+        <nav class="flex-1 px-3 py-6">
           <div class="space-y-2">
             <router-link 
               v-for="route in availableRoutes" 
@@ -99,7 +99,7 @@
         </nav>
 
         <!-- Active Users Section -->
-        <div class="px-4 py-6 border-t border-gray-200 bg-white">
+        <div class="px-3 py-6 border-t border-gray-200 bg-white">
           <div class="flex items-center justify-between mb-4">
             <p class="text-gray-600 text-xs font-medium uppercase tracking-wider">Active Users</p>
             <button @click="refreshActiveUsers" :disabled="isLoading"
