@@ -41,7 +41,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">Student</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Students</label>
             <select 
               v-model="viewFilters.student_id" 
               @change="fetchAttendance" 
