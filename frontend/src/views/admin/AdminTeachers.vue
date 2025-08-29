@@ -671,7 +671,12 @@ const loadSubjects = async () => {
 
 const loadDepartments = async () => {
   try {
-    // For now, use mock departments until backend implements this
+    // Use real departments API
+    const response = await adminAPI.getDepartments()
+    departments.value = response.data.data || response.data || []
+  } catch (err) {
+    console.error('Error loading departments:', err)
+    // Fallback to mock departments
     departments.value = [
       { id: 1, name: 'Mathematics' },
       { id: 2, name: 'Science' },
@@ -680,8 +685,6 @@ const loadDepartments = async () => {
       { id: 5, name: 'Physical Education' },
       { id: 6, name: 'Arts' }
     ]
-  } catch (err) {
-    console.error('Error loading departments:', err)
   }
 }
 
@@ -853,6 +856,18 @@ const formatLastRefresh = () => {
 // Refresh teachers data
 const refreshTeachers = async () => {
   await loadTeachers()
+}
+
+// Bulk modal functions
+const closeBulkModal = () => {
+  showBulkModal.value = false
+  selectedTeachers.value = []
+}
+
+const handleBulkOperationCompleted = async (message) => {
+  showSuccessMessage(message)
+  await loadTeachers()
+  closeBulkModal()
 }
 
 // Reset pagination when filters change
