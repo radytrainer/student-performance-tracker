@@ -288,21 +288,33 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-10 w-10">
-                      <div v-if="resolveImage(teacher.user?.profile_picture)" class="h-10 w-10 rounded-full overflow-hidden">
-                      <img :src="resolveImage(teacher.user.profile_picture)" :alt="teacher.full_name" class="h-full w-full object-cover" @error="$event.target.style.display='none'">
+                      <div v-if="teacher.user?.profile_picture" class="h-10 w-10 rounded-full overflow-hidden">
+                        <img 
+                          :src="resolveImage(teacher.user.profile_picture)" 
+                          :alt="getTeacherName(teacher)" 
+                          class="h-full w-full object-cover" 
+                          @error="handleImageError($event, teacher)"
+                        >
                       </div>
                       <div v-else class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                         <span class="text-blue-600 font-medium">{{ getTeacherInitial(teacher) }}</span>
                       </div>
                     </div>
                     <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">{{ teacher.full_name }}</div>
-                      <div class="text-sm text-gray-500">{{ teacher.user?.email }}</div>
+                      <div class="text-sm font-medium text-gray-900">{{ getTeacherName(teacher) }}</div>
+                      <div class="text-sm text-gray-500">{{ teacher.user?.email || teacher.email }}</div>
                     </div>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ teacher.teacher_code }}
+                  <span v-if="getTeacherCode(teacher)" class="font-mono bg-gray-100 px-2 py-1 rounded">
+                    {{ getTeacherCode(teacher) }}
+                  </span>
+                  <button v-else @click="generateTeacherCode(teacher)" 
+                    class="text-blue-600 hover:text-blue-800 text-xs">
+                    <i class="fas fa-plus mr-1"></i>
+                    Generate
+                  </button>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {{ teacher.department?.name || 'Not assigned' }}
@@ -643,6 +655,7 @@ const loadTeachers = async () => {
     }
     
     teachers.value = response.data.data || response.data || []
+    console.log('Loaded teachers data:', teachers.value) // Debug log
     lastRefresh.value = new Date()
   } catch (err) {
     error.value = err.response?.data?.message || 'Failed to load teachers'
@@ -724,7 +737,8 @@ const handleTeacherSubmit = async (teacherData) => {
 }
 
 const viewTeacher = (teacher) => {
-  selectedTeacher.value = teacher
+  // Set the teacher as selected and open modal in view mode
+  selectedTeacher.value = { ...teacher, viewMode: true }
   showTeacherModal.value = true
 }
 
@@ -820,11 +834,52 @@ const toggleSelectAll = () => {
 
 // Utilities
 const getTeacherInitial = (teacher) => {
-  return teacher.full_name?.charAt(0)?.toUpperCase() || 'T'
+  const name = getTeacherName(teacher)
+  return name?.charAt(0)?.toUpperCase() || 'T'
+}
+
+const getTeacherName = (teacher) => {
+  if (teacher.full_name) {
+    return teacher.full_name
+  }
+  if (teacher.user?.first_name && teacher.user?.last_name) {
+    return `${teacher.user.first_name} ${teacher.user.last_name}`
+  }
+  if (teacher.first_name && teacher.last_name) {
+    return `${teacher.first_name} ${teacher.last_name}`
+  }
+  return teacher.user?.name || 'Unknown Teacher'
 }
 
 const resolveImage = (imagePath) => {
+  if (!imagePath) return null
   return resolveImageUrl(imagePath)
+}
+
+const handleImageError = (event, teacher) => {
+  event.target.style.display = 'none'
+  console.log('Failed to load image for teacher:', getTeacherName(teacher))
+}
+
+const getTeacherCode = (teacher) => {
+  return teacher.teacher_code || teacher.user?.teacher_code || teacher.code || null
+}
+
+const generateTeacherCode = async (teacher) => {
+  try {
+    // Generate a simple teacher code based on user ID
+    const code = `TCH${String(teacher.user_id || teacher.id).padStart(3, '0')}`
+    
+    // Update the teacher with the new code
+    await usersAPI.updateUser(teacher.user_id || teacher.id, { teacher_code: code })
+    
+    // Refresh the teacher list to show the new code
+    await loadTeachers()
+    showSuccessMessage(`Teacher code ${code} generated successfully`)
+  } catch (err) {
+    console.error('Error generating teacher code:', err)
+    error.value = 'Failed to generate teacher code'
+  }
 }
 
 const showSuccessMessage = (message) => {
