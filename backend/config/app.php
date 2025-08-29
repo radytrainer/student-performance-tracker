@@ -188,4 +188,16 @@ return [
         // 'Example' => App\Facades\Example::class,
     ])->toArray(),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Class Assignment Settings
+    |--------------------------------------------------------------------------
+    |
+    | These values control teacher-class assignment limits and workload management.
+    |
+    */
+
+    'max_classes_per_teacher' => env('MAX_CLASSES_PER_TEACHER', 5),
+    'class_assignment_notify_threshold' => env('CLASS_ASSIGNMENT_NOTIFY_THRESHOLD', 4),
+
 ];

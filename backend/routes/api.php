@@ -18,6 +18,8 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\ClassSubjectController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\TeacherImportController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\TeacherSubjectController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +70,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/students', [StudentController::class, 'store']);
     Route::get('/grades/assessment-types', [GradeController::class, 'assessmentTypes']);
     Route::get('/my-class-subjects', [ClassSubjectController::class, 'myClassSubjects']);
+
+    // Departments (accessible to all authenticated users)
+    Route::get('/departments', [DepartmentController::class, 'index']);
+    Route::get('/departments/{id}', [DepartmentController::class, 'show']);
+    Route::get('/departments/{id}/teachers', [DepartmentController::class, 'teachers']);
 
     // Active users endpoint for sidebar (protected)
     Route::get('/active-users', [UserController::class, 'index']);
@@ -149,11 +156,32 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('admin/teachers/available', [App\Http\Controllers\Admin\ClassController::class, 'getAvailableTeachers']);
         Route::get('admin/classes-stats', [App\Http\Controllers\Admin\ClassController::class, 'getClassStats']);
 
+        // Teacher-Class Assignment Management
+        Route::post('admin/classes/{class}/assign-teacher-primary', [App\Http\Controllers\Admin\TeacherClassController::class, 'assignTeacherToClass']);
+        Route::delete('admin/classes/{class}/remove-teacher', [App\Http\Controllers\Admin\TeacherClassController::class, 'removeTeacherFromClass']);
+        Route::get('admin/teachers/{teacher}/classes', [App\Http\Controllers\Admin\TeacherClassController::class, 'getTeacherClasses']);
+        Route::post('admin/teachers/{teacher}/assign-classes', [App\Http\Controllers\Admin\TeacherClassController::class, 'bulkAssignClassesToTeacher']);
+        Route::get('admin/class-assignments', [App\Http\Controllers\Admin\TeacherClassController::class, 'getAllClassAssignments']);
+        Route::get('admin/classes/{class}/teachers', [App\Http\Controllers\Admin\TeacherClassController::class, 'getClassTeachers']);
+        Route::get('admin/teacher-workload', [App\Http\Controllers\Admin\TeacherClassController::class, 'getTeacherWorkloadStats']);
+
         // Subject Management
         Route::apiResource('admin/subjects', App\Http\Controllers\Admin\SubjectController::class);
         Route::post('admin/subjects/bulk-action', [App\Http\Controllers\Admin\SubjectController::class, 'bulkAction']);
         Route::get('admin/subjects/departments', [App\Http\Controllers\Admin\SubjectController::class, 'getDepartments']);
         Route::get('admin/subjects-stats', [App\Http\Controllers\Admin\SubjectController::class, 'getSubjectStats']);
+
+        // Department Management (admin only)
+        Route::post('/departments', [DepartmentController::class, 'store']);
+        Route::put('/departments/{id}', [DepartmentController::class, 'update']);
+        Route::delete('/departments/{id}', [DepartmentController::class, 'destroy']);
+
+        // Teacher-Subject Assignment Management (admin only)
+        Route::post('admin/teachers/{teacher}/subjects', [TeacherSubjectController::class, 'assignSubjects']);
+        Route::delete('admin/teachers/{teacher}/subjects', [TeacherSubjectController::class, 'removeSubjects']);
+        Route::get('admin/teachers/{teacher}/subjects', [TeacherSubjectController::class, 'getTeacherSubjects']);
+        Route::get('admin/subjects/{subject}/teachers', [TeacherSubjectController::class, 'getSubjectTeachers']);
+        Route::post('admin/teachers/bulk-assign-subjects', [TeacherSubjectController::class, 'bulkAssignSubjects']);
 
         // Student Notes (admin)
         Route::get('admin/notes', [App\Http\Controllers\Admin\StudentNoteController::class, 'index']);

@@ -162,6 +162,17 @@ const routes = [
     }
   },
   {
+    path: '/admin/teachers',
+    name: 'AdminTeachers',
+    component: () => import('@/views/admin/AdminTeachers.vue'),
+    meta: { 
+      requiresAuth: true, 
+      requiresRole: 'admin',
+      requiresPermission: 'admin.manage_users',
+      title: 'Manage Teachers'
+    }
+  },
+  {
     path: '/admin/terms',
     name: 'AdminTerms',
     component: () => import('@/views/admin/AdminTerms.vue'),
