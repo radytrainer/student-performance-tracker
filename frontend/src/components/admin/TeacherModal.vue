@@ -1,8 +1,8 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="closeModal">
-    <div class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white" @click.stop>
+  <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-[9999] flex items-start justify-center p-4 sm:p-6" @click="closeModal">
+    <div class="relative w-full max-w-5xl bg-white shadow-xl rounded-lg my-4 sm:my-8 max-h-[95vh] overflow-hidden" @click.stop>
       <!-- Modal Header -->
-      <div class="flex items-center justify-between mb-6">
+      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <h3 class="text-lg font-semibold text-gray-900">
             {{ teacher?.user_id ? 'Edit Teacher' : 'Add New Teacher' }}
@@ -23,9 +23,11 @@
         </div>
       </div>
 
-      <!-- Tabs Navigation -->
-      <div class="border-b border-gray-200 mb-6">
-        <nav class="-mb-px flex space-x-8">
+      <!-- Scrollable Content -->
+      <div class="overflow-y-auto max-h-[calc(95vh-140px)]">
+        <!-- Tabs Navigation -->
+        <div class="border-b border-gray-200 px-6 pt-4">
+          <nav class="-mb-px flex space-x-8">
           <button
             @click="activeTab = 'basic'"
             :class="[
@@ -74,10 +76,11 @@
         </nav>
       </div>
 
-      <!-- Form -->
-      <form @submit.prevent="submitForm" class="space-y-6">
-        <!-- Basic Information Tab -->
-        <div v-show="activeTab === 'basic'" class="space-y-6">
+        <!-- Form Content -->
+        <div class="px-6">
+          <form @submit.prevent="submitForm" class="space-y-6">
+            <!-- Basic Information Tab -->
+            <div v-show="activeTab === 'basic'" class="space-y-6">
           <!-- Profile Picture -->
           <div class="flex items-center space-x-4">
             <div class="relative">
@@ -112,7 +115,7 @@
           </div>
 
           <!-- Personal Information -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">
                 First Name *
@@ -474,8 +477,43 @@
               {{ teacher?.user_id ? 'Update Teacher' : 'Create Teacher' }}
             </button>
           </div>
+            </div>
+          </form>
         </div>
-      </form>
+        
+        <!-- Sticky Footer -->
+        <div class="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4">
+          <div class="flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              @click="closeModal"
+              class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            
+            <!-- Export Actions (for existing teachers) -->
+            <button v-if="teacher?.user_id"
+              type="button"
+              @click="exportTeacherData"
+              class="px-3 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors text-sm"
+            >
+              <i class="fas fa-download mr-1"></i>
+              Export
+            </button>
+            
+            <button
+              type="submit"
+              @click="submitForm"
+              :disabled="loading || !isFormValid"
+              class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              <i v-if="loading" class="fas fa-spinner fa-spin mr-2"></i>
+              {{ teacher?.user_id ? 'Update Teacher' : 'Create Teacher' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
