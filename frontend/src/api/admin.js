@@ -219,5 +219,156 @@ export const adminAPI = {
   importFromGoogle: async (payload) => {
     // { sheet_id, sheet_name?, range?, default_class_id }
     return await api.post('/admin/import/google', payload)
+  },
+
+  // Department Management
+  getDepartments: async (params = {}) => {
+    return await api.get('/admin/departments', { params })
+  },
+
+  createDepartment: async (departmentData) => {
+    return await api.post('/admin/departments', departmentData)
+  },
+
+  updateDepartment: async (departmentId, departmentData) => {
+    return await api.put(`/admin/departments/${departmentId}`, departmentData)
+  },
+
+  deleteDepartment: async (departmentId) => {
+    return await api.delete(`/admin/departments/${departmentId}`)
+  },
+
+  getDepartment: async (departmentId) => {
+    return await api.get(`/admin/departments/${departmentId}`)
+  },
+
+  // Teacher Management
+  getTeachers: async (params = {}) => {
+    return await api.get('/admin/teachers', { params })
+  },
+
+  createTeacher: async (teacherData) => {
+    return await api.post('/admin/teachers', teacherData)
+  },
+
+  updateTeacher: async (teacherId, teacherData) => {
+    return await api.put(`/admin/teachers/${teacherId}`, teacherData)
+  },
+
+  deleteTeacher: async (teacherId) => {
+    return await api.delete(`/admin/teachers/${teacherId}`)
+  },
+
+  getTeacher: async (teacherId) => {
+    return await api.get(`/admin/teachers/${teacherId}`)
+  },
+
+  getTeacherStats: async () => {
+    return await api.get('/admin/teachers/stats')
+  },
+
+  getTeacherAnalytics: async (teacherId) => {
+    return await api.get(`/admin/teachers/${teacherId}/analytics`)
+  },
+
+  // Teacher-Subject Assignment
+  assignSubjectsToTeacher: async (teacherId, subjectIds) => {
+    return await api.post(`/admin/teachers/${teacherId}/subjects`, {
+      subject_ids: subjectIds
+    })
+  },
+
+  removeSubjectFromTeacher: async (teacherId, subjectId) => {
+    return await api.delete(`/admin/teachers/${teacherId}/subjects/${subjectId}`)
+  },
+
+  bulkAssignSubjects: async (teacherIds, subjectIds) => {
+    return await api.post('/admin/teachers/bulk-assign-subjects', {
+      teacher_ids: teacherIds,
+      subject_ids: subjectIds
+    })
+  },
+
+  // Teacher-Class Assignment
+  assignClassesToTeacher: async (teacherId, classIds) => {
+    return await api.post(`/admin/teachers/${teacherId}/classes`, {
+      class_ids: classIds
+    })
+  },
+
+  removeClassFromTeacher: async (teacherId, classId) => {
+    return await api.delete(`/admin/teachers/${teacherId}/classes/${classId}`)
+  },
+
+  bulkAssignClasses: async (teacherIds, classIds) => {
+    return await api.post('/admin/teachers/bulk-assign-classes', {
+      teacher_ids: teacherIds,
+      class_ids: classIds
+    })
+  },
+
+  // Bulk Teacher Operations
+  bulkUpdateTeacherStatus: async (teacherIds, status) => {
+    return await api.post('/admin/teachers/bulk-status', {
+      teacher_ids: teacherIds,
+      status: status
+    })
+  },
+
+  bulkUpdateTeacherDepartment: async (teacherIds, departmentId) => {
+    return await api.post('/admin/teachers/bulk-department', {
+      teacher_ids: teacherIds,
+      department_id: departmentId
+    })
+  },
+
+  bulkDeleteTeachers: async (teacherIds) => {
+    return await api.post('/admin/teachers/bulk-delete', {
+      teacher_ids: teacherIds
+    })
+  },
+
+  // Teacher Import/Export
+  exportTeachers: async (format = 'csv', filters = {}) => {
+    return await api.get('/admin/teachers/export', {
+      params: { format, ...filters },
+      responseType: 'blob'
+    })
+  },
+
+  importTeachers: async (formData) => {
+    return await api.post('/admin/teachers/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+
+  getTeacherImportTemplate: async () => {
+    return await api.get('/admin/teachers/import/template', {
+      responseType: 'blob'
+    })
+  },
+
+  // Real-time Data Refresh
+  refreshTeacherData: async () => {
+    return await api.post('/admin/teachers/refresh')
+  },
+
+  subscribeToTeacherUpdates: async (callback) => {
+    // This will be implemented with WebSocket integration
+    // For now, return a polling mechanism
+    const pollInterval = 30000 // 30 seconds
+    const poll = async () => {
+      try {
+        const response = await api.get('/admin/teachers/updates')
+        if (response.data.hasUpdates) {
+          callback(response.data.updates)
+        }
+      } catch (error) {
+        console.warn('Failed to poll teacher updates:', error)
+      }
+    }
+
+    const intervalId = setInterval(poll, pollInterval)
+    return () => clearInterval(intervalId)
   }
 }
