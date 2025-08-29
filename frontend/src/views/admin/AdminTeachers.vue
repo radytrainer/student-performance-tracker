@@ -6,8 +6,58 @@
     </div>
     <div v-else>
       <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Teacher Management</h1>
-        <p class="text-gray-600 mt-1">Manage teacher accounts, assignments, and professional data</p>
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-800">Teacher Management</h1>
+            <p class="text-gray-600 mt-1">Manage teacher accounts, assignments, and professional data</p>
+          </div>
+          
+          <div class="flex items-center space-x-3">
+            <!-- Real-time indicator -->
+            <div v-if="isRealTimeConnected" class="flex items-center text-green-600">
+              <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1"></div>
+              <span class="text-xs">Live Updates</span>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="bg-white rounded-lg shadow p-3 text-center">
+              <p class="text-sm text-gray-500">Total Teachers</p>
+              <p class="text-2xl font-bold text-gray-900">{{ teachers.length }}</p>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-3 text-center">
+              <p class="text-sm text-gray-500">Active</p>
+              <p class="text-2xl font-bold text-green-600">{{ activeTeachersCount }}</p>
+            </div>
+            
+            <!-- Analytics Toggle -->
+            <button
+              @click="showAnalyticsPanel = !showAnalyticsPanel"
+              :class="[
+                'px-4 py-2 rounded-lg transition-colors flex items-center',
+                showAnalyticsPanel 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+              ]"
+            >
+              <i class="fas fa-chart-bar mr-2"></i>
+              Analytics
+            </button>
+          </div>
+        </div>
+        
+        <!-- Last refresh indicator -->
+        <div class="mt-2 text-xs text-gray-500">
+          Last updated: {{ formatLastRefresh() }}
+          <button @click="refreshTeachers" class="ml-2 text-blue-600 hover:text-blue-800">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Analytics Panel -->
+      <div v-if="showAnalyticsPanel" class="mb-8">
+        <TeacherAnalytics />
       </div>
 
       <!-- Success Message -->
@@ -88,28 +138,77 @@
             
             <!-- Bulk Actions -->
             <div v-if="selectedTeachers.length > 0" class="flex items-center space-x-2">
-              <span class="text-sm text-gray-600">{{ selectedTeachers.length }} selected</span>
+              <span class="text-sm text-gray-600 bg-blue-50 px-2 py-1 rounded">{{ selectedTeachers.length }} selected</span>
               <button
-                @click="bulkActivate"
-                class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm"
-              >
-                <i class="fas fa-check mr-1"></i>
-                Activate
-              </button>
-              <button
-                @click="bulkAssignSubjects"
+                @click="openBulkOperations"
                 class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm"
               >
-                <i class="fas fa-book mr-1"></i>
-                Assign Subjects
+                <i class="fas fa-cogs mr-1"></i>
+                Bulk Actions
               </button>
               <button
-                @click="bulkDeactivate"
-                class="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center text-sm"
+                @click="clearSelection"
+                class="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition-colors flex items-center text-sm"
               >
                 <i class="fas fa-times mr-1"></i>
-                Deactivate
+                Clear
               </button>
+            </div>
+            
+            <!-- Export/Import Actions -->
+            <div class="flex items-center space-x-2">
+              <div class="relative">
+                <button
+                  @click="showExportMenu = !showExportMenu"
+                  class="bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center text-sm"
+                >
+                  <i class="fas fa-download mr-1"></i>
+                  Export
+                  <i class="fas fa-chevron-down ml-1"></i>
+                </button>
+                
+                <!-- Export Dropdown -->
+                <div v-if="showExportMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                  <div class="py-1">
+                    <button
+                      @click="exportTeachers('csv')"
+                      class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <i class="fas fa-file-csv mr-2"></i>
+                      Export as CSV
+                    </button>
+                    <button
+                      @click="exportTeachers('excel')"
+                      class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <i class="fas fa-file-excel mr-2"></i>
+                      Export as Excel
+                    </button>
+                    <button
+                      @click="downloadTemplate"
+                      class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t"
+                    >
+                      <i class="fas fa-file-download mr-2"></i>
+                      Download Template
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <button
+                @click="$refs.importFile?.click()"
+                class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm"
+              >
+                <i class="fas fa-upload mr-1"></i>
+                Import
+              </button>
+              <input
+                ref="importFile"
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                class="hidden"
+                @change="handleImport"
+              />
             </div>
             <button
               @click="openCreateModal"
@@ -125,9 +224,23 @@
             :show="showTeacherModal"
             :teacher="selectedTeacher"
             :subjects="subjects"
+            :departments="departments"
+            :available-classes="availableClasses"
             :loading="modalLoading"
             @close="closeTeacherModal"
             @submit="handleTeacherSubmit"
+          />
+
+          <!-- Bulk Operations Modal -->
+          <BulkTeacherModal
+            :show="showBulkModal"
+            :selected-teachers="selectedTeachers"
+            :selected-teachers-data="selectedTeachersData"
+            :subjects="subjects"
+            :departments="departments"
+            :available-classes="availableClasses"
+            @close="closeBulkModal"
+            @completed="handleBulkOperationCompleted"
           />
         </div>
 
@@ -221,14 +334,14 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div class="flex items-center justify-end space-x-2">
-                    <button
-                      @click="viewTeacher(teacher)"
+                  <div class="flex items-center justify-end space-x-1">
+                    <router-link
+                      :to="`/admin/teachers/${teacher.user_id}`"
                       class="text-blue-600 hover:text-blue-900 p-2"
                       title="View Details"
                     >
                       <i class="fas fa-eye"></i>
-                    </button>
+                    </router-link>
                     <button
                       @click="editTeacher(teacher)"
                       class="text-green-600 hover:text-green-900 p-2"
@@ -236,20 +349,59 @@
                     >
                       <i class="fas fa-edit"></i>
                     </button>
-                    <button
-                      @click="assignSubjects(teacher)"
-                      class="text-purple-600 hover:text-purple-900 p-2"
-                      title="Assign Subjects"
-                    >
-                      <i class="fas fa-book"></i>
-                    </button>
-                    <button
-                      @click="deleteTeacher(teacher)"
-                      class="text-red-600 hover:text-red-900 p-2"
-                      title="Delete Teacher"
-                    >
-                      <i class="fas fa-trash"></i>
-                    </button>
+                    <div class="relative">
+                      <button
+                        @click="toggleTeacherActions(teacher.user_id)"
+                        class="text-purple-600 hover:text-purple-900 p-2"
+                        title="More Actions"
+                      >
+                        <i class="fas fa-ellipsis-v"></i>
+                      </button>
+                      
+                      <!-- Actions dropdown -->
+                      <div v-if="teacherActionsOpen === teacher.user_id" class="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                        <div class="py-1">
+                          <button
+                            @click="assignSubjects(teacher)"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            <i class="fas fa-book mr-2"></i>
+                            Assign Subjects
+                          </button>
+                          <button
+                            @click="assignClasses(teacher)"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            <i class="fas fa-chalkboard mr-2"></i>
+                            Assign Classes
+                          </button>
+                          <button
+                            @click="resetPassword(teacher)"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t"
+                          >
+                            <i class="fas fa-key mr-2"></i>
+                            Reset Password
+                          </button>
+                          <button
+                            @click="toggleTeacherStatus(teacher)"
+                            :class="[
+                              'block w-full text-left px-4 py-2 text-sm hover:bg-gray-100',
+                              teacher.status === 'active' ? 'text-red-700' : 'text-green-700'
+                            ]"
+                          >
+                            <i :class="teacher.status === 'active' ? 'fas fa-user-slash' : 'fas fa-user-check'" class="mr-2"></i>
+                            {{ teacher.status === 'active' ? 'Deactivate' : 'Activate' }}
+                          </button>
+                          <button
+                            @click="deleteTeacher(teacher)"
+                            class="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 border-t"
+                          >
+                            <i class="fas fa-trash mr-2"></i>
+                            Delete Teacher
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -324,12 +476,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { adminAPI } from '@/api/admin'
 import { usersAPI } from '@/api/users'
 import { resolveImageUrl } from '@/utils/imageUrl'
+import { initEcho } from '@/realtime/echo'
 import TeacherModal from '@/components/admin/TeacherModal.vue'
+import TeacherAnalytics from '@/components/admin/TeacherAnalytics.vue'
+import BulkTeacherModal from '@/components/admin/BulkTeacherModal.vue'
 
 const { hasPermission } = useAuth()
 
@@ -342,11 +497,20 @@ const successMessage = ref('')
 const teachers = ref([])
 const subjects = ref([])
 const departments = ref([])
+const availableClasses = ref([])
+const teacherStats = ref({})
 
 // Modal state  
 const showTeacherModal = ref(false)
+const showBulkModal = ref(false)
+const showAnalyticsPanel = ref(false)
 const selectedTeacher = ref(null)
 const modalLoading = ref(false)
+
+// Real-time state
+const echo = ref(null)
+const lastRefresh = ref(new Date())
+const isRealTimeConnected = ref(false)
 
 // Filters and search
 const searchQuery = ref('')
@@ -355,6 +519,10 @@ const statusFilter = ref('')
 const sortBy = ref('name')
 const sortDir = ref('asc')
 const selectedTeachers = ref([])
+
+// UI state
+const showExportMenu = ref(false)
+const teacherActionsOpen = ref(null)
 
 // Pagination
 const currentPage = ref(1)
@@ -451,14 +619,31 @@ const isAllSelected = computed(() => {
          paginatedTeachers.value.every(teacher => selectedTeachers.value.includes(teacher.user_id))
 })
 
+const activeTeachersCount = computed(() => {
+  return teachers.value.filter(teacher => teacher.status === 'active').length
+})
+
+const selectedTeachersData = computed(() => {
+  return teachers.value.filter(teacher => selectedTeachers.value.includes(teacher.user_id))
+})
+
 // Methods
 const loadTeachers = async () => {
   try {
     loading.value = true
     error.value = null
     
-    const response = await usersAPI.getUsers({ role: 'teacher' })
+    // Try new API first, fallback to old API
+    let response
+    try {
+      response = await adminAPI.getTeachers()
+    } catch (apiError) {
+      console.warn('New teacher API not available, using fallback:', apiError)
+      response = await usersAPI.getUsers({ role: 'teacher' })
+    }
+    
     teachers.value = response.data.data || response.data || []
+    lastRefresh.value = new Date()
   } catch (err) {
     error.value = err.response?.data?.message || 'Failed to load teachers'
     console.error('Error loading teachers:', err)
