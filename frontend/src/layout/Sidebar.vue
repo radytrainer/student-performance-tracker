@@ -55,7 +55,7 @@
         </div>
 
         <!-- Scrollable Content Area -->
-        <div class="flex-1 overflow-y-auto">
+        <div class="flex-1 ">
           <!-- Navigation Menu -->
           <nav class="px-6 py-6">
             <div class="space-y-1">
