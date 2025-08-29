@@ -655,9 +655,17 @@ const loadTeachers = async () => {
 const loadSubjects = async () => {
   try {
     const response = await adminAPI.getSubjects()
-    subjects.value = response.data.data || response.data || []
+    // Extract array from paginated response
+    if (response.data.data && Array.isArray(response.data.data)) {
+      subjects.value = response.data.data
+    } else if (Array.isArray(response.data)) {
+      subjects.value = response.data
+    } else {
+      subjects.value = []
+    }
   } catch (err) {
     console.error('Error loading subjects:', err)
+    subjects.value = []
   }
 }
 
