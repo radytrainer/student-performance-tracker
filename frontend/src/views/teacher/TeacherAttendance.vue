@@ -30,7 +30,7 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">Class</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Classes</label>
             <select 
               v-model="viewFilters.class_id" 
               @change="fetchAttendance" 
@@ -41,7 +41,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">Student</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Students</label>
             <select 
               v-model="viewFilters.student_id" 
               @change="fetchAttendance" 
