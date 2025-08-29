@@ -823,6 +823,30 @@ const showSuccessMessage = (message) => {
   }, 3000)
 }
 
+// Format last refresh timestamp
+const formatLastRefresh = () => {
+  if (!lastRefresh.value) return 'Never'
+  
+  const now = new Date()
+  const diff = now - lastRefresh.value
+  const seconds = Math.floor(diff / 1000)
+  
+  if (seconds < 60) return `${seconds} seconds ago`
+  
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes} minutes ago`
+  
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hours ago`
+  
+  return lastRefresh.value.toLocaleDateString()
+}
+
+// Refresh teachers data
+const refreshTeachers = async () => {
+  await loadTeachers()
+}
+
 // Reset pagination when filters change
 watch([searchQuery, departmentFilter, statusFilter], () => {
   currentPage.value = 1
