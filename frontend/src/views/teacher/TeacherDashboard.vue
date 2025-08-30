@@ -373,8 +373,5 @@ watch(filteredStudents, () => {
   -webkit-background-clip: text;
   background-clip: text;
 }
-.text-transparent {
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
+
 </style>
