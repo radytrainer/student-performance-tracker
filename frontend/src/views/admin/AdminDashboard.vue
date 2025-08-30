@@ -279,7 +279,6 @@ const kpiData = computed(() => [
     change: '+5%'
   }
 ])
-
 // --- Other Data ---
 const systemHealth = ref([
   { name: 'CPU Usage', value: '45%', percentage: 45, status: 'good' },
@@ -299,7 +298,6 @@ const userTypes = computed(() => [
   { type: 'admins', label: 'Administrators', count: adminData.value.totalAdmins, active: Math.floor(adminData.value.totalAdmins * 0.95), icon: Shield }
 ])
 const totalUsers = computed(() => adminData.value.totalUsers)
-
 // --- Helper functions ---
 const getStatusColor = (status) => {
   switch (status) {
@@ -370,7 +368,6 @@ const createCharts = () => {
     }
   })
 }
-
 const notifications = ref([])
 const unreadCount = computed(() => notifications.value.filter(n => !n.is_read).length)
 
@@ -390,7 +387,6 @@ const loadNotifications = async () => {
     }))
   } catch (e) { /* ignore */ }
 }
-
 onMounted(async () => {
   await fetchAdminStats()
   nextTick(() => createCharts())
