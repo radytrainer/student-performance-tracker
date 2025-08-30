@@ -35,7 +35,7 @@ export const teacherClassesAPI = {
   // Student Management in Classes
   async getClassStudents(classId) {
     try {
-      const response = await apiClient.get(`/admin/classes/${classId}/students`)
+      const response = await apiClient.get(`/teacher/classes/${classId}/students`)
       return response.data
     } catch (error) {
       console.error('Error fetching class students:', error)
@@ -75,7 +75,7 @@ export const teacherClassesAPI = {
 
   async bulkAddStudents(classId, studentIds) {
     try {
-      const response = await apiClient.post(`/classes/${classId}/students/bulk`, { 
+      const response = await apiClient.post(`/teacher/classes/${classId}/students/bulk`, { 
         student_ids: studentIds 
       })
       return response.data
@@ -291,7 +291,7 @@ export const teacherClassesAPI = {
   async getGradeDistribution(classId, subjectId = null) {
     try {
       const params = subjectId ? { subject_id: subjectId } : {}
-      const response = await apiClient.get(`/classes/${classId}/grade-distribution`, { params })
+      const response = await apiClient.get(`/teacher/classes/${classId}/grade-distribution`, { params })
       return response.data
     } catch (error) {
       console.error('Error fetching grade distribution:', error)

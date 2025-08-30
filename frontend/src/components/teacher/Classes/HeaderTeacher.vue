@@ -16,8 +16,7 @@
 
           <!-- Title and Subtitle -->
           <div class="space-y-1">
-            <h1
-              class="text-4xl font-black bg-gradient-to-r from-purple-900 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 class="text-4xl font-black text-black">
               My Classes
             </h1>
             <p class="text-gray-600 font-medium text-lg">
@@ -180,7 +179,7 @@ export default {
     }
 
     const getStudentClass = (classId) => {
-      // Implementation for getting student class
+
       return 'A'
     }
 

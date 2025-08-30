@@ -19,6 +19,7 @@ protected $fillable = [
 'password_hash',
 'role',
 'school_id',
+'department_id',
 'is_super_admin',
 'first_name',
 'last_name',
@@ -30,7 +31,7 @@ protected $fillable = [
 ];
 
         // Always include computed profile_picture_url in JSON responses
-        protected $appends = ['profile_picture_url'];
+        protected $appends = ['profile_picture_url', 'classes_count', 'total_students_count'];
 
     protected $hidden = [
         'password_hash',
@@ -90,10 +91,38 @@ protected $fillable = [
         return $this->created_at ? $this->created_at->format('d-M-y') : null;
     }
 
+    // Accessor for classes count (for teachers)
+    public function getClassesCountAttribute()
+    {
+        if ($this->role === 'teacher') {
+            return $this->assignedClasses()->count();
+        }
+        return 0;
+    }
+
+    // Accessor for total students count (for teachers)
+    public function getTotalStudentsCountAttribute()
+    {
+        if ($this->role === 'teacher') {
+            return $this->assignedClasses()->withCount('students')->get()->sum('students_count');
+        }
+        return 0;
+    }
+
     // Relationships
     public function school(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function headedDepartment(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Department::class, 'head_teacher_id');
     }
 
     public function teacher(): HasOne
@@ -119,6 +148,30 @@ protected $fillable = [
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    // Class-related relationships for teachers
+    public function assignedClasses(): HasMany
+    {
+        return $this->hasMany(Classes::class, 'class_teacher_id');
+    }
+
+    public function classSubjects(): HasMany
+    {
+        return $this->hasMany(ClassSubject::class, 'teacher_id');
+    }
+
+    // Teacher-Subject relationships
+    public function subjects(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'teacher_subjects', 'teacher_id', 'subject_id')
+            ->withPivot('primary_subject', 'assigned_at')
+            ->withTimestamps();
+    }
+
+    public function primarySubjects(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->subjects()->wherePivot('primary_subject', true);
     }
 
     // Role checking methods

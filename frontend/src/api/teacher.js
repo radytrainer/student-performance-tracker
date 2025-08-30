@@ -38,14 +38,24 @@ previewGoogleSheet(payload) {
  return apiClient.post('/google/sheets/preview', payload)
 },
 importFromGoogle(payload) {
-  // { sheet_id, sheet_name?, range?, default_class_id }
-  return apiClient.post('/teacher/import/google', payload)
+// { sheet_id, sheet_name?, range?, default_class_id }
+return apiClient.post('/teacher/import/google', payload)
 },
- 
-// Lists
-getSubjectsForImport(params = {}) {
-  return apiClient.get('/teacher/import/subjects-list', { params })
+
+// Student analytics
+getStudentComparison(studentId, params = {}) {
+return apiClient.get(`/teacher/students/${studentId}/comparison`, { params })
 },
+
+// Teacher analytics (existing endpoint)
+getAnalytics(params = {}) {
+return apiClient.get('/teacher/analytics', { params })
+},
+  
+ // Lists
+ getSubjectsForImport(params = {}) {
+   return apiClient.get('/teacher/import/subjects-list', { params })
+ },
  
 importStudentsFromUpload(formData) {
   // Supports uploaded_file_id, default_class_id, sheet_name, subject_ids[]
@@ -54,5 +64,44 @@ return apiClient.post('/teacher/import/students', formData, { headers: { 'Conten
  
 getImportTemplate(type = 'students') {
 return apiClient.get('/teacher/import/template', { params: { type } })
+},
+
+// Teacher Classes (for reports)
+getTeacherClasses() {
+  return apiClient.get('/teacher/classes')
+},
+
+// Teaching Statistics for Reports
+getTeachingStats() {
+  return apiClient.get('/teacher/stats')
+},
+
+// Grade Distribution
+getGradeDistribution() {
+  return apiClient.get('/teacher/grade-distribution')
+},
+
+// Top Performing Classes
+getTopPerformingClasses() {
+  return apiClient.get('/teacher/top-classes')
+},
+
+// Recent Reports
+getRecentReports() {
+  return apiClient.get('/teacher/reports/recent')
+},
+
+// Generate Class Report
+generateClassReport(reportConfig) {
+  return apiClient.post('/teacher/reports/generate', reportConfig, {
+    responseType: reportConfig.format === 'pdf' ? 'blob' : 'json'
+  })
+},
+
+// Download Report
+downloadReport(reportId) {
+  return apiClient.get(`/teacher/reports/${reportId}/download`, {
+    responseType: 'blob'
+  })
 },
 }

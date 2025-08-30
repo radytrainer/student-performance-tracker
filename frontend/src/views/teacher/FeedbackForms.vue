@@ -260,7 +260,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import ClassAssignmentModal from '@/components/teacher/ClassAssignmentModal.vue'
 import UserAssignmentModal from '@/components/teacher/UserAssignmentModal.vue'
@@ -433,8 +433,24 @@ const formatDate = (date) => {
 }
 
 // Lifecycle
+let channel = null
+
 onMounted(() => {
   loadForms()
   loadClasses()
+  // Realtime: refresh forms when surveys are completed by students
+  try {
+    const auth = useAuthStore()
+    if (window.Echo && auth?.user?.id) {
+      channel = window.Echo.private(`users.${auth.user.id}`)
+        .listen('.survey.completed', async () => {
+          await loadForms()
+        })
+    }
+  } catch {}
+})
+
+onUnmounted(() => {
+  try { if (channel) channel.unsubscribe() } catch {}
 })
 </script>

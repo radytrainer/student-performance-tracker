@@ -123,35 +123,98 @@ export function useAuth() {
   const getAvailableRoutes = () => {
     const routes = {
       admin: [
-        { name: 'Admin Dashboard', path: '/admin/dashboard', icon: 'fas fa-tachometer-alt' },
-        { name: 'Manage Users', path: '/admin/users', icon: 'fas fa-users' },
-        { name: 'Manage Students', path: '/admin/students', icon: 'fas fa-user-graduate' },
-        { name: 'Manage Classes', path: '/admin/classes', icon: 'fas fa-school' },
-        { name: 'Manage Subjects', path: '/admin/subjects', icon: 'fas fa-book' },
-        { name: 'Academic Terms', path: '/admin/terms', icon: 'fas fa-calendar-alt' },
-        { name: 'Data Import', path: '/admin/import', icon: 'fas fa-file-import' },
-        { name: 'System Settings', path: '/admin/settings', icon: 'fas fa-cog' },
-        { name: 'Reports', path: '/admin/reports', icon: 'fas fa-chart-bar' },
-        { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
+        { name: 'Dashboard', path: '/admin/dashboard', icon: 'fas fa-home' },
+        { 
+          name: 'User Management', 
+          icon: 'fas fa-users', 
+          expandable: true,
+          children: [
+            { name: 'All Users', path: '/admin/users', icon: 'fas fa-user-group' },
+            { name: 'Students', path: '/admin/students', icon: 'fas fa-graduation-cap' },
+            { name: 'Teachers', path: '/admin/teachers', icon: 'fas fa-chalkboard-user' }
+          ]
+        },
+        {
+          name: 'Academic',
+          icon: 'fas fa-graduation-cap',
+          expandable: true,
+          children: [
+            { name: 'Classes', path: '/admin/classes', icon: 'fas fa-door-open' },
+            { name: 'Subjects', path: '/admin/subjects', icon: 'fas fa-book-open' },
+            { name: 'Terms', path: '/admin/terms', icon: 'fas fa-calendar' }
+          ]
+        },
+        {
+          name: 'System',
+          icon: 'fas fa-gear',
+          expandable: true,
+          children: [
+            { name: 'Settings', path: '/admin/settings', icon: 'fas fa-gear' },
+            { name: 'Import', path: '/admin/import', icon: 'fas fa-upload' },
+            { name: 'Backups', path: '/admin/backups', icon: 'fas fa-hard-drive' },
+            { name: 'Audit Logs', path: '/admin/audit-logs', icon: 'fas fa-clock-rotate-left' }
+          ]
+        },
+        {
+          name: 'Analytics & Reports',
+          icon: 'fas fa-chart-simple',
+          expandable: true,
+          children: [
+            { name: 'Reports', path: '/admin/reports', icon: 'fas fa-chart-simple' },
+            { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' },
+            { name: 'Alerts', path: '/admin/alerts', icon: 'fas fa-bell' }
+          ]
+        },
+        { name: 'Notes', path: '/admin/notes', icon: 'fas fa-note-sticky' }
       ],
       teacher: [
-        { name: 'Teacher Dashboard', path: '/teacher/dashboard', icon: 'fas fa-chalkboard-teacher' },
-        { name: 'My Classes', path: '/teacher/classes', icon: 'fas fa-school' },
-        { name: 'Students', path: '/students', icon: 'fas fa-user-graduate' },
-        { name: 'Grades', path: '/teacher/grades', icon: 'fas fa-clipboard-list' },
-        { name: 'Attendance', path: '/teacher/attendance', icon: 'fas fa-calendar-check' },
-        { name: 'Data Import', path: '/teacher/import', icon: 'fas fa-file-import' },
-        { name: 'Feedback Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-poll' },
-        { name: 'Reports', path: '/teacher/reports', icon: 'fas fa-file-alt' },
-        { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
+        { name: 'Dashboard', path: '/teacher/dashboard', icon: 'fas fa-home' },
+        {
+          name: 'Classroom Management',
+          icon: 'fas fa-chalkboard-teacher',
+          expandable: true,
+          children: [
+            { name: 'My Classes', path: '/teacher/classes', icon: 'fas fa-door-open' },
+            { name: 'Students', path: '/students', icon: 'fas fa-graduation-cap' }
+          ]
+        },
+        {
+          name: 'Assessment',
+          icon: 'fas fa-clipboard-list',
+          expandable: true,
+          children: [
+            { name: 'Grades', path: '/teacher/grades', icon: 'fas fa-list-check' },
+            { name: 'Attendance', path: '/teacher/attendance', icon: 'fas fa-calendar' }
+          ]
+        },
+        {
+          name: 'Data & Reports',
+          icon: 'fas fa-chart-simple',
+          expandable: true,
+          children: [
+            { name: 'Import', path: '/teacher/import', icon: 'fas fa-upload' },
+            { name: 'Reports', path: '/teacher/reports', icon: 'fas fa-file-lines' },
+            { name: 'Analytics', path: '/analytics', icon: 'fas fa-chart-line' }
+          ]
+        },
+        {
+          name: 'Communication',
+          icon: 'fas fa-comments',
+          expandable: true,
+          children: [
+            { name: 'Surveys', path: '/teacher/feedback-forms', icon: 'fas fa-square-poll-vertical' },
+            { name: 'Alerts', path: '/teacher/alerts', icon: 'fas fa-bell' },
+            { name: 'Notes', path: '/teacher/notes', icon: 'fas fa-note-sticky' }
+          ]
+        }
       ],
       student: [
-        { name: 'Student Dashboard', path: '/student/dashboard', icon: 'fas fa-user-graduate' },
-        { name: 'My Grades', path: '/student/grades', icon: 'fas fa-clipboard-list' },
-        { name: 'My Attendance', path: '/student/attendance', icon: 'fas fa-calendar-check' },
-        { name: 'My Reports', path: '/student/reports', icon: 'fas fa-file-alt' },
-        { name: 'Survey Feedback', path: '/student/surveys', icon: 'fas fa-poll' },
-        { name: 'Feedback', path: '/student/feedback', icon: 'fas fa-comment' }
+        { name: 'Dashboard', path: '/student/dashboard', icon: 'fas fa-home' },
+        { name: 'My Grades', path: '/student/grades', icon: 'fas fa-list-check' },
+        { name: 'Attendance', path: '/student/attendance', icon: 'fas fa-calendar' },
+        { name: 'Reports', path: '/student/reports', icon: 'fas fa-file-lines' },
+        { name: 'Surveys', path: '/student/surveys', icon: 'fas fa-square-poll-vertical' },
+        { name: 'Feedback', path: '/student/feedback', icon: 'fas fa-message' }
       ]
     }
 

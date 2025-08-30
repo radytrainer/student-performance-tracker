@@ -39,4 +39,18 @@ class Subject extends Model
     {
         return $this->hasMany(PerformanceAlert::class);
     }
+
+    // Teacher-Subject relationships
+    public function teachers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'teacher_subjects', 'subject_id', 'teacher_id')
+            ->where('users.role', 'teacher')
+            ->withPivot('primary_subject', 'assigned_at')
+            ->withTimestamps();
+    }
+
+    public function primaryTeachers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->teachers()->wherePivot('primary_subject', true);
+    }
 }

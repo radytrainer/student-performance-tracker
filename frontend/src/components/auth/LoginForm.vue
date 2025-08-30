@@ -39,6 +39,7 @@
               v-model="formData.email"
               type="email"
               placeholder="your@email.com"
+              autocomplete="email"
               :class="[
                 'w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
                 hasError('email')
@@ -95,6 +96,7 @@
               v-model="formData.password"
               :type="showPassword ? 'text' : 'password'"
               placeholder="Enter your password"
+              autocomplete="current-password"
               :class="[
                 'w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
                 hasError('password')

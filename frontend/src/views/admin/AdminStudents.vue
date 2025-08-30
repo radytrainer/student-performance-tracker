@@ -6,7 +6,7 @@
     </div>
     <div v-else>
       <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Student Management</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Student Managements</h1>
         <p class="text-gray-600 mt-1">Manage student records, enrollment, and academic data</p>
       </div>
 
@@ -538,18 +538,49 @@ const loadClasses = async () => {
 }
 
 const openCreateModal = () => {
-  // TODO: Implement create student modal
-  console.log('Create student modal')
+  selectedStudent.value = null
+  showStudentModal.value = true
+}
+
+const closeStudentModal = () => {
+  showStudentModal.value = false
+  selectedStudent.value = null
+  modalLoading.value = false
+}
+
+const handleStudentSubmit = async (studentData) => {
+  try {
+    modalLoading.value = true
+    
+    if (selectedStudent.value?.user_id) {
+      // Update existing student
+      await adminAPI.updateStudent(selectedStudent.value.user_id, studentData)
+      showSuccessMessage('Student updated successfully')
+    } else {
+      // Create new student
+      await adminAPI.createStudent(studentData)
+      showSuccessMessage('Student created successfully')
+    }
+    
+    closeStudentModal()
+    await loadStudents()
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'Failed to save student'
+    console.error('Error saving student:', err)
+  } finally {
+    modalLoading.value = false
+  }
 }
 
 const viewStudent = (student) => {
-  // TODO: Navigate to student details view
-  console.log('View student:', student)
+  // Navigate to student details view
+  // For now, show a basic alert with student info
+  alert(`Student Details:\nName: ${student.full_name}\nCode: ${student.student_code}\nClass: ${student.current_class?.class_name || 'Not assigned'}\nGPA: ${student.current_gpa || 'N/A'}\nAttendance: ${student.attendance_rate || 0}%`)
 }
 
 const editStudent = (student) => {
-  // TODO: Implement edit student modal
-  console.log('Edit student:', student)
+  selectedStudent.value = student
+  showStudentModal.value = true
 }
 
 const confirmDelete = (student) => {

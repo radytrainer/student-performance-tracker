@@ -15,33 +15,40 @@ class TermSeeder extends Seeder
     {
         $terms = [
             [
-                'term_name' => 'Fall 2024',
+                'term_name' => 'Term 1',
                 'academic_year' => '2024-2025',
-                'start_date' => '2024-08-20',
-                'end_date' => '2024-12-15',
+                'start_date' => '2024-02-01',
+                'end_date' => '2024-05-01',
                 'is_current' => false,
             ],
             [
-                'term_name' => 'Spring 2025',
+                'term_name' => 'Term 2',
                 'academic_year' => '2024-2025',
-                'start_date' => '2025-01-15',
-                'end_date' => '2025-05-30',
+                'start_date' => '2024-05-01',
+                'end_date' => '2024-08-01',
                 'is_current' => true,
             ],
             [
-                'term_name' => 'Summer 2025',
+                'term_name' => 'Term 3',
                 'academic_year' => '2024-2025',
-                'start_date' => '2025-06-15',
-                'end_date' => '2025-07-31',
+                'start_date' => '2024-08-01',
+                'end_date' => '2024-12-01',
                 'is_current' => false,
             ],
             [
-                'term_name' => 'Fall 2025',
-                'academic_year' => '2025-2026',
-                'start_date' => '2025-08-20',
-                'end_date' => '2025-12-15',
+                'term_name' => 'Term 4',
+                'academic_year' => '2024-2026',
+                'start_date' => '2024-12-01',
+                'end_date' => '2025-05-01',
                 'is_current' => false,
             ],
+            [
+                'term_name' => 'Term 5',
+                'academic_year' => '2025-2026',
+                'start_date' => '2025-05-01',
+                'end_date' => '2025-12-01',
+                'is_current' => false,
+            ]
         ];
 
         foreach ($terms as $term) {

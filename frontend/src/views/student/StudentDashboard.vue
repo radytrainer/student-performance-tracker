@@ -134,6 +134,31 @@
         </div>
       </div>
 
+      <!-- Comparison: My vs Class Average -->
+      <div class="bg-white/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
+              <BarChart3 class="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">My vs Class Average</h3>
+              <p class="text-sm text-gray-600">Comparison by subject</p>
+            </div>
+          </div>
+          <div>
+            <select v-model="selectedTermId" @change="onChangeTerm" class="px-3 py-2 border rounded-lg text-sm">
+              <option value="">Current term</option>
+              <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.term_name }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="h-80">
+          <BarChart v-if="comparisonChartData" :chartData="comparisonChartData" :chartOptions="comparisonChartOptions" />
+          <div v-else class="text-sm text-gray-500">No comparison data available</div>
+        </div>
+      </div>
+
       <!-- Charts Grid -->
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
         <!-- Monthly Progress Chart -->
@@ -233,7 +258,13 @@ import {
   User, TrendingUp, Calendar, BarChart3, PieChart, Activity, Target, BookOpen, Award, Clock
 } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
+import BarChart from '@/components/charts/BarChart.vue'
+import { reportsAPI } from '@/api/reports'
 const { user } = useAuth()
+
+// Term selector state
+const terms = ref([])
+const selectedTermId = ref('')
 
 // Sample student data
 const studentData = ref({
@@ -299,6 +330,15 @@ const lineChart = ref(null)
 const barChart = ref(null)
 const pieChart = ref(null)
 const radarChart = ref(null)
+
+// Comparison chart state
+const comparisonChartData = ref(null)
+const comparisonChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: true } },
+  scales: { x: { grid: { display: false } }, y: { beginAtZero: true, max: 100 } }
+}
 
 // Chart instances
 let lineChartInstance = null
@@ -573,7 +613,42 @@ const updateCharts = async () => {
   }, 100)
 }
 
-onMounted(() => {
+const loadComparison = async () => {
+  try {
+    const params = selectedTermId.value ? { term_id: selectedTermId.value } : {}
+    const resp = await reportsAPI.getComparison(params)
+    const rows = resp?.data || []
+    if (rows.length) {
+      comparisonChartData.value = {
+        labels: rows.map(r => r.subject_name),
+        datasets: [
+          { label: 'Me', data: rows.map(r => r.student_avg), backgroundColor: '#3B82F6' },
+          { label: 'Class', data: rows.map(r => r.class_avg), backgroundColor: '#10B981' }
+        ]
+      }
+    } else {
+      comparisonChartData.value = null
+    }
+  } catch (e) {
+    comparisonChartData.value = null
+  }
+}
+
+const loadTerms = async () => {
+  try {
+    const resp = await reportsAPI.getTerms()
+    terms.value = resp?.data || []
+  } catch {
+    terms.value = []
+  }
+}
+
+const onChangeTerm = async () => {
+  await loadComparison()
+}
+
+onMounted(async () => {
+  await Promise.all([loadTerms(), loadComparison()])
   updateCharts()
 })
 </script>

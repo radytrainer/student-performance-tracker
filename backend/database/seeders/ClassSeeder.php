@@ -16,10 +16,10 @@ class ClassSeeder extends Seeder
     public function run(): void
     {
         $teachers = Teacher::all();
-        
+
         $classes = [
             [
-                'class_name' => '9th Grade - Section A',
+                'class_name' => 'Web Design',
                 'academic_year' => '2024-2025',
                 'class_teacher_id' => optional($teachers->where('teacher_code', 'TCH001')->first())->user_id,
                 'room_number' => 'Room 101',
@@ -27,7 +27,7 @@ class ClassSeeder extends Seeder
                 'school_id' => 1,
             ],
             [
-                'class_name' => '9th Grade - Section B',
+                'class_name' => 'Computer Science',
                 'academic_year' => '2024-2025',
                 'class_teacher_id' => optional($teachers->where('teacher_code', 'TCH002')->first())->user_id,
                 'room_number' => 'Room 102',
@@ -35,7 +35,7 @@ class ClassSeeder extends Seeder
                 'school_id' => 1,
             ],
             [
-                'class_name' => '10th Grade - Section A',
+                'class_name' => 'Computer Networking',
                 'academic_year' => '2024-2025',
                 'class_teacher_id' => optional($teachers->where('teacher_code', 'TCH003')->first())->user_id,
                 'room_number' => 'Room 201',
@@ -44,7 +44,7 @@ class ClassSeeder extends Seeder
             ],
             // Class for requested test teacher
             [
-                'class_name' => 'Data Import 101',
+                'class_name' => 'Graphic Design',
                 'academic_year' => '2024-2025',
                 'class_teacher_id' => optional($teachers->where('teacher_code', 'TCH010')->first())->user_id,
                 'room_number' => 'Lab 5',

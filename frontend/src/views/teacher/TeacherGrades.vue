@@ -1,6 +1,8 @@
 <template>
   <div class="p-6">
-    <h1 class="text-2xl font-bold mb-4 text-gray-800">Manage Grades</h1>
+     <h1 class="text-3xl font-bold text-gray-800">Manage Grades</h1>
+    <p class="text-gray-600 mt-1">Manage Grade for student</p>
+
 
     <!-- Role-Based Header -->
     <div v-if="user.role === 'student'" class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
@@ -11,7 +13,7 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <!-- Class Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Class</label>
+        <label class="block mb-1 font-medium text-gray-700">Classes</label>
         <select 
           v-model="filters.class_id" 
           @change="fetchGrades" 
@@ -24,7 +26,7 @@
 
       <!-- Subject Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Subject</label>
+        <label class="block mb-1 font-medium text-gray-700">Subjects</label>
         <select 
           v-model="filters.subject_id" 
           @change="fetchGrades" 
@@ -37,7 +39,7 @@
 
       <!-- Term Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Term</label>
+        <label class="block mb-1 font-medium text-gray-700">Terms</label>
         <select 
           v-model="filters.term_id" 
           @change="fetchGrades" 
@@ -50,7 +52,7 @@
 
       <!-- Assessment Type Filter -->
       <div>
-        <label class="block mb-1 font-medium text-gray-700">Assessment type</label>
+        <label class="block mb-1 font-medium text-gray-700">Assessment types</label>
         <select 
           v-model="filters.assessment_type" 
           @change="fetchGrades" 
@@ -358,8 +360,8 @@
                 required
               >
                 <option disabled value="">Select student</option>
-                <option v-for="student in students" :key="student.id" :value="student.user_id">
-                  {{ student.user?.first_name }} {{ student.user?.last_name }}
+                <option v-for="student in students" :key="(student && (student.user_id ?? student.id))" :value="student.user_id || student.id">
+                  {{ student.user?.first_name || student.first_name }} {{ student.user?.last_name || student.last_name }}
                 </option>
               </select>
             </div>
@@ -371,8 +373,8 @@
                 class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" 
                 required
               >
-                <option v-for="cs in classSubjects" :key="cs.id" :value="cs.id">
-                  {{ cs.class.class_name }} - {{ cs.subject.subject_name }}
+                <option v-for="cs in filteredClassSubjects" :key="cs.id" :value="cs.id">
+                  {{ cs.class?.class_name || 'Class' }} - {{ cs.subject?.subject_name || 'Subject' }}
                 </option>
               </select>
             </div>
@@ -449,28 +451,15 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue'
-import axios from 'axios'
 import Chart from 'chart.js/auto'
 import * as XLSX from 'xlsx'
 import html2pdf from 'html2pdf.js'
+import apiClient from '@/api/axiosConfig'
+import { useWebSocket } from '@/composables/useWebSocket'
 
-// Initialize API client
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
-  headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json'
-  }
-})
 
-// Add auth token to requests
-apiClient.interceptors.request.use(config => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// WebSocket for real-time updates
+const { connect, isConnected, send } = useWebSocket()
 
 // Reactive state
 const loading = ref(false)
@@ -543,6 +532,13 @@ const newGrade = ref({
 })
 
 // Computed properties
+const filteredClassSubjects = computed(() => {
+  if (!newGrade.value.student_id) return classSubjects.value
+  const student = students.value.find(s => (s.user_id || s.id) === newGrade.value.student_id)
+  if (!student || !student.current_class_id) return classSubjects.value
+  return classSubjects.value.filter(cs => cs.class_id === student.current_class_id)
+})
+
 const filteredGrades = computed(() => {
   let result = grades.value
 
@@ -584,18 +580,27 @@ const filteredGrades = computed(() => {
 const fetchAll = async () => {
   loading.value = true
   try {
-    const [cls, sub, term, stu, cs] = await Promise.all([
+    const [authUser, cls, sub, term, stu, cs] = await Promise.all([
+      apiClient.get('/auth/user'),
       apiClient.get('/classes'),
       apiClient.get('/subjects'),
       apiClient.get('/terms'),
-      apiClient.get('/students'),
+      apiClient.get('/students', { params: { per_page: 1000 } }),
       apiClient.get('/my-class-subjects')
     ])
-    classes.value = cls.data.data
-    subjects.value = sub.data.data
-    terms.value = term.data.data
-    students.value = stu.data.data
-    classSubjects.value = cs.data.data
+    // set user
+    if (authUser?.data?.user) {
+      user.value = authUser.data.user
+    }
+    classes.value = Array.isArray(cls?.data?.data) ? cls.data.data : []
+    subjects.value = Array.isArray(sub?.data?.data) ? sub.data.data : []
+    terms.value = Array.isArray(term?.data?.data) ? term.data.data : []
+
+    // Students may be paginated; extract inner data array safely
+    const stuData = stu?.data?.data
+    students.value = Array.isArray(stuData) ? stuData : (stuData?.data ?? [])
+
+    classSubjects.value = Array.isArray(cs?.data?.data) ? cs.data.data : []
     await fetchGrades()
   } catch (err) {
     error.value = 'Failed to load data: ' + (err.response?.data?.message || err.message)
@@ -1031,10 +1036,17 @@ const handleScoresChartClick = (event) => {
   }
 }
 
-const openAddModal = () => {
+const openAddModal = async () => {
   isEditMode.value = false
   selectedGrade.value = null
   resetGradeForm()
+  // ensure we have the freshest class-subjects before opening
+  try {
+    const cs = await apiClient.get('/my-class-subjects')
+    classSubjects.value = Array.isArray(cs?.data?.data) ? cs.data.data : []
+  } catch (e) {
+    // ignore; keep existing list
+  }
   showAddModal.value = true
 }
 
@@ -1083,31 +1095,107 @@ const submitNewGrade = async () => {
   }
 
   try {
+    let response
+    let updateType = ''
+    
     if (isEditMode.value && selectedGrade.value) {
-      const res = await apiClient.put(`/grades/${selectedGrade.value.id}`, payload)
+      response = await apiClient.put(`/grades/${selectedGrade.value.id}`, payload)
       const idx = grades.value.findIndex(g => g.id === selectedGrade.value.id)
-      if (idx !== -1) grades.value[idx] = res.data.data
+      if (idx !== -1) grades.value[idx] = response.data.data
+      updateType = 'grade_updated'
     } else {
-      const res = await apiClient.post('/grades', payload)
-      grades.value.unshift(res.data.data)
+      response = await apiClient.post('/grades', payload)
+      grades.value.unshift(response.data.data)
+      updateType = 'grade_created'
     }
+
+    const gradeData = response.data.data
+
+    // Broadcast real-time update via WebSocket
+    if (isConnected.value) {
+      const updateMessage = {
+        type: updateType,
+        grade: gradeData,
+        student_id: gradeData.student_id,
+        teacher_id: user.value.id,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          subject: gradeData.class_subject?.subject?.subject_name || 'Unknown',
+          assessment_type: gradeData.assessment_type,
+          grade_letter: gradeData.grade_letter,
+          score: `${gradeData.score_obtained}/${gradeData.max_score}`
+        }
+      }
+      
+      const success = send(updateMessage)
+      if (success) {
+        console.log('✅ Real-time grade update broadcast:', updateMessage)
+      } else {
+        console.warn('⚠️ Failed to broadcast grade update via WebSocket')
+      }
+    }
+
+    // Show success notification
+    const actionText = isEditMode.value ? 'updated' : 'added'
+    const studentName = students.value.find(s => s.id === gradeData.student_id)?.user?.first_name || 'Student'
+    const subjectName = gradeData.class_subject?.subject?.subject_name || 'Unknown Subject'
+    
+    showSuccessNotification(
+      `Grade ${actionText} successfully!`,
+      `${studentName}'s ${gradeData.assessment_type} grade in ${subjectName}: ${gradeData.grade_letter} (${gradeData.score_obtained}%)`
+    )
+    
     showAddModal.value = false
     resetGradeForm()
     updateCharts()
+
   } catch (err) {
-    alert(err.response?.data?.message || 'Failed to save grade')
+    console.error('Error submitting grade:', err)
+    const errorMessage = err.response?.data?.message || 'Failed to save grade'
+    alert(errorMessage)
   }
 }
 
 const deleteGrade = async (id) => {
   if (!confirm('Are you sure you want to delete this grade?')) return
+  
+  // Get grade data before deletion for WebSocket broadcast
+  const gradeToDelete = grades.value.find(g => g.id === id)
+  
   try {
     await apiClient.delete(`/grades/${id}`)
     grades.value = grades.value.filter(g => g.id !== id)
+    
+    // Broadcast real-time update via WebSocket
+    if (isConnected.value && gradeToDelete) {
+      const updateMessage = {
+        type: 'grade_deleted',
+        grade_id: id,
+        grade: gradeToDelete,
+        student_id: gradeToDelete.student_id,
+        teacher_id: user.value.id,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          subject: gradeToDelete.class_subject?.subject?.subject_name || 'Unknown',
+          assessment_type: gradeToDelete.assessment_type,
+          grade_letter: gradeToDelete.grade_letter
+        }
+      }
+      
+      const success = send(updateMessage)
+      if (success) {
+        console.log('✅ Real-time grade deletion broadcast:', updateMessage)
+      }
+    }
+    
     updateCharts()
     selectedStudentGrade.value = null
     selectedGradeGroup.value = null
+    
+    showSuccessNotification('Grade deleted', 'Grade has been successfully removed')
+    
   } catch (err) {
+    console.error('Error deleting grade:', err)
     alert(err.response?.data?.message || 'Failed to delete grade')
   }
 }
@@ -1190,6 +1278,36 @@ const getInitials = (firstName, lastName) => {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
 }
 
+// Notification helper functions
+const showSuccessNotification = (title, message) => {
+  console.log(`✅ ${title}: ${message}`)
+  
+  // Show browser notification if permission granted
+  if (Notification.permission === 'granted') {
+    new Notification(title, {
+      body: message,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'grade-update'
+    })
+  }
+  
+  // You can integrate with a toast notification library here
+  // For now, we'll use console logs
+}
+
+// Initialize WebSocket connection
+const initializeWebSocket = async () => {
+  try {
+    if (!isConnected.value) {
+      await connect()
+      console.log('🔌 WebSocket connected for teacher grade updates')
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to connect WebSocket:', error)
+  }
+}
+
 const getAssessmentBadgeClass = (type) => {
   const classes = {
     'quiz': 'bg-purple-100 text-purple-800',
@@ -1222,8 +1340,9 @@ const getScoreTextClass = (score) => {
 }
 
 // Lifecycle hooks
-onMounted(() => {
-  fetchAll()
+onMounted(async () => {
+  await fetchAll()
+  await initializeWebSocket()
 })
 
 watch(grades, updateCharts, { deep: true })

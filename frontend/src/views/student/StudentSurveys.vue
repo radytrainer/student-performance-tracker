@@ -161,9 +161,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import api from '@/api/axiosConfig'
 import SurveyModal from '@/components/student/SurveyModal.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const surveys = ref([])
 const stats = ref({})
@@ -229,8 +230,25 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()
 }
 
+const auth = useAuthStore()
+let channel = null
+
 onMounted(() => {
   loadSurveys()
   loadStats()
+  // Subscribe to realtime survey assignments for this user
+  try {
+    if (window.Echo && auth?.user?.id) {
+      channel = window.Echo.private(`users.${auth.user.id}`)
+        .listen('.survey.assigned', async () => {
+          await loadSurveys()
+          await loadStats()
+        })
+    }
+  } catch {}
+})
+
+onUnmounted(() => {
+  try { if (channel) channel.unsubscribe() } catch {}
 })
 </script>

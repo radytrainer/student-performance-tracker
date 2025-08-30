@@ -20,7 +20,9 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $query = User::query()->with(['school', 'student', 'teacher']);
+        $query = User::query()->with(['school', 'student', 'teacher', 'subjects' => function($query) {
+            $query->withPivot('primary_subject', 'assigned_at');
+        }]);
 
         // Apply school isolation for admins (but not super admins)
         if (auth()->user() && auth()->user()->role === 'admin' && !auth()->user()->is_super_admin) {
@@ -42,6 +44,31 @@ class UserController extends Controller
         // Role filter
         if ($request->has('role') && !empty($request->role)) {
             $query->where('role', $request->role);
+        }
+
+        // Subject filter (for teachers only)
+        if ($request->filled('subject_id') && ($request->input('role') === 'teacher' || !$request->has('role'))) {
+            $subjectId = (int) $request->get('subject_id');
+            $query->whereHas('subjects', function($q) use ($subjectId) {
+                $q->where('subject_id', $subjectId);
+            });
+        }
+
+        // Primary subject filter (for teachers only)
+        if ($request->boolean('primary_subjects_only', false) && ($request->input('role') === 'teacher' || !$request->has('role'))) {
+            $query->whereHas('subjects', function($q) {
+                $q->wherePivot('primary_subject', true);
+            });
+        }
+
+        // Class filter (students only)
+        if ($request->filled('class_id')) {
+            $classId = (int) $request->get('class_id');
+            $query->where(function($q) use ($classId) {
+                $q->where('role', 'student')->whereHas('student', function($qs) use ($classId) {
+                    $qs->where('current_class_id', $classId);
+                });
+            });
         }
 
         // Status filter
@@ -114,7 +141,9 @@ class UserController extends Controller
 
     public function show(string $id)
     {
-        $user = User::findOrFail($id);
+        $user = User::with(['school', 'student', 'teacher', 'subjects' => function($query) {
+            $query->withPivot('primary_subject', 'assigned_at');
+        }])->findOrFail($id);
         
         // Check school isolation
         if (auth()->user() && !$this->canAccessBySchool($user)) {

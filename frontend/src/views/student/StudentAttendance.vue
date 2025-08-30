@@ -4,7 +4,7 @@
     <div class="flex-1 overflow-auto p-6">
       <div class="flex justify-between items-center mb-6">
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-800">My Attendance</h1>
+          <h1 class="text-3xl font-bold text-gray-800">My Attendances</h1>
           <p class="text-gray-600 mt-1">View your attendance recode</p>
         </div>
       </div>
@@ -32,7 +32,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Present</p>
+              <p class="text-sm text-gray-500">Presents</p>
               <p class="text-2xl font-bold text-green-700">{{ summary.present }}</p>
               <p class="text-xs text-gray-400">{{ presentPercentage }}%</p>
             </div>
@@ -46,7 +46,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Absent</p>
+              <p class="text-sm text-gray-500">Absents</p>
               <p class="text-2xl font-bold text-red-700">{{ summary.absent }}</p>
               <p class="text-xs text-gray-400">{{ absentPercentage }}%</p>
             </div>
@@ -60,7 +60,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Attendance %</p>
+              <p class="text-sm text-gray-500">Attendances %</p>
               <p class="text-2xl font-bold text-blue-700">{{ attendancePercentage }}%</p>
               <p class="text-xs text-gray-400">Rate</p>
             </div>
@@ -74,7 +74,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500">Total</p>
+              <p class="text-sm text-gray-500">Totals</p>
               <p class="text-2xl font-bold text-yellow-700">{{ summary.total }}</p>
               <p class="text-xs text-gray-400">Records</p>
             </div>
@@ -86,7 +86,7 @@
 
     
         <div class="bg-white p-6 mb-6 rounded-xl shadow">
-          <h2 class="text-xl font-bold text-gray-800 mb-4">Calendar View</h2>
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Calendar Views</h2>
           <FullCalendar :options="calendarOptions" />
         </div>
 
@@ -95,7 +95,7 @@
             <div class="relative">
               <select v-model="filters.status" class="border rounded-lg p-2 pl-10 pr-4 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Statuses for attendance</option>
-                <option value="present">Present</option>
+                <option value="present">Presents</option>
                 <option value="absent">Absent</option>
                 <option value="late">Late</option>
               </select>

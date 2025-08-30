@@ -33,6 +33,12 @@ export const reportsAPI = {
   getComparison: async (params = {}) => {
     const response = await axios.get('/student/comparison', { params })
     return response.data
+  },
+
+  // List terms (for dropdowns)
+  getTerms: async (params = {}) => {
+    const response = await axios.get('/terms', { params })
+    return response.data
   }
 }
 

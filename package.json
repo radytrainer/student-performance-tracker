@@ -1,4 +1,12 @@
 {
+  "name": "grade-websocket-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for real-time grade updates",
+  "main": "websocket-server.js",
+  "scripts": {
+    "start": "node websocket-server.js",
+    "dev": "nodemon websocket-server.js"
+  },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.19",
     "@fullcalendar/interaction": "^6.1.19",

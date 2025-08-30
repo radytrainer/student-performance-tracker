@@ -384,6 +384,7 @@
               v-model="formData.password"
               type="password"
               placeholder="Create a password"
+              autocomplete="new-password"
               :class="[
                 'w-full px-3 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
                 hasError('password')
@@ -405,6 +406,7 @@
               v-model="formData.confirmPassword"
               type="password"
               placeholder="Confirm your password"
+              autocomplete="new-password"
               :class="[
                 'w-full px-3 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200',
                 hasError('confirmPassword')

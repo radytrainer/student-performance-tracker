@@ -294,8 +294,12 @@ const filteredSubjects = computed(() => {
 
 // Methods
 const viewSubject = (subject) => {
-  console.log('View subject:', subject)
-  // TODO: Navigate to subject details view
+  try {
+    // @ts-ignore
+    window.location.href = `/admin/subjects/${subject.id}`
+  } catch (e) {
+    console.log('View subject:', subject)
+  }
 }
 
 const editSubject = (subject) => {
