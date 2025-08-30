@@ -573,13 +573,14 @@ const handleStudentSubmit = async (studentData) => {
 }
 
 const viewStudent = (student) => {
-  // TODO: Navigate to student details view
-  console.log('View student:', student)
+  // Navigate to student details view
+  // For now, show a basic alert with student info
+  alert(`Student Details:\nName: ${student.full_name}\nCode: ${student.student_code}\nClass: ${student.current_class?.class_name || 'Not assigned'}\nGPA: ${student.current_gpa || 'N/A'}\nAttendance: ${student.attendance_rate || 0}%`)
 }
 
 const editStudent = (student) => {
-  // TODO: Implement edit student modal
-  console.log('Edit student:', student)
+  selectedStudent.value = student
+  showStudentModal.value = true
 }
 
 const confirmDelete = (student) => {
