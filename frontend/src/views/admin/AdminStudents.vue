@@ -6,7 +6,7 @@
     </div>
     <div v-else>
       <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Student Management</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Student Managements</h1>
         <p class="text-gray-600 mt-1">Manage student records, enrollment, and academic data</p>
       </div>
 
